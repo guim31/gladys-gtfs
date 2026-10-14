@@ -10,6 +10,8 @@ the notes of the version's GitHub Release.
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-10-14
+
 ### Added
 
 - Real time for the networks that publish SIRI or SIRI Lite instead of GTFS-RT (Ginko in Besançon,
@@ -45,5 +47,6 @@ the notes of the version's GitHub Release.
 - Scene action "Read the next departures", with a sentence ready to send.
 - Texts in English, French, German and Spanish.
 
-[Unreleased]: https://github.com/guim31/gladys-gtfs/compare/v1.0.0...HEAD
+[Unreleased]: https://github.com/guim31/gladys-gtfs/compare/v1.1.0...HEAD
+[1.1.0]: https://github.com/guim31/gladys-gtfs/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/guim31/gladys-gtfs/releases/tag/v1.0.0
