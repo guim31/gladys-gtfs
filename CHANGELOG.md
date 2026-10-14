@@ -10,6 +10,8 @@ the notes of the version's GitHub Release.
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-10-14
+
 ### Added
 
 - Next departures at the stops you choose, for any French public transport
@@ -29,3 +31,6 @@ the notes of the version's GitHub Release.
 - Scene trigger "Disruption on a followed line" (line or whole network).
 - Scene action "Read the next departures", with a sentence ready to send.
 - Texts in English, French, German and Spanish.
+
+[Unreleased]: https://github.com/guim31/gladys-gtfs/compare/v1.0.0...HEAD
+[1.0.0]: https://github.com/guim31/gladys-gtfs/releases/tag/v1.0.0
