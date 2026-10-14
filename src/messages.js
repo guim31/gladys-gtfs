@@ -212,6 +212,10 @@ export const REPORTS = {
       `Stops unknown to the SIRI server: ${stops}. Give their SIRI identifier with "Add a stop".`,
     siriRef: ({ refs }) => `SIRI identifier: ${refs}.`,
     siriRefUnused: 'This network is not read by SIRI: the SIRI identifier is not used.',
+    siriNoData:
+      'Real time (SIRI): the server answers, but without any stop nor departure. It most likely needs an API key, or refuses the one given.',
+    siriNoStopMonitoring:
+      'Real time (SIRI): this server offers no next departures by stop (StopMonitoring), only other services. Timetable only.',
     lastError: ({ error }) => `Last error: ${error}`,
   },
   fr: {
@@ -288,6 +292,10 @@ export const REPORTS = {
       `Arrêts inconnus du serveur SIRI : ${stops}. Donnez leur identifiant SIRI avec « Ajouter un arrêt ».`,
     siriRef: ({ refs }) => `Identifiant SIRI : ${refs}.`,
     siriRefUnused: "Ce réseau n'est pas lu en SIRI : l'identifiant SIRI ne sert pas.",
+    siriNoData:
+      "Temps réel (SIRI) : le serveur répond, mais sans aucun arrêt ni passage. Il demande très probablement une clé d'API, ou refuse celle donnée.",
+    siriNoStopMonitoring:
+      'Temps réel (SIRI) : ce serveur ne propose pas les prochains passages par arrêt (StopMonitoring), seulement d’autres services. Horaires théoriques seuls.',
     lastError: ({ error }) => `Dernière erreur : ${error}`,
   },
   de: {
@@ -363,6 +371,10 @@ export const REPORTS = {
     siriRef: ({ refs }) => `SIRI-Kennung: ${refs}.`,
     siriRefUnused:
       'Dieses Netz wird nicht per SIRI gelesen: Die SIRI-Kennung wird nicht verwendet.',
+    siriNoData:
+      'Echtzeit (SIRI): Der Server antwortet, aber ohne Haltestellen und ohne Abfahrten. Er verlangt sehr wahrscheinlich einen API-Schlüssel oder lehnt den angegebenen ab.',
+    siriNoStopMonitoring:
+      'Echtzeit (SIRI): Dieser Server bietet keine nächsten Abfahrten je Haltestelle (StopMonitoring), nur andere Dienste. Nur Fahrplan.',
     lastError: ({ error }) => `Letzter Fehler: ${error}`,
   },
   es: {
@@ -438,6 +450,10 @@ export const REPORTS = {
       `Paradas desconocidas para el servidor SIRI: ${stops}. Indique su identificador SIRI con «Añadir una parada».`,
     siriRef: ({ refs }) => `Identificador SIRI: ${refs}.`,
     siriRefUnused: 'Esta red no se lee por SIRI: el identificador SIRI no se usa.',
+    siriNoData:
+      'Tiempo real (SIRI): el servidor responde, pero sin ninguna parada ni salida. Lo más probable es que pida una clave de API o rechace la indicada.',
+    siriNoStopMonitoring:
+      'Tiempo real (SIRI): este servidor no ofrece las próximas salidas por parada (StopMonitoring), solo otros servicios. Solo horarios teóricos.',
     lastError: ({ error }) => `Último error: ${error}`,
   },
 };

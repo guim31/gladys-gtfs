@@ -253,6 +253,10 @@ eigene Integrationen.
   Richtung, ohne „≈“, wenn das Fahrzeug verfolgt wird. Die Störungen
   (GeneralMessage, sonst SituationExchange) speisen die Verkehrsinfo und den
   Szenen-Auslöser.
+- **Besondere Server**: Ein Server, der ohne Haltestellen und Abfahrten
+  antwortet, verlangt fast immer einen Schlüssel („Überwachung anzeigen“ sagt
+  es). Ein Server ohne nächste Abfahrten je Haltestelle (nur der geschätzte
+  Fahrplan ganzer Linien, wie BlaBlaCar Bus) wird nicht gelesen: nur Fahrplan.
 - **Sparsamkeit**: eine Anfrage pro Steig (höchstens vier pro Haltestelle)
   bei jeder Aktualisierung, nur für Haltestellen mit einer Abfahrt in den
   nächsten 90 Minuten (sonst alle 15 Minuten), und die Störungen alle

@@ -394,6 +394,31 @@ utile** (`Feed.usesSiri`). Constaté, d'où, et ce qui reste à vérifier :
   perturbations toutes les 5 min ; 429 → plus rien pendant `Retry-After` (5 min par défaut) ; proxy
   transport.data.gouv.fr : 30 s par URL (une URL SOAP sert tous les arrêts : un arrêt par 30 s).
   Aucun quota réseau par réseau n'a pu être lu (pages inaccessibles) : à compléter.
+- **Sonde du 14/10 (orchestrateur, réseau réel, sans clé)** : Okina Pays de la Loire
+  (`api.okina.fr/gateway/pdl/realtime/anshar/ws/services`, RequestorRef `opendata`) :
+  StopPointsDiscovery **10 435 arrêts, 2,2 Mo** (`MOBIITI:Quay:4371`), puis **429** sur tout le
+  reste ; Okina Nouvelle-Aquitaine (`…/nam/…?datasetId=…`, huit réseaux sur la même passerelle) :
+  discovery **vide** puis 429 → **429 partagé par hôte** (`HostGates` du service, toutes les
+  lectures du même hôte, `Retry-After` sinon 5 min doublées à chaque 429 jusqu'à 1 h, puis 10 s
+  au moins entre deux requêtes, divisé par deux après une heure sans 429), quais et réseaux **à
+  tour de rôle** ; liste d'arrêts **gardée un jour dans `/data`** (`siri-stops-<réseau>-<n>.json`,
+  effacée avec le réseau). Pourquoi `datasetId` nam rend 0 arrêt : non trouvé (la fourche publique
+  okina-transport/anshar ne sert que SX/VM/ET ; la passerelle fait plus). **Anshar rend à un
+  RequestorRef les situations changées depuis son appel précédent** (`Situations.java` :
+  `changesMap` par requestorId) : en SX on cumule par `SituationNumber`, on retire les closes et
+  les terminées (`currentSituations`). Avec le RequestorRef public partagé `opendata`, d'autres
+  clients consomment ces changements : à vérifier par deux lectures SX successives. Ginko
+  (`api.ginko.voyage/Siri/Siri.do`) sans clé : discovery 116 octets **vide**, GM vide → état
+  « répond sans aucun arrêt ni passage : clé requise ? » (`noData`). Idelis
+  (`api.idelis.fr/siri.svc`), ARVI (Hanover, RequestorRef `open-data`) : 403 ; CTS : 401 sans clé
+  (404 sur situation-exchange). TUB (IRYS, `…:8080/irys_server`) : `OtherError: [BAD_REQUEST] :
+Invalid Request Structure` — IRYS valide la requête contre son XSD (afimb/irys,
+  `DiscoveryService.java`) où l'attribut **`version` de `Request` est obligatoire** : on envoie
+  `<Request version="2.0">` partout. évolitY (`siri.evolity-si.fr/`) : page HTML → `NotSiriError`,
+  « le serveur ne répond pas en SIRI ». BlaBlaCar (`…/api/siri-lite/estimated-timetable`) : 404
+  partout → l'URL du catalogue nomme un autre service que stop-monitoring : un 404 sur
+  stop-monitoring vaut « pas de StopMonitoring » (état dédié, plus redemandé avant 24 h), pas
+  « arrêt inconnu ». Non couvert : estimated-timetable seul.
 - **Pas de migration** : les appareils gardent leurs `external_id` et fonctionnalités ; aucun
   paramètre d'appareil n'est ajouté pour un réseau du catalogue (seulement `siri_url` d'un réseau
   ajouté par URL, `siri_ref` d'un arrêt qui en a un). Un réseau du catalogue ajouté avant (pas de

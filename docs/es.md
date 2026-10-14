@@ -243,6 +243,11 @@ dedicadas.
   dirección, sin «≈» cuando el vehículo está seguido. Las incidencias
   (GeneralMessage, si no SituationExchange) alimentan la info de tráfico y el
   disparador de escena.
+- **Servidores particulares**: un servidor que responde sin ninguna parada
+  ni salida casi siempre pide una clave («Mostrar lo vigilado» lo indica). Un
+  servidor que no ofrece las próximas salidas por parada (solo los horarios
+  estimados de líneas enteras, como BlaBlaCar Bus) no se lee: solo horarios
+  teóricos.
 - **Moderación**: una petición por andén (cuatro como máximo por parada) en
   cada actualización, solo para las paradas con una salida en los próximos
   90 minutos (cada 15 minutos si no), y las incidencias cada 5 minutos. Dos

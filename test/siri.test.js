@@ -10,6 +10,8 @@ import assert from 'node:assert/strict';
 import { readAlerts } from '../src/alerts.js';
 import { siriUrl } from '../src/catalog.js';
 import { resolveRedirects } from '../src/http.js';
+import { HostGates, SiriReader } from '../src/siri-feed.js';
+import { NotSiriError, soapEnvelope } from '../src/siri.js';
 import { siriKeyFor } from '../src/config.js';
 import { parseGtfs } from '../src/gtfs.js';
 import {
@@ -160,7 +162,7 @@ test('the key goes where each platform wants it, or where the user says', () => 
   });
   assert.match(
     siriRequest(open, 'stopPoints', { key: '', now: 0 }).init.body,
-    /<sw:StopPointsDiscovery [^>]*><Request><siri:RequestTimestamp>[^<]+<\/siri:RequestTimestamp><siri:RequestorRef>open-data</,
+    /<sw:StopPointsDiscovery [^>]*><Request version="2.0"><siri:RequestTimestamp>[^<]+<\/siri:RequestTimestamp><siri:RequestorRef>open-data</,
   );
   assert.equal(redact('RequestorRef k1-secret refused', 'k1-secret'), 'RequestorRef *** refused');
   assert.equal(redact('apikey abcd1234 refused', 'apikey: abcd1234'), 'apikey *** refused');
@@ -448,4 +450,91 @@ test('data.gouv.fr links: the producer address of the catalog, else the redirect
     'https://api.ginko.voyage/Siri/Siri.do',
   );
   await assert.rejects(resolveRedirects(fetch, 'https://www.data.gouv.fr/gone'), /HTTP 404/);
+});
+
+test('IRYS (TUB): every request carries the version its XSD requires; its refusal is read', () => {
+  for (const service of ['stopPoints', 'stopMonitoring', 'generalMessage', 'situationExchange']) {
+    assert.match(
+      soapEnvelope(service, { requestorRef: 'r', now: 0, monitoringRef: 'X' }),
+      /<Request version="2\.0">/,
+      service,
+    );
+  }
+  assert.deepEqual(siriError(siri('irys-invalid-request.xml')), {
+    code: 'OtherError',
+    text: '[BAD_REQUEST] : Invalid Request Structure',
+  });
+});
+
+test('an HTML page or an unreadable body is not SIRI, said so', () => {
+  assert.throws(() => parseSiri(fixture('siri/html-home-page.html')), NotSiriError);
+  assert.throws(() => parseSiri('<html><body>x</body></html>'), /an HTML page, not SIRI/);
+  assert.throws(() => parseSiri('{ not json'), /unreadable answer/);
+  assert.deepEqual(readStopPoints(siri('soap-empty-answers.xml')), []);
+  assert.deepEqual(readStopVisits(siri('soap-empty-answers.xml')), []);
+});
+
+test('hosts: a 429 holds every network of the host, then spaces its requests', () => {
+  const gates = new HostGates();
+  const a = 'https://api.okina.fr/gateway/nam/realtime/anshar/ws/services/?datasetId=A';
+  const b = 'https://api.okina.fr/gateway/nam/realtime/anshar/ws/services/?datasetId=B';
+  const other = 'https://api.ginko.voyage/Siri/Siri.do';
+  assert.ok(gates.take(a, 0));
+  assert.ok(gates.take(b, 0), 'no limit before a 429');
+  gates.limited(a, 0, 120_000);
+  assert.equal(gates.take(b, 60_000), false, 'the same host, another dataset');
+  assert.ok(gates.take(other, 60_000));
+  assert.ok(gates.take(b, 120_000));
+  assert.equal(gates.take(a, 125_000), false, '10 s between two requests now');
+  assert.ok(gates.take(a, 130_000));
+  // Without Retry-After: 5 minutes doubled at each 429 (this is the second).
+  gates.limited(a, 200_000);
+  assert.equal(gates.blocked(b, 200_000 + 599_000), true);
+  assert.equal(gates.blocked(b, 200_000 + 600_000), false);
+  gates.limited(a, 900_000);
+  assert.equal(gates.blocked(a, 900_000 + 1_199_000), true, 'then 20 minutes');
+  // An hour without 429: the spacing halves.
+  assert.equal(gates.state(a).spacing, 40_000, '10, 20, 40 s after three 429');
+  assert.ok(gates.take(a, 900_000 + 3600_000 + 1));
+  assert.equal(gates.state(a).spacing, 20_000);
+});
+
+test('Anshar gives the changes since the last call: situations kept until closed or over', () => {
+  const reader = new SiriReader({ info: { name: 'x', siri: [] }, fetch: null });
+  const anshar = { url: 'https://api.okina.fr/gateway/pdl/realtime/anshar/ws/services' };
+  const plain = { url: 'https://api.example.org/siri' };
+  const situation = (id, { closed = false, end = null } = {}) => ({
+    Siri: {
+      ServiceDelivery: {
+        SituationExchangeDelivery: {
+          Situations: {
+            PtSituationElement: {
+              SituationNumber: id,
+              Progress: closed ? 'closed' : 'open',
+              ValidityPeriod: {
+                StartTime: '2026-10-14T00:00:00Z',
+                ...(end ? { EndTime: end } : {}),
+              },
+              Summary: `Message ${id}`,
+            },
+          },
+        },
+      },
+    },
+  });
+  const now = Date.parse('2026-10-14T12:00:00Z');
+  const ids = (list) => list.map((item) => item.id).sort();
+  assert.deepEqual(ids(reader.currentSituations(situation('A'), anshar, now)), ['A']);
+  assert.deepEqual(ids(reader.currentSituations(situation('B'), anshar, now)), ['A', 'B']);
+  assert.deepEqual(ids(reader.currentSituations(situation('A', { closed: true }), anshar, now)), [
+    'B',
+  ]);
+  assert.deepEqual(
+    ids(reader.currentSituations(situation('C', { end: '2026-10-14T11:00:00Z' }), anshar, now)),
+    ['B'],
+    'over',
+  );
+  // Another server gives all of them each time.
+  assert.deepEqual(ids(reader.currentSituations(situation('D'), plain, now)), ['D']);
+  assert.deepEqual(ids(reader.currentSituations(situation('D', { closed: true }), plain, now)), []);
 });

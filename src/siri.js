@@ -89,6 +89,9 @@ export function siriEndpoint({ url, format, requestorRef = null }) {
     const parsed = new URL(url);
     const match = LITE_PATH.exec(parsed.pathname);
     endpoint.ext = match?.[2] ?? '';
+    // The service the catalog URL names: "estimated-timetable" says the
+    // server may offer no stop monitoring at all (BlaBlaCar Bus).
+    endpoint.service = match?.[1]?.toLowerCase() ?? null;
     endpoint.base = `${parsed.origin}${parsed.pathname.replace(LITE_PATH, '').replace(/\/+$/, '')}`;
     // Parameters of a request, never kept from the catalog URL.
     for (const name of ['MonitoringRef', 'LineRef', 'MaximumStopVisits', 'StopVisitTypes']) {
@@ -147,8 +150,8 @@ export function soapEnvelope(service, { requestorRef, now, monitoringRef = null 
   const head = `<siri:RequestTimestamp>${timestamp}</siri:RequestTimestamp><siri:RequestorRef>${escapeXml(requestorRef)}</siri:RequestorRef><siri:MessageIdentifier>${id}</siri:MessageIdentifier>`;
   const body =
     service === 'stopPoints'
-      ? `<Request>${head}</Request>`
-      : `<ServiceRequestInfo>${head}</ServiceRequestInfo><Request><siri:RequestTimestamp>${timestamp}</siri:RequestTimestamp><siri:MessageIdentifier>${id}</siri:MessageIdentifier>${
+      ? `<Request version="2.0">${head}</Request>`
+      : `<ServiceRequestInfo>${head}</ServiceRequestInfo><Request version="2.0"><siri:RequestTimestamp>${timestamp}</siri:RequestTimestamp><siri:MessageIdentifier>${id}</siri:MessageIdentifier>${
           monitoringRef
             ? `<siri:MonitoringRef>${escapeXml(monitoringRef)}</siri:MonitoringRef><siri:StopVisitTypes>departures</siri:StopVisitTypes>`
             : ''
@@ -222,14 +225,20 @@ export function redact(text, key) {
 
 // --- reading -------------------------------------------------------------------
 
-/** A SIRI answer, JSON or XML, as a tree. */
+export class NotSiriError extends Error {}
+
+/** A SIRI answer, JSON or XML, as a tree; NotSiriError for anything else (an HTML page). */
 export function parseSiri(body) {
   const text = Buffer.isBuffer(body) ? body.toString('utf8') : String(body);
   const start = text.trimStart();
-  if (start.startsWith('<')) {
-    return parseXml(start);
+  if (/^<(!doctype\s+html|html[\s>])/i.test(start)) {
+    throw new NotSiriError('an HTML page, not SIRI');
   }
-  return JSON.parse(start);
+  try {
+    return start.startsWith('<') ? parseXml(start) : JSON.parse(start);
+  } catch (err) {
+    throw new NotSiriError(`unreadable answer (${err.message})`);
+  }
 }
 
 const lower = (name) => String(name).toLowerCase();
@@ -479,12 +488,11 @@ function generalMessages(tree) {
 function exchangedSituations(tree) {
   const situations = [];
   for (const element of findAll(tree, 'PtSituationElement')) {
-    if (/closed/i.test(textOf(child(element, 'Progress')))) {
-      continue;
-    }
+    const closed = /closed/i.test(textOf(child(element, 'Progress')));
     const affects = child(element, 'Affects') ?? {};
     const consequences = child(element, 'Consequences') ?? {};
     situations.push({
+      closed,
       id: textOf(child(element, 'SituationNumber')),
       lineRefs: lineRefsOf([affects, consequences]),
       stopRefs: stopRefsOf([affects, consequences]),
@@ -510,11 +518,13 @@ function exchangedSituations(tree) {
 /**
  * The disruptions of a GeneralMessage or SituationExchange answer:
  * `{ id, lineRefs, stopRefs, periods: [{ start, end }] (epoch ms), header,
- * description, url }` (texts as `[{ text, language }]`).
+ * description, url }` (texts as `[{ text, language }]`). A closed situation
+ * is left out, or kept with `closed: true` for `keepClosed` (an incremental
+ * server says so to remove it).
  */
-export function readSituations(tree) {
-  return [...generalMessages(tree), ...exchangedSituations(tree)].filter(
-    (situation) => situation.header.length > 0,
+export function readSituations(tree, { keepClosed = false } = {}) {
+  return [...generalMessages(tree), ...exchangedSituations(tree)].filter((situation) =>
+    situation.closed ? keepClosed : situation.header.length > 0,
   );
 }
 

@@ -236,6 +236,10 @@ TCL and IDFM, which publish it too, have their dedicated integrations.
   direction, without "≈" when the vehicle is tracked. The disruptions
   (GeneralMessage, else SituationExchange) feed the traffic info and the
   scene trigger.
+- **Particular servers**: a server answering without any stop nor departure
+  almost always wants a key ("Show what is watched" says so). A server that
+  offers no next departures by stop (only the estimated timetable of whole
+  lines, like BlaBlaCar Bus) is not read: timetable only.
 - **Restraint**: one request per stop point (four at most per stop) at each
   refresh, only for the stops with a departure within 90 minutes (every
   15 minutes otherwise), and the disruptions every 5 minutes. Two stops of two

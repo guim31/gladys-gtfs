@@ -65,10 +65,12 @@ export class Feed {
    * @param {() => { id: string, lines: string[] }[]} options.stops the watched stops of the network
    * @param {(task: () => Promise<any>) => Promise<any>} options.queue serializes the parses
    * @param {() => string} [options.key] the SIRI key of the network ('' when none)
+   * @param {import('./siri-feed.js').HostGates} [options.gates] SIRI pace, shared by the networks
    */
-  constructor({ network, fetch, now, dataDir, stops, queue, key = () => '' }) {
+  constructor({ network, fetch, now, dataDir, stops, queue, key = () => '', gates }) {
     this.info = network;
     this.key = key;
+    this.gates = gates;
     this.reader = null;
     this.fetch = fetch;
     this.now = now;
@@ -115,6 +117,7 @@ export class Feed {
     this.network = null;
     this.realtime = null;
     this.parts.clear();
+    await this.reader?.dropCache();
     this.reader = null;
     await rm(this.path, { force: true }).catch(() => {});
   }
@@ -251,7 +254,12 @@ export class Feed {
   siriReader() {
     const signature = JSON.stringify(this.info.siri ?? []);
     if (!this.reader || this.reader.signature !== signature) {
-      this.reader = new SiriReader({ info: this.info, fetch: this.fetch });
+      this.reader = new SiriReader({
+        info: this.info,
+        fetch: this.fetch,
+        gates: this.gates,
+        cacheDir: this.dataDir,
+      });
       this.reader.signature = signature;
     }
     return this.reader;

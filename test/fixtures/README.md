@@ -41,3 +41,9 @@ them.
   line names are those of that fixture, the producer is "TEST". The official
   examples of SIRI-CEN were not copied (no licence stated for them).
   `scripts/probe-siri.mjs` asks a real server, to check these shapes against.
+  Three reproduce what the probe of 14 October 2026 met on real servers (no
+  body was recorded, the answers were described): `irys-invalid-request.xml`
+  (the refusal of an IRYS server, TUB, built from IRYS's own code),
+  `soap-empty-answers.xml` (an answer with nothing in it, as Ginko gives
+  without a key) and `html-home-page.html` (a home page where SIRI was
+  expected, évolitY).

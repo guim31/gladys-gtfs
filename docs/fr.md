@@ -251,13 +251,19 @@ publient aussi, ont leurs intégrations dédiées.
   ligne et direction, sans « ≈ » quand le véhicule est suivi. Les
   perturbations (GeneralMessage, sinon SituationExchange) alimentent l'info
   trafic et le déclencheur de scène.
+- **Serveurs particuliers** : un serveur qui répond sans aucun arrêt ni
+  passage demande presque toujours une clé (« Afficher la surveillance » le
+  dit). Un serveur qui ne propose pas les prochains passages par arrêt (seulement les horaires estimés de
+  toute la ligne, comme BlaBlaCar Bus) n'est pas lu : horaires théoriques.
 - **Sobriété** : une requête par quai (quatre au plus par arrêt) à chaque
   mise à jour, seulement pour les arrêts qui ont un passage dans les
   90 minutes (toutes les 15 minutes sinon), et les perturbations toutes les
   5 minutes. Deux arrêts de deux quais, une mise à jour par minute : environ
   250 requêtes par heure en journée, quelques Ko chacune. Un serveur qui
   répond « trop de requêtes » (429) n'est plus interrogé pendant le délai
-  qu'il demande (5 minutes par défaut), le proxy de transport.data.gouv.fr
+  qu'il demande (5 minutes par défaut, puis davantage), pour tous les
+  réseaux du même serveur (Okina en sert huit), puis les quais passent à
+  tour de rôle ; le proxy de transport.data.gouv.fr
   une fois par 30 secondes au plus. Si votre réseau fixe un quota plus bas
   (voir la page de son jeu de données), choisissez une mise à jour toutes les
   2 ou 5 minutes.

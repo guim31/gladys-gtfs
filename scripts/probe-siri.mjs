@@ -5,7 +5,7 @@
 // departures at two stops, the disruptions. Never prints the key, nor a URL
 // carrying it (hosts and paths only).
 //
-//   node scripts/probe-siri.mjs <url> [--key-env VAR] [--format siri|lite]
+//   node scripts/probe-siri.mjs <url> [--key-env VAR] [--format siri|lite] [--spacing MS]
 //        [--requestor-ref REF] [--stops REF1,REF2]
 //   node scripts/probe-siri.mjs --catalog [--probe] [--key-env VAR]
 //
@@ -14,6 +14,8 @@
 // --format         forced flavour (guessed from the URL otherwise)
 // --requestor-ref  public RequestorRef (the catalog's), when no key
 // --stops          MonitoringRefs to ask (else the first two discovered)
+// --spacing MS     at least MS between two requests to one host (2000; Okina
+//                  limits by address); a 429 waits its Retry-After, then once more
 // --catalog        lists the transport.data.gouv.fr datasets that publish SIRI
 //                  and no GTFS-RT; with --probe, asks each one (without key
 //                  unless --key-env) whether it answers, one second apart.
@@ -70,8 +72,34 @@ const time = (ms) =>
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 /** One request: `{ tree }` or `{ error, access }`, the key removed from any text. */
+const SPACING_MS = Number(option('--spacing') ?? 2000);
+const lastByHost = new Map();
+
+/** Waits for the host's turn: one request per SPACING_MS. */
+async function turn(url) {
+  const host = hostOf(url);
+  const wait = (lastByHost.get(host) ?? 0) + SPACING_MS - Date.now();
+  if (wait > 0) {
+    await sleep(wait);
+  }
+  lastByHost.set(host, Date.now());
+}
+
+/** One request, asked again once after a 429 (its Retry-After, 30 s to 2 min). */
 async function ask(endpoint, service, monitoringRef = null) {
+  const answer = await askOnce(endpoint, service, monitoringRef);
+  if (answer.status !== 429) {
+    return answer;
+  }
+  const wait = Math.min(Math.max(answer.retryAfterMs ?? 30000, 30000), 120000);
+  console.log(`  (429 from ${hostOf(endpoint.url)}: waiting ${Math.round(wait / 1000)} s)`);
+  await sleep(wait);
+  return askOnce(endpoint, service, monitoringRef);
+}
+
+async function askOnce(endpoint, service, monitoringRef = null) {
   const { url, init } = siriRequest(endpoint, service, { key, now: Date.now(), monitoringRef });
+  await turn(url);
   const started = Date.now();
   try {
     const { body } = await getBuffer(fetch, url, {
@@ -106,6 +134,8 @@ async function ask(endpoint, service, monitoringRef = null) {
         key,
       ),
       access: err.status === 401 || err.status === 403 || (reported && isAccessError(reported)),
+      status: err.status ?? null,
+      retryAfterMs: err.retryAfterMs ?? null,
       ms: Date.now() - started,
     };
   }
@@ -138,7 +168,8 @@ async function probe(entry, { brief = false } = {}) {
   if (discovery.tree) {
     points = readStopPoints(discovery.tree);
     console.log(
-      `StopPointsDiscovery: ${points.length} stop points (${discovery.ms} ms, ${discovery.bytes} bytes)`,
+      `StopPointsDiscovery: ${points.length} stop points (${discovery.ms} ms, ${discovery.bytes} bytes)` +
+        (points.length === 0 ? ' — empty: a key is probably required' : ''),
     );
     for (const point of points.slice(0, 3)) {
       console.log(`  ${point.ref} — ${point.name}`);

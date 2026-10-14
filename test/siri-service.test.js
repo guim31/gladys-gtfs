@@ -578,3 +578,130 @@ test('a data.gouv.fr link without a server behind is said, nothing is POSTed', a
     'tried again 30 minutes later only',
   );
 });
+
+// --- what the real servers answered (probe of 14 October 2026) -----------------------
+
+test('answers without any stop nor departure (Ginko without a key): said, with the key hint', async (t) => {
+  const empty = () => xml(fixture('siri/soap-empty-answers.xml'));
+  const network = createFetch({ [SOAP]: empty });
+  const world = await createWorld({ networks: [], network });
+  t.after(() => world.app.stop());
+  await action(world, 'add_network', { network: GTFS_URL, name: 'Ginko', siri: SOAP });
+  await action(world, 'add_stop', { stop: 'Pader' });
+  const status = fr(await action(world, 'status'));
+  assert.match(
+    status,
+    /Temps réel \(SIRI\) : le serveur répond, mais sans aucun arrêt ni passage\. Il demande très probablement une clé d'API/,
+  );
+  assert.match(status, /saisissez-la dans la configuration de l'intégration/);
+  assert.match(
+    status,
+    /Dernière erreur : soap\.example\.org: answers without any stop nor departure/,
+  );
+});
+
+test('an HTML page instead of SIRI (évolitY): said plainly, the timetable stays', async (t) => {
+  const page = () =>
+    new Response(fixture('siri/html-home-page.html'), {
+      status: 200,
+      headers: { 'content-type': 'text/html' },
+    });
+  const network = createFetch({ [SOAP]: page });
+  const world = await createWorld({ networks: [], network });
+  t.after(() => world.app.stop());
+  await action(world, 'add_network', { network: GTFS_URL, name: 'évolitY', siri: SOAP });
+  await action(world, 'add_stop', { stop: 'Pader' });
+  const device = await create(world, 'Pader');
+  assert.match(
+    fr(await action(world, 'status')),
+    /Dernière erreur : soap\.example\.org: the server does not answer in SIRI \(an HTML page, not SIRI\)/,
+  );
+  assert.match(world.fake.lastState(featureId(device, 'board')), /≈/);
+});
+
+test('a SIRI Lite server offering only the estimated timetable (BlaBlaCar Bus): no stop asked again', async (t) => {
+  const et = 'https://rt.example.org/api/siri-lite/estimated-timetable';
+  const network = createFetch({});
+  const world = await createWorld({ networks: [], network });
+  t.after(() => world.app.stop());
+  await action(world, 'add_network', { network: GTFS_URL, name: 'BlaBlaCar', siri: et });
+  await action(world, 'add_stop', { stop: 'Pader' });
+  const asked = network.calls.filter((c) => c.url.includes('/stop-monitoring')).length;
+  assert.equal(asked, 1, 'the first 404 is enough');
+  const status = fr(await action(world, 'status'));
+  assert.match(
+    status,
+    /ce serveur ne propose pas les prochains passages par arrêt \(StopMonitoring\)/,
+  );
+  assert.doesNotMatch(status, /Arrêts inconnus/);
+  world.clock.advance(60_000);
+  await world.service.refresh();
+  assert.equal(network.calls.filter((c) => c.url.includes('/stop-monitoring')).length, asked);
+});
+
+test('one host, two networks (Okina): a 429 holds both, then every stop gets its turn', async (t) => {
+  const second = 'https://rt.example.org/siri-lite-2/';
+  const sm = `${LITE}stop-monitoring?MonitoringRef=`;
+  const routes = liteRoutes({
+    [`${second}stoppoints-discovery`]: 404,
+    [`${second}general-message`]: () => json(fixtureJson('siri/lite-general-message.json')),
+    [`${second}stop-monitoring?MonitoringRef=5780`]: emptyLite,
+    [`${second}stop-monitoring?MonitoringRef=5781`]: emptyLite,
+    [`${second}stop-monitoring?MonitoringRef=5782`]: emptyLite,
+    [GINKO_GTFS]: fixture('gtfs/tisseo-gtfs-sample.zip'),
+  });
+  const network = createFetch(routes);
+  const world = await createWorld({ networks: [], network });
+  t.after(() => world.app.stop());
+  await action(world, 'add_network', { network: GTFS_URL, name: 'Tisséo', siri: LITE });
+  await action(world, 'add_network', { network: GINKO_GTFS, name: 'Autre', siri: second });
+  await action(world, 'add_stop', { stop: 'Pader', network: 'Tisséo' });
+  await action(world, 'add_stop', { stop: 'Pader', network: 'Autre' });
+  network.routes[`${sm}5781`] = () =>
+    new Response('Rate limit exceeded', { status: 429, headers: { 'retry-after': '120' } });
+  world.clock.advance(60_000);
+  await world.service.refresh();
+  const held = network.calls.length;
+  world.clock.advance(60_000);
+  await world.service.refresh();
+  assert.equal(network.calls.length, held, 'neither network asks the host for 2 minutes');
+  network.routes[`${sm}5781`] = () => json(fixtureJson('siri/lite-stop-monitoring-5781.json'));
+  // Then one request per 10 s on that host: a refresh a minute reads one
+  // stop point, the least recently read first.
+  const asked = new Set();
+  for (let i = 0; i < 8; i += 1) {
+    world.clock.advance(60_000);
+    const before = network.calls.length;
+    await world.service.refresh();
+    const calls = network.calls.slice(before).filter((c) => c.url.includes('stop-monitoring'));
+    assert.ok(calls.length <= 1, `one request at most, refresh ${i}`);
+    calls.forEach((c) => asked.add(c.url.replace(/^https:\/\/rt\.example\.org\//, '')));
+  }
+  assert.ok(asked.size >= 4, `the stops take turns: ${[...asked].join(', ')}`);
+});
+
+test('the stop list of the server is kept in /data: not asked again after a restart', async (t) => {
+  const bodies = [];
+  const first = await createWorld({
+    networks: [],
+    network: createFetch({ [SOAP]: soapServer(bodies) }),
+  });
+  await action(first, 'add_network', { network: GTFS_URL, name: 'Tisséo', siri: SOAP });
+  await action(first, 'add_stop', { stop: 'Pader' });
+  await first.app.stop();
+  const discoveries = () => bodies.filter((b) => b.includes('<sw:StopPointsDiscovery')).length;
+  assert.equal(discoveries(), 1);
+  const second = await createWorld({
+    networks: [],
+    dataDir: first.dataDir,
+    network: createFetch({ [SOAP]: soapServer(bodies) }),
+  });
+  t.after(() => second.app.stop());
+  assert.ok(bodies.some((b) => b.includes('TEST:StopPoint:BP:5780:LOC')));
+  assert.equal(discoveries(), 1, 'read from /data');
+  const id = second.service.watch.networks[0].id;
+  const kept = join(first.dataDir, `siri-stops-${id}-0.json`);
+  assert.ok((await readFile(kept, 'utf8')).includes('TEST:StopPoint:BP:PADER3:LOC'));
+  await action(second, 'remove', { name: 'Tisséo' });
+  await assert.rejects(readFile(kept, 'utf8'), /ENOENT/);
+});

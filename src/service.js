@@ -38,6 +38,7 @@ import {
   whenText,
 } from './devices.js';
 import { Feed, serial } from './feed.js';
+import { HostGates } from './siri-feed.js';
 import { hostOf } from './http.js';
 import { REPORTS, TEXT, lines, render, say } from './messages.js';
 import { formatDistance, nearest, normalize, searchByName } from './search.js';
@@ -147,6 +148,8 @@ export class Transit {
     this.dataDir = dataDir;
     this.catalog = new Catalog({ fetch, now, url: catalogUrl });
     this.queue = serial();
+    // One pace per SIRI host for every network (Okina serves eight).
+    this.siriGates = new HostGates();
     this.config = normalizeConfig(DEFAULT_CONFIG);
     this.watch = { networks: [], stops: [], alerts: { seen: {}, followed: null } };
     this.feeds = new Map();
@@ -388,6 +391,7 @@ export class Transit {
       stops: () => this.watch.stops.filter((stop) => stop.network === network.id),
       queue: this.queue,
       key: () => this.siriKeyOf(network),
+      gates: this.siriGates,
     });
     this.feeds.set(network.id, feed);
     return feed;
@@ -526,7 +530,10 @@ export class Transit {
   }
 
   async refreshAll() {
-    for (const feed of this.activeFeeds()) {
+    // Each network first in turn: networks on one SIRI host share its pace.
+    const feeds = this.activeFeeds();
+    this.turn = ((this.turn ?? -1) + 1) % Math.max(feeds.length, 1);
+    for (const feed of [...feeds.slice(this.turn), ...feeds.slice(0, this.turn)]) {
       if (feed.network) {
         await this.refreshFeed(feed);
       }
@@ -1214,18 +1221,25 @@ export class Transit {
       .map((id) => this.watch.stops.find((stop) => stop.network === feed.id && stop.id === id))
       .filter(Boolean)
       .map((stop) => stop.name);
+    const reader = feed.reader;
     return lines(
       feed.siriAccessError
         ? render(REPORTS, 'siriKeyRefused')
-        : feed.realtimeAt
-          ? render(REPORTS, 'siriRealtime', {
-              format: this.siriFormatName(feed.info),
-              age: Math.round((now - feed.realtimeAt) / 1000),
-              tracked: feed.realtime?.tracked ?? 0,
-              requests: feed.reader?.requestsPerRefresh() ?? 0,
-            })
-          : render(REPORTS, 'siriWaiting', { format: this.siriFormatName(feed.info) }),
-      this.needsKeyHint(feed.info) && !feed.realtimeAt ? render(REPORTS, 'siriKeyHint') : null,
+        : reader?.noData
+          ? render(REPORTS, 'siriNoData')
+          : reader?.noStopMonitoring
+            ? render(REPORTS, 'siriNoStopMonitoring')
+            : feed.realtimeAt
+              ? render(REPORTS, 'siriRealtime', {
+                  format: this.siriFormatName(feed.info),
+                  age: Math.round((now - feed.realtimeAt) / 1000),
+                  tracked: feed.realtime?.tracked ?? 0,
+                  requests: feed.reader?.requestsPerRefresh() ?? 0,
+                })
+              : render(REPORTS, 'siriWaiting', { format: this.siriFormatName(feed.info) }),
+      this.needsKeyHint(feed.info) && (!feed.realtimeAt || reader?.noData)
+        ? render(REPORTS, 'siriKeyHint')
+        : null,
       unknown.length > 0
         ? render(REPORTS, 'siriUnknownStops', { stops: unknown.join(', ') })
         : null,

@@ -24,16 +24,20 @@
 // -----------------------------------------------------------------------------
 
 import { createHash } from 'node:crypto';
+import { mkdir, readFile, rename, rm, writeFile } from 'node:fs/promises';
+import { join } from 'node:path';
 import { createLogger } from '@gladysassistant/integration-sdk';
 import { indexRealtime } from './departures.js';
 import { getBuffer, hostOf, isRedirectHost, resolveRedirects } from './http.js';
 import { distanceMeters, normalize } from './search.js';
 import {
+  LITE_SERVICES,
   codeKey,
   isAccessError,
   isReferenceError,
   isUnsupportedError,
   localRef,
+  NotSiriError,
   parseSiri,
   readSituations,
   readStopPoints,
@@ -61,6 +65,11 @@ export const DISCOVERY_MAX_AGE_MS = 24 * 3600 * 1000;
 export const UNKNOWN_RETRY_MS = 6 * 3600 * 1000;
 export const PROXY_MIN_INTERVAL_MS = 30 * 1000;
 export const RESOLVE_RETRY_MS = 30 * 60 * 1000;
+// After a 429 from a host: at least this long between two of its requests,
+// doubled by every new 429 up to the maximum, halved after an hour without.
+export const RATE_SPACING_MS = 10 * 1000;
+export const RATE_SPACING_MAX_MS = 2 * 60 * 1000;
+export const BACKOFF_MAX_MS = 60 * 60 * 1000;
 const PROXY_HOST = 'proxy.transport.data.gouv.fr';
 const NEAR_METERS = 100;
 
@@ -370,15 +379,85 @@ class SiriFailure extends Error {
   }
 }
 
+/**
+ * The pace of the requests per host, shared by every network of the
+ * integration: Okina's gateway serves eight networks and limits by address,
+ * a 429 must hold them all.
+ */
+export class HostGates {
+  constructor() {
+    this.hosts = new Map(); // host → { blockedUntil, spacing, last, strikes, limitedAt }
+    this.urls = new Map(); // url → last request (the transport.data.gouv.fr proxy)
+  }
+
+  state(url) {
+    const host = hostOf(url);
+    let state = this.hosts.get(host);
+    if (!state) {
+      state = { blockedUntil: 0, spacing: 0, last: null, strikes: 0, limitedAt: null };
+      this.hosts.set(host, state);
+    }
+    return state;
+  }
+
+  /** True while the host asked to be left alone (429). */
+  blocked(url, now) {
+    return now < this.state(url).blockedUntil;
+  }
+
+  /** Spends one request on `url` when its host allows one now. */
+  take(url, now) {
+    const state = this.state(url);
+    if (now < state.blockedUntil) {
+      return false;
+    }
+    if (state.spacing > 0 && state.limitedAt !== null && now - state.limitedAt > 3600 * 1000) {
+      state.spacing = state.spacing / 2 < RATE_SPACING_MS ? 0 : state.spacing / 2;
+      state.strikes = 0;
+      state.limitedAt = now;
+    }
+    if (state.spacing > 0 && state.last !== null && now - state.last < state.spacing) {
+      return false;
+    }
+    if (hostOf(url) === PROXY_HOST) {
+      const used = this.urls.get(url);
+      if (used !== undefined && now - used < PROXY_MIN_INTERVAL_MS) {
+        return false;
+      }
+      this.urls.set(url, now);
+    }
+    state.last = now;
+    return true;
+  }
+
+  /** A 429: the host is left alone for its Retry-After, else longer at each one. */
+  limited(url, now, retryAfterMs = null) {
+    const state = this.state(url);
+    state.strikes += 1;
+    state.limitedAt = now;
+    state.blockedUntil =
+      now + (retryAfterMs ?? Math.min(BACKOFF_MS * 2 ** (state.strikes - 1), BACKOFF_MAX_MS));
+    state.spacing = Math.min(Math.max(state.spacing * 2, RATE_SPACING_MS), RATE_SPACING_MAX_MS);
+  }
+}
+
+// Anshar (Okina) gives a requestor the situations changed since its previous
+// call, not all of them: those are kept and updated, not replaced.
+const isIncremental = (url) => /\/anshar\//i.test(new URL(url).pathname);
+
 export class SiriReader {
   /**
    * @param {object} options
    * @param {{ id: string, name: string, siri: object[] }} options.info the network
    * @param {typeof fetch} options.fetch
+   * @param {HostGates} [options.gates] shared with the other networks
+   * @param {string|null} [options.cacheDir] where the stop lists are kept (/data)
    */
-  constructor({ info, fetch }) {
+  constructor({ info, fetch, gates = new HostGates(), cacheDir = null }) {
     this.info = info;
     this.fetch = fetch;
+    this.gates = gates;
+    this.cacheDir = cacheDir;
     // The endpoints as the network gives them; a data.gouv.fr link is
     // resolved to the producer's address before any request (`endpoint`).
     this.entries = (info.siri ?? []).filter((entry) => {
@@ -389,14 +468,16 @@ export class SiriReader {
       }
     });
     this.resolved = new Map(); // index → { endpoint, at } | { error, at }
-    this.discovery = new Map(); // endpoint index → { at, points|null, key }
+    this.discovery = new Map(); // endpoint index → { at, points|null, keyed, empty }
     this.mapping = new Map(); // stop id → { signature, refs: [{ endpoint, point, candidates, index, unknownAt }] }
     this.readings = new Map(); // `${stopId}|${ref}` → { at, visits }
     this.lastRead = new Map(); // stop id → ms
-    this.urlUsed = new Map(); // url → ms (proxy only)
     this.alerts = { at: null, list: [], unsupported: new Map() }; // service → until
-    this.blockedUntil = 0;
+    this.situations = new Map(); // id → situation (incremental servers)
+    this.stopMonitoringOffUntil = 0;
     this.accessError = false;
+    this.noData = false;
+    this.noStopMonitoring = false;
     this.unknownStops = new Set();
     this.error = null;
     this.timestamp = null;
@@ -436,22 +517,10 @@ export class SiriReader {
     }
   }
 
-  /** Spends one request on a URL of the realtime proxy, when allowed now. */
-  allowed(url, now) {
-    if (hostOf(url) !== PROXY_HOST) {
-      return true;
-    }
-    const used = this.urlUsed.get(url);
-    if (used !== undefined && now - used < PROXY_MIN_INTERVAL_MS) {
-      return false;
-    }
-    this.urlUsed.set(url, now);
-    return true;
-  }
-
   /** One SIRI request, its answer as a tree; failures thrown as SiriFailure. */
   async ask(endpoint, service, { key, now, monitoringRef = null, maxBytes = SIRI_MAX_BYTES }) {
     const { url, init } = siriRequest(endpoint, service, { key, now, monitoringRef });
+    const host = hostOf(endpoint.url);
     let tree;
     try {
       const { body } = await getBuffer(this.fetch, url, {
@@ -463,9 +532,16 @@ export class SiriReader {
       });
       tree = parseSiri(body);
     } catch (err) {
+      if (err instanceof NotSiriError) {
+        // A home page, a proxy's error page: the service is not here.
+        throw new SiriFailure(
+          `${host}: the server does not answer in SIRI (${err.message})`,
+          monitoringRef ? 'other' : 'unsupported',
+        );
+      }
       if (err.status === 429) {
-        this.blockedUntil = now + (err.retryAfterMs ?? BACKOFF_MS);
-        throw new SiriFailure(err.message, 'rate');
+        this.gates.limited(endpoint.url, now, err.retryAfterMs);
+        throw new SiriFailure(`${host}: too many requests (HTTP 429), paused`, 'rate');
       }
       let reported = null;
       if (err.body) {
@@ -486,16 +562,19 @@ export class SiriReader {
         throw new SiriFailure(message, 'reference');
       }
       if ([400, 404, 405, 501].includes(err.status)) {
-        throw new SiriFailure(message, monitoringRef ? 'reference' : 'unsupported');
+        // The catalog names another service (estimated-timetable): a 404 on
+        // stop-monitoring says the server has none, not that the stop is unknown.
+        const otherService = endpoint.service && endpoint.service !== LITE_SERVICES.stopMonitoring;
+        throw new SiriFailure(
+          message,
+          monitoringRef && !otherService ? 'reference' : 'unsupported',
+        );
       }
-      throw new SiriFailure(
-        err.status ? message : `${hostOf(endpoint.url)}: ${redact(err.message, key)}`,
-        'other',
-      );
+      throw new SiriFailure(err.status ? message : `${host}: ${redact(err.message, key)}`, 'other');
     }
     const reported = siriError(tree);
     if (reported) {
-      const message = `${hostOf(endpoint.url)}: ${redact(reported.text, key)}`;
+      const message = `${host}: ${redact(`${reported.code}: ${reported.text}`, key)}`;
       const kind = isAccessError(reported)
         ? 'access'
         : isUnsupportedError(reported)
@@ -509,37 +588,102 @@ export class SiriReader {
     return tree;
   }
 
+  cachePath(index) {
+    return this.cacheDir ? join(this.cacheDir, `siri-stops-${this.info.id}-${index}.json`) : null;
+  }
+
+  /** The stop list kept in /data (a day): Okina's weighs 2 MB, not asked again at each start. */
+  async cachedPoints(index, endpoint, { keyed, now }) {
+    const path = this.cachePath(index);
+    if (!path) {
+      return undefined;
+    }
+    try {
+      const saved = JSON.parse(await readFile(path, 'utf8'));
+      if (
+        saved.url === endpoint.url &&
+        saved.keyed === keyed &&
+        Math.abs(now - saved.at) < DISCOVERY_MAX_AGE_MS &&
+        Array.isArray(saved.points)
+      ) {
+        return { at: saved.at, points: saved.points.length ? saved.points : null };
+      }
+    } catch {
+      // No list yet.
+    }
+    return undefined;
+  }
+
+  async savePoints(index, endpoint, { keyed, now, points }) {
+    const path = this.cachePath(index);
+    if (!path) {
+      return;
+    }
+    try {
+      await mkdir(this.cacheDir, { recursive: true });
+      await writeFile(`${path}.tmp`, JSON.stringify({ url: endpoint.url, keyed, at: now, points }));
+      await rename(`${path}.tmp`, path);
+    } catch (err) {
+      logger.debug(`${this.info.name}: SIRI stop list not kept (${err.message})`);
+    }
+  }
+
+  /** Removes the stop lists kept for this network (network removed). */
+  async dropCache() {
+    for (let index = 0; index < this.entries.length; index += 1) {
+      const path = this.cachePath(index);
+      if (path) {
+        await rm(path, { force: true }).catch(() => {});
+      }
+    }
+  }
+
   /** The stop points the server lists (StopPointsDiscovery), read once a day; null when none. */
   async discovered(index, { key, now }) {
+    const keyed = Boolean(key);
     const known = this.discovery.get(index);
-    if (known && now - known.at < DISCOVERY_MAX_AGE_MS && known.key === key) {
+    if (known && now - known.at < DISCOVERY_MAX_AGE_MS && known.keyed === keyed) {
       return known.points;
     }
     const endpoint = await this.endpoint(index, now);
-    let points = null;
-    if (this.allowed(endpoint.url, now)) {
-      try {
-        const tree = await this.ask(endpoint, 'stopPoints', {
-          key,
-          now,
-          maxBytes: DISCOVERY_MAX_BYTES,
-        });
-        points = readStopPoints(tree);
-        logger.debug(`${this.info.name}: ${points.length} SIRI stop points discovered`);
-      } catch (err) {
-        if (err.kind === 'access') {
-          // The key may come later: asked again with it.
-          this.accessError = true;
-          this.discovery.set(index, { at: now, points: null, key });
-          throw err;
-        }
-        if (err.kind === 'rate') {
-          throw err;
-        }
-        logger.debug(`${this.info.name}: no SIRI stop discovery (${err.message})`);
+    if (!known) {
+      const cached = await this.cachedPoints(index, endpoint, { keyed, now });
+      if (cached) {
+        this.discovery.set(index, { ...cached, keyed, empty: !cached.points });
+        return cached.points;
       }
-    } else {
+    }
+    if (!this.gates.take(endpoint.url, now)) {
+      if (this.gates.blocked(endpoint.url, now)) {
+        throw new SiriFailure(
+          `${hostOf(endpoint.url)}: too many requests (HTTP 429), paused`,
+          'rate',
+        );
+      }
       return known?.points ?? null;
+    }
+    let points = null;
+    let empty = false;
+    try {
+      const tree = await this.ask(endpoint, 'stopPoints', {
+        key,
+        now,
+        maxBytes: DISCOVERY_MAX_BYTES,
+      });
+      points = readStopPoints(tree);
+      empty = points.length === 0;
+      logger.debug(`${this.info.name}: ${points.length} SIRI stop points discovered`);
+    } catch (err) {
+      if (err.kind === 'access') {
+        // The key may come later: asked again with it.
+        this.accessError = true;
+        this.discovery.set(index, { at: now, points: null, keyed, empty: false });
+        throw err;
+      }
+      if (err.kind === 'rate') {
+        throw err;
+      }
+      logger.debug(`${this.info.name}: no SIRI stop discovery (${err.message})`);
     }
     const kept = points?.length ? points : null;
     const listed = (list) => (list ?? []).map((p) => p.ref).join(',');
@@ -547,7 +691,10 @@ export class SiriReader {
       // Another list: the references are chosen again.
       this.mapping.clear();
     }
-    this.discovery.set(index, { at: now, points: kept, key });
+    this.discovery.set(index, { at: now, points: kept, keyed, empty });
+    if (points) {
+      await this.savePoints(index, endpoint, { keyed, now, points });
+    }
     return kept;
   }
 
@@ -628,21 +775,31 @@ export class SiriReader {
     return refs;
   }
 
-  /** Reads the stops of one refresh; returns the number of failures. */
+  /** Reads the stops of one refresh, the least recently read first (a slow host is shared). */
   async readStops(stops, network, { key, now, busy }) {
     let failures = 0;
     let read = 0;
-    for (const stop of stops) {
-      if (!network.areas.has(stop.id)) {
-        continue;
-      }
+    let visitsSeen = 0;
+    let busyRead = false;
+    if (now < this.stopMonitoringOffUntil) {
+      return { failures, read, stop: false, visitsSeen, busyRead };
+    }
+    const order = stops
+      .filter((stop) => network.areas.has(stop.id))
+      .sort((a, b) => (this.lastRead.get(a.id) ?? -1) - (this.lastRead.get(b.id) ?? -1));
+    for (const stop of order) {
       const last = this.lastRead.get(stop.id);
-      if (last !== undefined && !busy(stop) && now - last < NIGHT_INTERVAL_MS) {
+      const due = busy(stop);
+      if (last !== undefined && !due && now - last < NIGHT_INTERVAL_MS) {
         continue;
       }
       const refs = await this.refsOf(stop, network, { key, now });
       let unknown = refs.length === 0;
-      for (const entry of refs) {
+      let asked = false;
+      // The stop point asked longest ago first: on a host allowing one request
+      // per refresh, each gets its turn.
+      const turn = [...refs].sort((a, b) => (a.askedAt ?? -1) - (b.askedAt ?? -1));
+      for (const entry of turn) {
         if (entry.index >= entry.candidates.length) {
           if (entry.unknownAt !== null && now - entry.unknownAt < UNKNOWN_RETRY_MS) {
             unknown = true;
@@ -653,13 +810,25 @@ export class SiriReader {
         }
         const ref = entry.candidates[entry.index];
         const endpoint = await this.endpoint(entry.endpoint, now);
-        if (!this.allowed(endpoint.url, now)) {
+        if (!this.gates.take(endpoint.url, now)) {
+          if (this.gates.blocked(endpoint.url, now)) {
+            failures += 1;
+            this.error = `${hostOf(endpoint.url)}: too many requests (HTTP 429), paused`;
+            return { failures, read, stop: true, visitsSeen, busyRead };
+          }
           continue;
         }
+        asked = true;
+        entry.askedAt = now;
         try {
           const tree = await this.ask(endpoint, 'stopMonitoring', { key, now, monitoringRef: ref });
-          const visits = matchVisits(network, stop.id, readStopVisits(tree), entry.point);
-          this.readings.set(`${stop.id}|${ref}`, { at: now, visits });
+          const raw = readStopVisits(tree);
+          visitsSeen += raw.length;
+          busyRead ||= due;
+          this.readings.set(`${stop.id}|${ref}`, {
+            at: now,
+            visits: matchVisits(network, stop.id, raw, entry.point),
+          });
           read += 1;
         } catch (err) {
           if (err.kind === 'reference') {
@@ -670,13 +839,20 @@ export class SiriReader {
             }
             continue;
           }
+          if (err.kind === 'unsupported') {
+            // No stop monitoring on this server: asked again tomorrow.
+            this.noStopMonitoring = true;
+            this.stopMonitoringOffUntil = now + DISCOVERY_MAX_AGE_MS;
+            this.error = err.message;
+            return { failures: failures + 1, read, stop: false, visitsSeen, busyRead };
+          }
           failures += 1;
           this.error = err.message;
           if (err.kind === 'access') {
             this.accessError = true;
           }
           if (err.kind === 'access' || err.kind === 'rate') {
-            return { failures, read, stop: true };
+            return { failures, read, stop: true, visitsSeen, busyRead };
           }
         }
       }
@@ -685,9 +861,34 @@ export class SiriReader {
       } else {
         this.unknownStops.delete(stop.id);
       }
-      this.lastRead.set(stop.id, now);
+      if (asked || unknown) {
+        this.lastRead.set(stop.id, now);
+      }
     }
-    return { failures, read, stop: false };
+    return { failures, read, stop: false, visitsSeen, busyRead };
+  }
+
+  /** The situations of an answer; an incremental server's are added to those kept. */
+  currentSituations(tree, endpoint, now) {
+    const read = readSituations(tree, { keepClosed: true });
+    if (!isIncremental(endpoint.url)) {
+      return read.filter((situation) => !situation.closed);
+    }
+    for (const situation of read) {
+      const id = situation.id || situation.header.map((t) => t.text).join('|');
+      if (situation.closed) {
+        this.situations.delete(id);
+      } else {
+        this.situations.set(id, situation);
+      }
+    }
+    for (const [id, situation] of this.situations) {
+      const ends = situation.periods.map((period) => period.end);
+      if (ends.length > 0 && ends.every((end) => end !== null && end < now)) {
+        this.situations.delete(id);
+      }
+    }
+    return [...this.situations.values()];
   }
 
   /** Reads the disruptions (GeneralMessage, else SituationExchange) when due. */
@@ -710,15 +911,16 @@ export class SiriReader {
       if (until !== undefined && now < until) {
         continue;
       }
-      if (!this.allowed(endpoint.url, now)) {
+      if (!this.gates.take(endpoint.url, now)) {
         return { failures: 0, read: 0 };
       }
       try {
         const tree = await this.ask(endpoint, service, { key, now });
+        const situations = this.currentSituations(tree, endpoint, now);
         this.alerts = {
           ...this.alerts,
           at: now,
-          list: situationsToAlerts(network, readSituations(tree), this.watchedRefs()),
+          list: situationsToAlerts(network, situations, this.watchedRefs()),
         };
         return { failures: 0, read: 1 };
       } catch (err) {
@@ -744,8 +946,8 @@ export class SiriReader {
    * @returns {{ read: number, failures: number }}
    */
   async refresh(stops, network, { key, now, busy }) {
-    if (!this.active || now < this.blockedUntil) {
-      return { read: 0, failures: now < this.blockedUntil ? 1 : 0 };
+    if (!this.active) {
+      return { read: 0, failures: 0 };
     }
     this.error = null;
     this.accessError = false;
@@ -753,9 +955,26 @@ export class SiriReader {
     try {
       result = await this.readStops(stops, network, { key, now, busy });
     } catch (err) {
-      // Discovery refused (key) or rate limited.
+      // Discovery refused (key), rate limited, or no server behind the link.
       this.error = err.message;
+      if (err.kind === 'access') {
+        this.accessError = true;
+      }
       return { read: 0, failures: 1 };
+    }
+    if (result.read > 0 || result.stop) {
+      // Answers without a stop nor a departure where some are due: what a
+      // server sends without a valid key (Ginko).
+      const lists = [...this.discovery.values()];
+      this.noData =
+        result.busyRead &&
+        result.visitsSeen === 0 &&
+        lists.length > 0 &&
+        lists.every((entry) => entry.empty);
+      if (this.noData) {
+        result.failures += 1;
+        this.error = `${hostOf(this.entries[0].url)}: answers without any stop nor departure`;
+      }
     }
     if (!result.stop) {
       const anyBusy = stops.some((stop) => network.areas.has(stop.id) && busy(stop));
