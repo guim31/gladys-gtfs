@@ -1,61 +1,242 @@
-# Demo Devices Template
+# Tisséo
 
-This is the user documentation of the integration. Gladys re-hosts this file
-and shows a permanent **Documentation** link to it in the Configuration screen
-(in the user's language, with English as the fallback) — it is when
-configuring that the user needs it most. Keep the short onboarding hints in
-the `section` blocks of the manifest `config_schema`; put the long
-step-by-step (screenshots, troubleshooting…) here.
+The public transport of Toulouse in Gladys: the **next departures at your
+stops** (metro, tram, Téléo, Linéo, buses), the **traffic alerts** of their
+lines, and the **VélôToulouse bikes** of your stations. Everything comes from
+open data: **no account, no API key**.
+
+Data: Tisséo and Toulouse Métropole, under the
+[Open Database License (ODbL)](https://opendatacommons.org/licenses/odbl/),
+published on [transport.data.gouv.fr](https://transport.data.gouv.fr/datasets/tisseo-reseau-transport-urbain-toulousain).
+This integration is a community project, not affiliated with Tisséo,
+Toulouse Métropole or JCDecaux.
 
 ## What you get
 
-Six demo devices show up after installation: a weather station (real data
-from Open-Meteo), a switch, a dimmable light, a smart plug with power
-metering, a motion sensor and a camera.
+- **One device per stop you watch**: for each line and direction, the
+  minutes before the **next departure** and before the **following one**;
+  the three soonest departures as text; the **traffic info** of its lines.
+- **One device per VélôToulouse station you watch**: bikes available,
+  mechanical bikes, electric bikes, free docks.
+- **Dashboard widget "Next departures"**: the board of a stop, the times
+  tracked in real time in green, the timetable times marked "≈".
+- **Dashboard widget "VélôToulouse"**: your stations at a glance.
+- **Scene triggers**: "Tisséo disruption", "Bikes running out at a station",
+  "Bikes back at a station".
+- **Scene actions**: "Read the next Tisséo departures" and "Read a
+  VélôToulouse station", with a sentence ready to send ("Metro A towards
+  Basso Cambo at Jean Jaurès: in 3 and 7 min").
+
+**Real time or timetable?** Tisséo publishes the live position of its buses,
+tram and Téléo cabins: their departures are corrected (delays, cancellations,
+skipped stops). The metro is not in the realtime feed: its times are the
+timetable ones (a train every 1 to 4 minutes at rush hour), marked "≈" or
+"scheduled".
+
+## Requirements
+
+- Gladys 5.1 or later, with Internet access.
+- To list the stops **around your home**: the position of your house in
+  Gladys (**Settings → Houses**). The integration asks for it on install
+  (`location`): it reads the coordinates of your houses, nothing else, and
+  only to sort the stops by distance. Without it, search by name.
+- About **20 MB** of disk under `/data` (the timetable archive, refreshed
+  once a day).
+
+## Installation
+
+1. In Gladys, go to **Integrations → Install from GitHub** and enter
+   `https://github.com/guim31/gladys-tisseo`.
+2. Open the **Configuration** tab of the integration and pick the language of
+   the texts (French by default).
+3. Add your stops and stations with the actions of the same screen (below),
+   then create their devices in the **Discover** tab.
 
 ## Configuration
 
-1. Open the **Configuration** tab of the integration.
-2. Set the **latitude** and **longitude** the demo weather station should
-   observe (they default to Paris), and pick your temperature unit.
-   The **refresh interval** sets how often the weather station and the
-   plug's power are read: every 5 minutes by default, every minute at most.
-3. Save: the devices appear in the **Discovery** tab, ready to be added.
+### Settings
 
-The **Prefer the local connection** toggle drives the demo plug: it reports
-the channel it actually uses as a badge (local or cloud), with an orange dot
-when it runs degraded (local refused, cloud fallback).
+- **Language of the texts**: feature names, traffic info, scene sentences.
+  Feature names are set when the device is created: change the language
+  first, then create the devices.
+- **Refresh interval**: 30 seconds, 1 minute (default), 2 or 5 minutes. Both
+  the departures and the bike stations follow it.
+- **Real time**: on by default. Off, the integration only uses the timetable
+  and no longer downloads the realtime feed.
 
-## Actions
+### Adding a stop
 
-- **Test the weather provider** — performs a live request to Open-Meteo and
-  shows the current temperature and humidity under the button.
-- **Identify a device** — pick one of your devices in the list and it will
-  signal itself (the demo light "blinks" in the logs).
+1. **Find a stop**: type a name ("jean jaures" finds "Jean Jaurès", accents
+   and case do not matter), or leave it empty to list the 10 stops closest to
+   your home. Each result shows its lines, its distance and its identifier,
+   for example `• Jean Jaurès [SA_1707] — A, B, L1, L9, L14, 15, 23 — 550 m`.
+2. **Add a stop**: its name, or its identifier when several stops share the
+   name (there are three "Jean Jaurès" in the metropolis). **Lines** is
+   optional: "A, L1" keeps only these two lines; empty keeps every line.
+3. Open the **Discover** tab and create the device.
 
-## Scenes
+Adding a stop already watched changes its lines: Gladys then offers to
+**update** the device in the Discover tab.
 
-The integration adds its own cards to the scene editor (Gladys 5.1 or
-later), under the **Integrations** category:
+The first search downloads the Tisséo timetable (15 MB) and reads it: up to a
+minute on a small machine. The actions wait for it.
 
-- **Motion detected** (trigger) — starts the scene when a demo motion sensor
-  sees something move. Optionally pick the sensor and what moved (person,
-  animal); left empty, any detection matches. The following actions can
-  read what moved with `{{triggerEvent.data.target}}`.
-- **Identify a device** (action) — makes the chosen device signal itself.
-  It returns whether the device could signal itself, so the following
-  actions can depend on it.
+### Adding a bike station
 
-## Dashboard
+1. **Find a bike station**: a name, or empty for the 10 stations closest to
+   your home. Each result shows its number, for example
+   `• Poids de l'Huile [1] — 570 m`.
+2. **Add a bike station**: its number or its name.
+3. Create its device in the **Discover** tab.
 
-Add the **Demo status** widget to a dashboard: it shows the live
-temperature of the weather station and the power of the office plug, the
-connection the plug currently uses (orange when degraded) and the observed
-location. Its **Identify the light** button makes the demo light signal
-itself.
+### Removing a stop or a station, checking the feeds
+
+- **Remove a stop or a station**: its name or identifier. The device stays in
+  Gladys until you delete it.
+- **Show what is watched**: the stops and stations, the date of the
+  timetable, the age of the realtime data and of the bike data, and the last
+  error if any.
+
+At most 20 stops and 20 stations.
+
+## Devices
+
+### Stop
+
+For each line and direction served (or the lines you chose):
+
+| Feature                      | Type           | Value                             |
+| ---------------------------- | -------------- | --------------------------------- |
+| Metro A → Basso Cambo        | duration (min) | minutes before the next departure |
+| Metro A → Basso Cambo (next) | duration (min) | minutes before the following one  |
+
+Plus two texts for the whole stop:
+
+- **Next departures**: the three soonest, e.g.
+  `L1 → Gare Matabiau 2 min · A → Basso Cambo ≈4 min` ("≈" = timetable).
+- **Traffic info**: the titles of the current alerts on its lines, or "No
+  disruption".
+
+`0` means the vehicle is at the stop or arriving (less than a minute);
+**1440** means no departure in the next 24 hours (night, a line that does not
+run that day). These values keep no history: a countdown re-read every minute
+would fill the database for nothing.
+
+### Bike station
+
+| Feature          | Type    |
+| ---------------- | ------- |
+| Bikes available  | counter |
+| Mechanical bikes | counter |
+| Electric bikes   | counter |
+| Free docks       | counter |
+
+These ones keep their history: the chart shows when your station empties.
+
+## Dashboard widgets
+
+- **Next departures**: choose a stop. One row per line and direction (ten at
+  most, the lines with a departure first): "3 · 7 min" in green when tracked
+  in real time, "≈ 3 · 7 min" in blue for the timetable. The caption lists the
+  disruptions of its lines (⚠), or reminds the legend.
+- **VélôToulouse**: choose your stations (empty: all of them, ten at most).
+  One station shows four live tiles; several show a row each
+  ("3 mech. · 2 elec. · 12 docks"), red when no bike is left, orange at two or
+  fewer.
+
+## Scene triggers
+
+- **Tisséo disruption**: a new traffic alert appears on a line of your
+  watched stops (a line filter of a stop narrows it), or on the whole network
+  (strike, closures). Filters: **scope** (a followed line, the whole network,
+  or empty for both) and **line** (as written by Tisséo: A, T1, L9, 15).
+  Variables: line, title, details (plain text), link to tisseo.fr. An alert
+  is announced once; the alerts already there when you add a stop are not.
+- **Bikes running out at a station**: the bikes of a type (any, mechanical,
+  electric) at a watched station drop **to** the chosen number **or below**
+  (0, 1, 2, 3 or 5). Fires once when the threshold is crossed, not at every
+  refresh.
+- **Bikes back at a station**: the same bikes rise **above** the chosen
+  number again.
+
+For "the next bus is in less than 5 minutes", use the built-in "Device state change"
+trigger on the countdown feature of the stop: it already compares values.
+
+## Scene actions
+
+- **Read the next Tisséo departures**: a watched stop and, optionally, a line.
+  Outputs: **sentence** (up to four lines and directions, soonest first), stop,
+  line and direction of the next departure, minutes to wait, minutes to the
+  following one, real time (1) or timetable (0), number of lines with a
+  departure.
+- **Read a VélôToulouse station**: outputs a sentence, bikes available,
+  mechanical, electric, free docks, in service (1 or 0).
+
+The sentences follow the language of the configuration.
+
+## Scene examples
+
+- **Time to go**: at 7:45 on weekdays, "Read the next Tisséo departures" at
+  your stop for line L1, then send `{{sentence}}` by Telegram or announce it
+  on a speaker.
+- **Strike morning**: trigger "Tisséo disruption" with the scope "whole
+  network", then send the title and the link to your phone.
+- **The last electric bike**: trigger "Bikes running out at a station", your
+  station, electric bikes, at most 0: send "No more electric bikes at the
+  station, take the metro".
+- **Leave when the bus comes**: "Device state change" trigger, countdown of your bus
+  lower than 4, condition "someone at home" and before 8:30: blink the hall
+  light.
+
+## Data, refresh and bandwidth
+
+| Data                        | Source                                    | When                                            |
+| --------------------------- | ----------------------------------------- | ----------------------------------------------- |
+| Timetable (GTFS, 15 MB)     | Tisséo, via data.gouv.fr                  | once a day at most, kept in `/data`             |
+| Real time (GTFS-RT, 1.7 MB) | Tisséo (api.tisseo.fr)                    | at each refresh, every 15 min when nothing runs |
+| Bike stations (GBFS)        | VélôToulouse (JCDecaux), via data.gouv.fr | station list once a day, status at each refresh |
+
+The realtime feed is the heavy one: about **100 MB per hour** at one refresh
+per minute while departures are scheduled.
+At night, with no departure within 90 minutes at your stops, it is read every
+15 minutes only. Choose 2 or 5 minutes, or turn real time off, on a metered
+connection. The open data comes without quota; Tisséo rebuilds the realtime
+feed about every 20 seconds.
 
 ## Troubleshooting
 
-The integration logs everything it does: check the integration logs from the
-Gladys UI (or `docker logs` on the host) with `LOG_LEVEL=debug` for the full
-detail.
+- **"The Tisséo timetable is still loading"**: the first download takes a
+  minute; try again.
+- **"Several matches"**: add the stop by its identifier (`SA_…`), shown by
+  "Find a stop".
+- **All the times of a stop are marked ≈**: the metro always is; for a bus,
+  the vehicle is not tracked right now, or the realtime feed is down ("Show
+  what is watched" gives the last error). The timetable keeps working.
+- **A line shows 1440**: no departure within 24 hours (night service, a line
+  that does not run that day, a deviation).
+- **No device in the Discover tab**: add a stop or a station first; the
+  timetable must be downloaded for stops.
+- **A new line at my stop**: Gladys offers to update the device in the
+  Discover tab.
+- **Logs**: in Gladys, the integration's logs say which feed failed and why.
+
+## Limits
+
+- Toulouse only (the Tisséo network and VélôToulouse).
+- **The metro is timetable only**: Tisséo does not publish it in real time.
+- **No park-and-ride occupancy**: the open data of Toulouse Métropole only
+  gives the capacity of the park-and-ride facilities, not the free spaces.
+- The traffic alerts are those Tisséo publishes in its realtime feed; their
+  text is in French.
+- The official Tisséo API (api.tisseo.fr, with a key) is not used: the open
+  feeds give the same departures without any account.
+- A countdown is accurate to the refresh interval.
+- Developed and tested with the real Tisséo and VélôToulouse data, without a
+  Gladys instance: feedback welcome on the forum.
+
+## Credits
+
+- Data: Tisséo, Toulouse Métropole, VélôToulouse (JCDecaux), under the ODbL.
+- Inspired by the **TCL** integration of prohand (Lyon) and by the GTFS
+  integrations of Home Assistant.
+- Code under the Apache 2.0 license.

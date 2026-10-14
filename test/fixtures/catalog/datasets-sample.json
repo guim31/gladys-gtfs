@@ -1,0 +1,774 @@
+[
+  {
+    "id": "6853c089b3ed5781f6adfdf7",
+    "slug": "horaires-sncf",
+    "title": "Réseau SNCF TGV, Intercités et TER",
+    "type": "public-transit",
+    "licence": "odc-odbl",
+    "page_url": "https://transport.data.gouv.fr/datasets/horaires-sncf",
+    "covered_area": [
+      {
+        "type": "pays",
+        "nom": "France",
+        "insee": "FR"
+      }
+    ],
+    "offers": [
+      {
+        "nom_commercial": "TER-SNCF Auvergne Rhône-Alpes",
+        "identifiant_offre": 415,
+        "nom_aom": "Conseil régional d’Auvergne-Rhône-Alpes",
+        "type_transport": "Transport collectif régional"
+      },
+      {
+        "nom_commercial": "TER-SNCF Normandie",
+        "identifiant_offre": 407,
+        "nom_aom": "Conseil régional de Normandie",
+        "type_transport": "Transport collectif régional"
+      },
+      {
+        "nom_commercial": "TER-SNCF Centre-Val de Loire (Rémi)",
+        "identifiant_offre": 408,
+        "nom_aom": "Conseil régional du Centre-Val de Loire",
+        "type_transport": "Transport collectif régional"
+      },
+      {
+        "nom_commercial": "TER-SNCF Hauts de France",
+        "identifiant_offre": 409,
+        "nom_aom": "Conseil régional de Hauts-de-France",
+        "type_transport": "Transport collectif régional"
+      },
+      {
+        "nom_commercial": "TER-SNCF Fluo Grand Est",
+        "identifiant_offre": 410,
+        "nom_aom": "Conseil régional du Grand-Est",
+        "type_transport": "Transport collectif régional"
+      },
+      {
+        "nom_commercial": "TER-SNCF Bourgogne Franche Comté",
+        "identifiant_offre": 411,
+        "nom_aom": "Conseil régional de Bourgogne-Franche-Comté",
+        "type_transport": "Transport collectif régional"
+      },
+      {
+        "nom_commercial": "TER-SNCF Pays de la Loire (Aléop)",
+        "identifiant_offre": 412,
+        "nom_aom": "Conseil régional de Pays de la Loire",
+        "type_transport": "Transport collectif régional"
+      },
+      {
+        "nom_commercial": "TER-SNCF Bretagne (BreizhGo)",
+        "identifiant_offre": 413,
+        "nom_aom": "Conseil régional de Bretagne",
+        "type_transport": "Transport collectif régional"
+      },
+      {
+        "nom_commercial": "TER-SNCF Nouvelle Aquitaine",
+        "identifiant_offre": 414,
+        "nom_aom": "Conseil régional de Nouvelle Aquitaine",
+        "type_transport": "Transport collectif régional"
+      },
+      {
+        "nom_commercial": "TER-SNCF Occitanie",
+        "identifiant_offre": 416,
+        "nom_aom": "Conseil régional d’Occitanie",
+        "type_transport": "Transport collectif régional"
+      },
+      {
+        "nom_commercial": "TER-SNCF Sud Provence Alpes Côte d'Azur (Zou)",
+        "identifiant_offre": 417,
+        "nom_aom": "Conseil régional de Provence-Alpes-Côte d'Azur",
+        "type_transport": "Transport collectif régional"
+      }
+    ],
+    "legal_owners": [
+      {
+        "name": "Pays de la Loire",
+        "type": "region"
+      },
+      {
+        "name": "Provence-Alpes-Côte d’Azur",
+        "type": "region"
+      },
+      {
+        "name": "Nouvelle-Aquitaine",
+        "type": "region"
+      }
+    ],
+    "resources": [
+      {
+        "id": 83582,
+        "datagouv_id": "9ae758ec-cd7a-40cd-a890-bb3963224942",
+        "format": "GTFS",
+        "title": "https://eu.ftp.opendatasoft.com/sncf/plandata/Export_OpenData_SNCF_GTFS_NewTripId.zip",
+        "url": "https://www.data.gouv.fr/api/1/datasets/r/9ae758ec-cd7a-40cd-a890-bb3963224942",
+        "original_url": "https://eu.ftp.opendatasoft.com/sncf/plandata/Export_OpenData_SNCF_GTFS_NewTripId.zip",
+        "is_available": true,
+        "features": ["position des stations", "horaires théoriques", "topologie du réseau"],
+        "type": "main",
+        "metadata": {
+          "networks": [
+            "CFF",
+            "SNCF VOYAGEURS",
+            "SNCF Voyageurs SA",
+            "SNCF Voyageurs EA",
+            "SNCF Voyageurs LO",
+            "TMR SA",
+            "SNCF Voyageurs BO",
+            "OCEdefault"
+          ],
+          "modes": ["bus", "rail", "tramway"],
+          "start_date": "2026-10-13",
+          "end_date": "2027-03-31"
+        }
+      },
+      {
+        "id": 83196,
+        "datagouv_id": "b1519a21-2319-440c-8b67-0cc02b4b9a80",
+        "format": "gtfs-rt",
+        "title": "https://proxy.transport.data.gouv.fr/resource/sncf-gtfs-rt-service-alerts",
+        "url": "https://proxy.transport.data.gouv.fr/resource/sncf-gtfs-rt-service-alerts",
+        "original_url": "https://proxy.transport.data.gouv.fr/resource/sncf-gtfs-rt-service-alerts",
+        "is_available": true,
+        "features": ["service_alerts"],
+        "type": "main"
+      },
+      {
+        "id": 83195,
+        "datagouv_id": "c5f6456e-1137-4e74-a10f-4b0a25c3cc61",
+        "format": "NeTEx",
+        "title": "https://eu.ftp.opendatasoft.com/sncf/plandata/export-opendata-sncf-netex.zip",
+        "url": "https://www.data.gouv.fr/api/1/datasets/r/c5f6456e-1137-4e74-a10f-4b0a25c3cc61",
+        "original_url": "https://eu.ftp.opendatasoft.com/sncf/plandata/export-opendata-sncf-netex.zip",
+        "is_available": true,
+        "type": "main"
+      },
+      {
+        "id": 83583,
+        "datagouv_id": "9b06d25d-7b45-49ba-be1f-216cdb424552",
+        "format": "gtfs-rt",
+        "title": "https://proxy.transport.data.gouv.fr/resource/sncf-gtfs-rt-trip-updates",
+        "url": "https://proxy.transport.data.gouv.fr/resource/sncf-gtfs-rt-trip-updates",
+        "original_url": "https://proxy.transport.data.gouv.fr/resource/sncf-gtfs-rt-trip-updates",
+        "is_available": true,
+        "features": ["trip_updates"],
+        "type": "main"
+      }
+    ]
+  },
+  {
+    "id": "632b2a8a8bf5b436bed4f8df",
+    "slug": "arrets-horaires-et-circuits-des-lignes-de-transports-en-commun-en-pays-de-la-loire-gtfs-destineo-reseaux-aom-aleop-1",
+    "title": "Agrégat des réseaux urbains et interurbains des Pays de la Loire",
+    "type": "public-transit",
+    "licence": "odc-odbl",
+    "page_url": "https://transport.data.gouv.fr/datasets/arrets-horaires-et-circuits-des-lignes-de-transports-en-commun-en-pays-de-la-loire-gtfs-destineo-reseaux-aom-aleop-1",
+    "covered_area": [
+      {
+        "type": "region",
+        "nom": "Pays de la Loire",
+        "insee": "52"
+      }
+    ],
+    "offers": [
+      {
+        "nom_commercial": "Ogalo",
+        "identifiant_offre": 107,
+        "nom_aom": "CA Saumur Val de Loire",
+        "type_transport": "Transport collectif urbain"
+      },
+      {
+        "nom_commercial": "Impulsyon",
+        "identifiant_offre": 98,
+        "nom_aom": "CA La Roche sur Yon - Agglomération",
+        "type_transport": "Transport collectif urbain"
+      },
+      {
+        "nom_commercial": "STRAN",
+        "identifiant_offre": 105,
+        "nom_aom": "CA de la Région Nazairienne et de l'Estuaire (CARENE)",
+        "type_transport": "Transport collectif urbain"
+      },
+      {
+        "nom_commercial": "Bus Gare de Clisson",
+        "identifiant_offre": 316,
+        "nom_aom": "CA Clisson Sèvre et Maine Agglo",
+        "type_transport": "Transport collectif urbain"
+      },
+      {
+        "nom_commercial": "Lila presqu'ile",
+        "identifiant_offre": 264,
+        "nom_aom": "CA de la Presqu'île de Guérande Atlantique (CAP ATLANTIQUE)",
+        "type_transport": "Transport collectif urbain"
+      },
+      {
+        "nom_commercial": "Réso",
+        "identifiant_offre": 356,
+        "nom_aom": "CC du Pays Sabolien",
+        "type_transport": "Transport collectif urbain"
+      },
+      {
+        "nom_commercial": "OLEANE",
+        "identifiant_offre": 187,
+        "nom_aom": "CA Les Sables d'Olonne Agglomération",
+        "type_transport": "Transport collectif urbain"
+      },
+      {
+        "nom_commercial": "TAN",
+        "identifiant_offre": 83,
+        "nom_aom": "Nantes Métropole",
+        "type_transport": "Transport collectif urbain"
+      },
+      {
+        "nom_commercial": "Bacs de Loire",
+        "identifiant_offre": 84,
+        "nom_aom": "Nantes Métropole",
+        "type_transport": "Transport collectif urbain"
+      },
+      {
+        "nom_commercial": "Aléop - YEU CONTINENT",
+        "identifiant_offre": 426,
+        "nom_aom": "Conseil régional de Pays de la Loire",
+        "type_transport": "Transport collectif régional"
+      },
+      {
+        "nom_commercial": "Irigo",
+        "identifiant_offre": 6,
+        "nom_aom": "CU Angers Loire Métropole",
+        "type_transport": "Transport collectif urbain"
+      },
+      {
+        "nom_commercial": "TER-SNCF Pays de la Loire (Aléop)",
+        "identifiant_offre": 412,
+        "nom_aom": "Conseil régional de Pays de la Loire",
+        "type_transport": "Transport collectif régional"
+      },
+      {
+        "nom_commercial": "Aléop Pays de la Loire",
+        "identifiant_offre": 422,
+        "nom_aom": "Conseil régional de Pays de la Loire",
+        "type_transport": "Transport collectif régional"
+      },
+      {
+        "nom_commercial": "Choletbus",
+        "identifiant_offre": 37,
+        "nom_aom": "CA Agglomération du Choletais",
+        "type_transport": "Transport collectif urbain"
+      },
+      {
+        "nom_commercial": "TUL",
+        "identifiant_offre": 51,
+        "nom_aom": "Laval Agglomération",
+        "type_transport": "Transport collectif urbain"
+      },
+      {
+        "nom_commercial": "SETRAM",
+        "identifiant_offre": 61,
+        "nom_aom": "CU Le Mans Métropole",
+        "type_transport": "Transport collectif urbain"
+      }
+    ],
+    "legal_owners": [
+      {
+        "name": "CA de la Région Nazairienne et de l'Estuaire (CARENE)",
+        "type": "aom"
+      },
+      {
+        "name": "CA Les Sables d'Olonne Agglomération",
+        "type": "aom"
+      },
+      {
+        "name": "Laval Agglomération",
+        "type": "aom"
+      }
+    ],
+    "resources": [
+      {
+        "id": 82144,
+        "datagouv_id": "f68cb5b3-f4e2-481e-9195-36a4f31083a8",
+        "format": "NeTEx",
+        "title": "Offre de transports en commun en Pays de la Loire (Netex Destinéo : réseaux AOM + Aléop)",
+        "url": "https://www.data.gouv.fr/api/1/datasets/r/f68cb5b3-f4e2-481e-9195-36a4f31083a8",
+        "original_url": "https://mobi-iti-pdl.okina.fr/static/mobiiti_technique/netex_offre_PDL.zip",
+        "is_available": true,
+        "features": ["accessibility", "networks", "timetables"],
+        "type": "main"
+      },
+      {
+        "id": 79818,
+        "datagouv_id": "c0bd9ff1-97f9-43f8-aca4-8e80d7728324",
+        "format": "GTFS",
+        "title": "GTFS Destineo Pays de la Loire",
+        "url": "https://www.data.gouv.fr/api/1/datasets/r/c0bd9ff1-97f9-43f8-aca4-8e80d7728324",
+        "original_url": "https://mobi-iti-pdl.okina.fr/static/mobiiti_technique/gtfs_global.zip",
+        "is_available": true,
+        "features": [
+          "position des stations",
+          "horaires théoriques",
+          "topologie du réseau",
+          "tracés de lignes",
+          "transport à la demande",
+          "informations sur l'accessibilité à vélo",
+          "informations sur l'accessibilité en fauteuil roulant"
+        ],
+        "type": "main",
+        "metadata": {
+          "networks": [
+            "Aéroport Nantes Atlantique",
+            "Aléop en Sarthe",
+            "Aléop Yeu-Continent",
+            "Aléop en Vendée",
+            "Aléop Lignes Express régionales",
+            "Aléop en Mayenne",
+            "Aléop TER",
+            "Aléop en Loire-Atlantique",
+            "Aléop en Maine-et-Loire",
+            "Ycéo",
+            "Choletbus",
+            "illyGO",
+            "Agence par défaut",
+            "Compagnie des Bacs de Loire",
+            "Naolib",
+            "TUL",
+            "SOVETOURS",
+            "Réso",
+            "héoh",
+            "Brévibus",
+            "SNCF VOYAGEURS",
+            "IRIGO",
+            "OLEANE"
+          ],
+          "modes": ["bus", "tramway", "ferry", "rail"],
+          "start_date": "2026-10-12",
+          "end_date": "2027-08-31"
+        }
+      },
+      {
+        "id": 82145,
+        "datagouv_id": "45bea330-9eba-452b-8e63-1e36b85ba3e8",
+        "format": "NeTEx",
+        "title": "Arrêts des lignes de transports en commun en Pays de la Loire (Netex Destinéo : réseaux AOM + Aléop)",
+        "url": "https://www.data.gouv.fr/api/1/datasets/r/45bea330-9eba-452b-8e63-1e36b85ba3e8",
+        "original_url": "https://mobi-iti-pdl.okina.fr/static/mobiiti_technique/netex_arrets_PDL.zip",
+        "is_available": true,
+        "features": ["accessibility", "stops"],
+        "type": "main"
+      }
+    ]
+  },
+  {
+    "id": "56b0c2fba3a7294d39b88a86",
+    "slug": "tisseo-reseau-transport-urbain-toulousain",
+    "title": "Réseau urbain Tisséo",
+    "type": "public-transit",
+    "licence": "odc-odbl",
+    "page_url": "https://transport.data.gouv.fr/datasets/tisseo-reseau-transport-urbain-toulousain",
+    "covered_area": [
+      {
+        "type": "epci",
+        "nom": "CA Le Muretain Agglo",
+        "insee": "200068641"
+      },
+      {
+        "type": "epci",
+        "nom": "CA du Sicoval",
+        "insee": "243100633"
+      },
+      {
+        "type": "epci",
+        "nom": "CC Le Grand Ouest Toulousain",
+        "insee": "243100781"
+      },
+      {
+        "type": "epci",
+        "nom": "CC des Coteaux Bellevue",
+        "insee": "243100815"
+      },
+      {
+        "type": "epci",
+        "nom": "Toulouse Métropole",
+        "insee": "243100518"
+      }
+    ],
+    "offers": [
+      {
+        "nom_commercial": "TISSEO",
+        "identifiant_offre": 114,
+        "nom_aom": "SM des transports en commun de l'agglomération toulousaine",
+        "type_transport": "Transport collectif urbain"
+      }
+    ],
+    "legal_owners": [
+      {
+        "name": "SM des transports en commun de l'agglomération toulousaine",
+        "type": "aom"
+      }
+    ],
+    "resources": [
+      {
+        "id": 83447,
+        "datagouv_id": "e9cab154-e833-44b9-9bb4-6c0188ebec41",
+        "format": "NeTEx",
+        "title": "Tisseo_NeTEx.zip",
+        "url": "https://www.data.gouv.fr/api/1/datasets/r/e9cab154-e833-44b9-9bb4-6c0188ebec41",
+        "original_url": "https://data.toulouse-metropole.fr/explore/dataset/tisseo-gtfs/files/e9716429a012babd297e126536a3fb8d/download/",
+        "is_available": true,
+        "type": "main"
+      },
+      {
+        "id": 83754,
+        "datagouv_id": "b2343456-4e73-4e5e-bf0f-e8cab63357a8",
+        "format": "gtfs-rt",
+        "title": "Tisseo_GTFSRT.pb",
+        "url": "https://www.data.gouv.fr/api/1/datasets/r/b2343456-4e73-4e5e-bf0f-e8cab63357a8",
+        "original_url": "https://api.tisseo.fr/opendata/gtfsrt/GtfsRt.pb",
+        "is_available": true,
+        "features": ["service_alerts", "trip_updates"],
+        "type": "main"
+      },
+      {
+        "id": 81678,
+        "datagouv_id": "64318177-f5b5-4144-a6be-2d0f22d26c77",
+        "format": "GTFS",
+        "title": "Tisseo_GTFS.zip",
+        "url": "https://www.data.gouv.fr/api/1/datasets/r/64318177-f5b5-4144-a6be-2d0f22d26c77",
+        "original_url": "https://data.toulouse-metropole.fr/explore/dataset/tisseo-gtfs/files/fc1dda89077cf37e4f7521760e0ef4e9/download/",
+        "is_available": true,
+        "features": [
+          "position des stations",
+          "horaires théoriques",
+          "topologie du réseau",
+          "tarifs",
+          "tracés de lignes",
+          "couleurs des lignes",
+          "informations sur l'accessibilité en fauteuil roulant"
+        ],
+        "type": "main",
+        "metadata": {
+          "networks": ["Tisséo"],
+          "modes": ["bus", "subway", "tramway", "gondola"],
+          "start_date": "2026-10-13",
+          "end_date": "2026-11-16"
+        }
+      }
+    ]
+  },
+  {
+    "id": "685d9000ec5a7481ab634360",
+    "slug": "reseau-de-transports-collectifs-naolib",
+    "title": "Réseau urbain Naolib",
+    "type": "public-transit",
+    "licence": "lov2",
+    "page_url": "https://transport.data.gouv.fr/datasets/reseau-de-transports-collectifs-naolib",
+    "covered_area": [
+      {
+        "type": "epci",
+        "nom": "Nantes Métropole",
+        "insee": "244400404"
+      }
+    ],
+    "offers": [
+      {
+        "nom_commercial": "TAN",
+        "identifiant_offre": 83,
+        "nom_aom": "Nantes Métropole",
+        "type_transport": "Transport collectif urbain"
+      }
+    ],
+    "legal_owners": [
+      {
+        "name": "Nantes Métropole",
+        "type": "aom"
+      }
+    ],
+    "resources": [
+      {
+        "id": 83252,
+        "datagouv_id": "70c2f4ea-6449-43bf-a3ab-ea8fd20bc6cb",
+        "format": "NeTEx",
+        "title": "netex_offre_naolib.zip",
+        "url": "https://www.data.gouv.fr/api/1/datasets/r/70c2f4ea-6449-43bf-a3ab-ea8fd20bc6cb",
+        "original_url": "https://data.nantesmetropole.fr/explore/dataset/244400404_offre_transports_commun_naolib_nantes_metropole_netex/files/dbbea539e92629c2bb102369c03365b7/download/",
+        "is_available": true,
+        "features": ["accessibility", "networks", "timetables"],
+        "type": "main"
+      },
+      {
+        "id": 83253,
+        "datagouv_id": "4d422b8e-0908-4e2c-8b9a-d5275869be91",
+        "format": "NeTEx",
+        "title": "netex_arret_naolib.zip",
+        "url": "https://www.data.gouv.fr/api/1/datasets/r/4d422b8e-0908-4e2c-8b9a-d5275869be91",
+        "original_url": "https://data.nantesmetropole.fr/explore/dataset/244400404_arrets_transports_commun_naolib_nantes_metropole_netex/files/2b04dd7ce0d9da317089d97b96b20ba4/download/",
+        "is_available": true,
+        "features": ["accessibility", "stops"],
+        "type": "main"
+      },
+      {
+        "id": 84183,
+        "datagouv_id": "18f2389b-d21e-4d7b-a33f-8c14a5f19fe3",
+        "format": "gtfs-rt",
+        "title": "https://proxy.transport.data.gouv.fr/resource/naolib-nantes-gtfs-rt-alerts",
+        "url": "https://proxy.transport.data.gouv.fr/resource/naolib-nantes-gtfs-rt-alerts",
+        "original_url": "https://proxy.transport.data.gouv.fr/resource/naolib-nantes-gtfs-rt-alerts",
+        "is_available": false,
+        "features": ["service_alerts"],
+        "type": "main"
+      },
+      {
+        "id": 84184,
+        "datagouv_id": "59cdccb0-3b3a-40cb-bce4-eb98fc352b61",
+        "format": "gtfs-rt",
+        "title": "https://proxy.transport.data.gouv.fr/resource/naolib-nantes-gtfs-rt-trip-update",
+        "url": "https://proxy.transport.data.gouv.fr/resource/naolib-nantes-gtfs-rt-trip-update",
+        "original_url": "https://proxy.transport.data.gouv.fr/resource/naolib-nantes-gtfs-rt-trip-update",
+        "is_available": false,
+        "features": ["trip_updates"],
+        "type": "main"
+      },
+      {
+        "id": 84101,
+        "datagouv_id": "65bdd7e4-a8e7-4a54-893a-808e71c34d68",
+        "format": "GTFS",
+        "title": "gtfs_lumidata_id.zip",
+        "url": "https://www.data.gouv.fr/api/1/datasets/r/65bdd7e4-a8e7-4a54-893a-808e71c34d68",
+        "original_url": "https://data.nantesmetropole.fr/explore/dataset/244400404_transports_commun_naolib_nantes_metropole_gtfs/files/0cc0469a72de54ee045cb66d1a21de9e/download/",
+        "is_available": true,
+        "features": [
+          "position des stations",
+          "horaires théoriques",
+          "topologie du réseau",
+          "tarifs",
+          "tracés de lignes",
+          "couleurs des lignes",
+          "informations sur l'accessibilité en fauteuil roulant"
+        ],
+        "type": "main",
+        "metadata": {
+          "networks": ["Naolib"],
+          "modes": ["tramway", "bus", "ferry"],
+          "start_date": "2026-10-12",
+          "end_date": "2027-01-12"
+        }
+      }
+    ]
+  },
+  {
+    "id": "580defb1a3a7292dcfa9d33f",
+    "slug": "versions-des-horaires-theoriques-des-lignes-de-bus-et-de-metro-du-reseau-star-dans-les-formats-gtfs-et-netex-ainsi-que-les-urls-dacces-au-gtfs-rt-1",
+    "title": "Réseau urbain STAR",
+    "type": "public-transit",
+    "licence": "odc-odbl",
+    "page_url": "https://transport.data.gouv.fr/datasets/versions-des-horaires-theoriques-des-lignes-de-bus-et-de-metro-du-reseau-star-dans-les-formats-gtfs-et-netex-ainsi-que-les-urls-dacces-au-gtfs-rt-1",
+    "covered_area": [
+      {
+        "type": "epci",
+        "nom": "Rennes Métropole",
+        "insee": "243500139"
+      }
+    ],
+    "offers": [
+      {
+        "nom_commercial": "STAR",
+        "identifiant_offre": 96,
+        "nom_aom": "Rennes Métropole",
+        "type_transport": "Transport collectif urbain"
+      }
+    ],
+    "legal_owners": [
+      {
+        "name": "Rennes Métropole",
+        "type": "aom"
+      }
+    ],
+    "resources": [
+      {
+        "id": 84124,
+        "datagouv_id": "ea95a19e-2e6f-452a-a2c9-b89e0d2839ba",
+        "format": "NeTEx",
+        "title": "NETEX du STAR (version à venir) ->Présence facultative",
+        "url": "https://www.data.gouv.fr/api/1/datasets/r/ea95a19e-2e6f-452a-a2c9-b89e0d2839ba",
+        "original_url": "https://eu.ftp.opendatasoft.com/star/netex/NETEX_STAR_BUS_METRO_A_VENIR.zip",
+        "is_available": true,
+        "features": ["accessibility", "networks", "stops", "timetables"],
+        "type": "other"
+      },
+      {
+        "id": 82161,
+        "datagouv_id": "e481cb99-07b4-4952-bc46-a74174d460aa",
+        "format": "gtfs-rt",
+        "title": "GTFS-RT -> Trip Update",
+        "url": "https://proxy.transport.data.gouv.fr/resource/star-rennes-integration-gtfs-rt-trip-update",
+        "original_url": "https://proxy.transport.data.gouv.fr/resource/star-rennes-integration-gtfs-rt-trip-update",
+        "is_available": true,
+        "features": ["trip_updates"],
+        "type": "main"
+      },
+      {
+        "id": 82162,
+        "datagouv_id": "caa23157-c50c-4390-abf6-d688e4fb2a36",
+        "format": "gtfs-rt",
+        "title": "GTFS-RT -> Alerts",
+        "url": "https://proxy.transport.data.gouv.fr/resource/star-rennes-integration-gtfs-rt-alerts",
+        "original_url": "https://proxy.transport.data.gouv.fr/resource/star-rennes-integration-gtfs-rt-alerts",
+        "is_available": true,
+        "features": ["service_alerts"],
+        "type": "main"
+      },
+      {
+        "id": 82163,
+        "datagouv_id": "61707a60-705f-4163-af5f-a95b6c20e5a2",
+        "format": "gtfs-rt",
+        "title": "GTFS-RT -> Vehicule position",
+        "url": "https://proxy.transport.data.gouv.fr/resource/star-rennes-integration-gtfs-rt-vehicle-position",
+        "original_url": "https://proxy.transport.data.gouv.fr/resource/star-rennes-integration-gtfs-rt-vehicle-position",
+        "is_available": true,
+        "features": ["vehicle_positions"],
+        "type": "main"
+      },
+      {
+        "id": 84123,
+        "datagouv_id": "96437540-086b-4191-8dcc-49aab59c1014",
+        "format": "NeTEx",
+        "title": "NETEX du STAR (version en cours)",
+        "url": "https://www.data.gouv.fr/api/1/datasets/r/96437540-086b-4191-8dcc-49aab59c1014",
+        "original_url": "https://eu.ftp.opendatasoft.com/star/netex/NETEX_STAR_BUS_METRO_EN_COURS.zip",
+        "is_available": true,
+        "features": ["accessibility", "networks", "stops", "timetables"],
+        "type": "other"
+      },
+      {
+        "id": 83282,
+        "datagouv_id": "ef4779c4-d066-40d8-b8d9-fb8c7eea8820",
+        "format": "GTFS",
+        "title": "GTFS (version à venir) ->Présence facultative",
+        "url": "https://www.data.gouv.fr/api/1/datasets/r/ef4779c4-d066-40d8-b8d9-fb8c7eea8820",
+        "original_url": "https://eu.ftp.opendatasoft.com/star/gtfs/GTFS_STAR_BUS_METRO_A_VENIR.zip",
+        "is_available": true,
+        "features": [
+          "position des stations",
+          "horaires théoriques",
+          "topologie du réseau",
+          "tarifs",
+          "tracés de lignes",
+          "couleurs des lignes",
+          "informations sur l'accessibilité en fauteuil roulant"
+        ],
+        "type": "main",
+        "metadata": {
+          "networks": ["STAR"],
+          "modes": ["subway", "bus"],
+          "start_date": "2026-10-19",
+          "end_date": "2026-11-01"
+        }
+      },
+      {
+        "id": 83281,
+        "datagouv_id": "0644f537-575e-4cce-9570-06165d6f3b27",
+        "format": "GTFS",
+        "title": "GTFS (Version en cours)",
+        "url": "https://www.data.gouv.fr/api/1/datasets/r/0644f537-575e-4cce-9570-06165d6f3b27",
+        "original_url": "https://eu.ftp.opendatasoft.com/star/gtfs/GTFS_STAR_BUS_METRO_EN_COURS.zip",
+        "is_available": true,
+        "features": [
+          "position des stations",
+          "horaires théoriques",
+          "topologie du réseau",
+          "tarifs",
+          "tracés de lignes",
+          "couleurs des lignes",
+          "informations sur l'accessibilité en fauteuil roulant"
+        ],
+        "type": "main",
+        "metadata": {
+          "networks": ["STAR"],
+          "modes": ["subway", "bus"],
+          "start_date": "2026-10-13",
+          "end_date": "2026-10-18"
+        }
+      }
+    ]
+  },
+  {
+    "id": "64c7be0e1e2104f03ce37cd6",
+    "slug": "giverny-vernon-gare-sncf",
+    "title": "Navette estivale SNGO! Giverny Vernon - Gare SNCF",
+    "type": "public-transit",
+    "licence": "lov2",
+    "page_url": "https://transport.data.gouv.fr/datasets/giverny-vernon-gare-sncf",
+    "covered_area": [
+      {
+        "type": "commune",
+        "nom": "Giverny",
+        "insee": "27285"
+      },
+      {
+        "type": "commune",
+        "nom": "Vernon",
+        "insee": "27681"
+      }
+    ],
+    "offers": [
+      {
+        "nom_commercial": "SNgo!",
+        "identifiant_offre": 268,
+        "nom_aom": "CA Seine Normandie Agglomération",
+        "type_transport": "Transport collectif urbain"
+      }
+    ],
+    "legal_owners": [
+      {
+        "name": "CA Seine Normandie Agglomération",
+        "type": "aom"
+      }
+    ],
+    "resources": [
+      {
+        "id": 81290,
+        "datagouv_id": "02aa9bcf-a2ce-4d41-93d3-3c3a0aa68719",
+        "format": "gtfs-rt",
+        "title": "Données en temps réel de la ligne Giverny Vernon Gare SNCF",
+        "url": "https://proxy.transport.data.gouv.fr/resource/giverny-vernon-gtfs-rt",
+        "original_url": "https://proxy.transport.data.gouv.fr/resource/giverny-vernon-gtfs-rt",
+        "is_available": true,
+        "features": ["trip_updates", "vehicle_positions"],
+        "type": "main"
+      },
+      {
+        "id": 81177,
+        "datagouv_id": "be6947fc-d419-4fed-be78-5dbaa38f8643",
+        "format": "GTFS",
+        "title": "pt-th-offer-sngonavettegiverny-gtfs-20240413-382-opendata.zip",
+        "url": "https://transport.data.gouv.fr/resources/81177/download",
+        "original_url": "https://static.data.gouv.fr/resources/giverny-vernon-gare-sncf/20260324-112032/pt-th-offer-sngonavettegiverny-gtfs-20260323-840-opendata.zip",
+        "is_available": true,
+        "features": [
+          "position des stations",
+          "horaires théoriques",
+          "topologie du réseau",
+          "tracés de lignes",
+          "couleurs des lignes"
+        ],
+        "type": "main",
+        "metadata": {
+          "networks": ["SN'go! - Navette Giverny - Vernon"],
+          "modes": ["bus"],
+          "start_date": "2026-03-27",
+          "end_date": "2026-11-01"
+        }
+      }
+    ]
+  },
+  {
+    "id": "bike0000",
+    "title": "Vélos en libre-service",
+    "type": "bike-data",
+    "resources": [
+      {
+        "id": 1,
+        "format": "GTFS",
+        "url": "https://example.org/x.zip"
+      }
+    ]
+  }
+]

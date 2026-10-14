@@ -1,67 +1,253 @@
-# Template de démonstration
+# Tisséo
 
-Ceci est la documentation utilisateur de l'intégration. Gladys ré-héberge ce
-fichier et affiche un lien **Documentation** permanent vers lui dans l'écran
-de configuration (dans la langue de l'utilisateur, avec l'anglais en repli) —
-c'est au moment de configurer que l'utilisateur en a le plus besoin. Gardez
-les courtes indications d'accueil dans les blocs `section` du `config_schema`
-du manifest ; mettez ici le pas-à-pas détaillé (captures d'écran, dépannage…).
+Les transports en commun de Toulouse dans Gladys : les **prochains passages à
+vos arrêts** (métro, tram, Téléo, Linéo, bus), les **perturbations** de leurs
+lignes, et les **vélos VélôToulouse** de vos stations. Tout vient de l'open
+data : **ni compte, ni clé d'API**.
+
+Données : Tisséo et Toulouse Métropole, sous
+[licence ODbL](https://opendatacommons.org/licenses/odbl/), publiées sur
+[transport.data.gouv.fr](https://transport.data.gouv.fr/datasets/tisseo-reseau-transport-urbain-toulousain).
+Cette intégration est un projet communautaire, sans lien avec Tisséo,
+Toulouse Métropole ni JCDecaux.
 
 ## Ce que vous obtenez
 
-Six appareils de démonstration apparaissent après l'installation : une
-station météo (vraies données Open-Meteo), un interrupteur, une lampe
-variable, une prise connectée avec mesure de puissance, un détecteur de
-mouvement et une caméra.
+- **Un appareil par arrêt surveillé** : pour chaque ligne et direction, les
+  minutes avant le **prochain passage** et avant le **suivant** ; les trois
+  passages les plus proches en texte ; l'**info trafic** de ses lignes.
+- **Un appareil par station VélôToulouse surveillée** : vélos disponibles,
+  vélos mécaniques, vélos électriques, places libres.
+- **Widget « Prochains passages »** : le tableau d'un arrêt, les horaires
+  suivis en temps réel en vert, les horaires théoriques marqués « ≈ ».
+- **Widget « VélôToulouse »** : vos stations d'un coup d'œil.
+- **Déclencheurs de scène** : « Perturbation Tisséo », « Vélos qui manquent à
+  une station », « Vélos de retour à une station ».
+- **Actions de scène** : « Lire les prochains passages Tisséo » et « Lire une
+  station VélôToulouse », avec une phrase prête à envoyer (« Métro A vers
+  Basso Cambo à Jean Jaurès : dans 3 et 7 min »).
+
+**Temps réel ou théorique ?** Tisséo publie la position en direct de ses bus,
+du tram et des cabines Téléo : leurs passages sont corrigés (retards,
+suppressions, arrêts non desservis). Le métro n'est pas dans le flux temps
+réel : ses horaires sont ceux du plan de transport (une rame toutes les 1 à
+4 minutes en heure de pointe), marqués « ≈ » ou « théorique ».
+
+## Prérequis
+
+- Gladys 5.1 ou plus récent, avec un accès à Internet.
+- Pour lister les arrêts **autour de chez vous** : la position de votre
+  maison dans Gladys (**Paramètres → Maisons**). L'intégration la demande à
+  l'installation (`location`) : elle lit les coordonnées de vos maisons, rien
+  d'autre, et seulement pour trier les arrêts par distance. Sans elle,
+  cherchez par nom.
+- Environ **20 Mo** de disque sous `/data` (l'archive des horaires, mise à
+  jour une fois par jour).
+
+## Installation
+
+1. Dans Gladys, allez dans **Intégrations → Installer depuis GitHub** et
+   saisissez `https://github.com/guim31/gladys-tisseo`.
+2. Ouvrez l'onglet **Configuration** de l'intégration et choisissez la langue
+   des textes (français par défaut).
+3. Ajoutez vos arrêts et stations avec les actions du même écran (ci-dessous),
+   puis créez leurs appareils dans l'onglet **Découverte**.
 
 ## Configuration
 
-1. Ouvrez l'onglet **Configuration** de l'intégration.
-2. Renseignez la **latitude** et la **longitude** que la station météo de
-   démonstration doit observer (Paris par défaut), et choisissez votre unité
-   de température. L'**intervalle de rafraîchissement** règle la fréquence
-   de lecture de la station météo et de la puissance de la prise : toutes
-   les 5 minutes par défaut, toutes les minutes au plus.
-3. Enregistrez : les appareils apparaissent dans l'onglet **Découverte**,
-   prêts à être ajoutés.
+### Réglages
 
-Le réglage **Préférer la connexion locale** pilote la prise de
-démonstration : elle affiche en badge le canal réellement utilisé (local ou
-cloud), avec un point orange quand elle fonctionne en mode dégradé (local
-refusé, bascule cloud).
+- **Langue des textes** : noms des fonctionnalités, info trafic, phrases des
+  scènes. Les noms sont fixés à la création de l'appareil : changez la langue
+  d'abord, créez les appareils ensuite.
+- **Fréquence de mise à jour** : 30 secondes, 1 minute (par défaut), 2 ou
+  5 minutes. Les passages et les stations vélo la suivent tous les deux.
+- **Temps réel** : activé par défaut. Désactivé, l'intégration n'utilise que
+  les horaires théoriques et ne télécharge plus le flux temps réel.
 
-## Actions
+### Ajouter un arrêt
 
-- **Tester le fournisseur météo** — effectue une requête en direct vers
-  Open-Meteo et affiche la température et l'humidité actuelles sous le
-  bouton.
-- **Identifier un appareil** — choisissez un de vos appareils dans la liste
-  et il se signale (la lampe de démonstration « clignote » dans les logs).
+1. **Chercher un arrêt** : saisissez un nom (« jean jaures » trouve « Jean
+   Jaurès », accents et majuscules n'importent pas), ou laissez vide pour
+   lister les 10 arrêts les plus proches de votre maison. Chaque résultat
+   donne ses lignes, sa distance et son identifiant, par exemple
+   `• Jean Jaurès [SA_1707] — A, B, L1, L9, L14, 15, 23 — 550 m`.
+2. **Ajouter un arrêt** : son nom, ou son identifiant si plusieurs arrêts
+   portent le même nom (il y a trois « Jean Jaurès » dans la métropole).
+   **Lignes** est facultatif : « A, L1 » ne garde que ces deux lignes ; vide,
+   toutes les lignes.
+3. Ouvrez l'onglet **Découverte** et créez l'appareil.
 
-## Scènes
+Ajouter un arrêt déjà surveillé change ses lignes : Gladys propose alors de
+**mettre à jour** l'appareil dans l'onglet Découverte.
 
-L'intégration ajoute ses propres cartes à l'éditeur de scènes (Gladys 5.1
-ou plus récent), dans la catégorie **Intégrations** :
+La première recherche télécharge les horaires Tisséo (15 Mo) et les lit :
+jusqu'à une minute sur une petite machine. Les actions l'attendent.
 
-- **Mouvement détecté** (déclencheur) — lance la scène quand un détecteur
-  de démonstration voit bouger quelque chose. Choisissez éventuellement le
-  détecteur et ce qui a bougé (personne, animal) ; laissés vides, toute
-  détection correspond. Les actions suivantes peuvent lire ce qui a bougé
-  avec `{{triggerEvent.data.target}}`.
-- **Identifier un appareil** (action) — fait se signaler l'appareil choisi.
-  Elle indique si l'appareil a pu se signaler, pour que les actions
-  suivantes puissent en dépendre.
+### Ajouter une station vélo
 
-## Tableau de bord
+1. **Chercher une station vélo** : un nom, ou vide pour les 10 stations les
+   plus proches de votre maison. Chaque résultat donne son numéro, par exemple
+   `• Poids de l'Huile [1] — 570 m`.
+2. **Ajouter une station vélo** : son numéro ou son nom.
+3. Créez son appareil dans l'onglet **Découverte**.
 
-Ajoutez le widget **État de la démo** à un tableau de bord : il affiche en
-direct la température de la station météo et la puissance de la prise du
-bureau, la connexion utilisée par la prise (en orange si dégradée) et la
-position observée. Son bouton **Identifier la lampe** fait se signaler la
-lampe de démonstration.
+### Retirer un arrêt ou une station, vérifier les flux
+
+- **Retirer un arrêt ou une station** : son nom ou son identifiant.
+  L'appareil reste dans Gladys jusqu'à ce que vous le supprimiez.
+- **Afficher la surveillance** : les arrêts et stations, la date des
+  horaires, l'âge des données temps réel et vélo, et la dernière erreur s'il y
+  en a une.
+
+Au plus 20 arrêts et 20 stations.
+
+## Appareils
+
+### Arrêt
+
+Pour chaque ligne et direction desservie (ou les lignes choisies) :
+
+| Fonctionnalité                  | Type        | Valeur                            |
+| ------------------------------- | ----------- | --------------------------------- |
+| Métro A → Basso Cambo           | durée (min) | minutes avant le prochain passage |
+| Métro A → Basso Cambo (suivant) | durée (min) | minutes avant le suivant          |
+
+Et deux textes pour tout l'arrêt :
+
+- **Prochains passages** : les trois plus proches, par ex.
+  `L1 → Gare Matabiau 2 min · A → Basso Cambo ≈4 min` (« ≈ » = théorique).
+- **Info trafic** : les titres des perturbations en cours sur ses lignes, ou
+  « Aucune perturbation ».
+
+`0` signifie que le véhicule est à l'arrêt ou à l'approche (moins d'une
+minute) ; **1440** signifie aucun passage dans les 24 heures (nuit, ligne qui
+ne circule pas ce jour-là). Ces valeurs ne gardent pas d'historique : un
+compte à rebours relu chaque minute remplirait la base pour rien.
+
+### Station vélo
+
+| Fonctionnalité    | Type     |
+| ----------------- | -------- |
+| Vélos disponibles | compteur |
+| Vélos mécaniques  | compteur |
+| Vélos électriques | compteur |
+| Places libres     | compteur |
+
+Celles-ci gardent leur historique : le graphique montre quand votre station
+se vide.
+
+## Widgets du tableau de bord
+
+- **Prochains passages** : choisissez un arrêt. Une ligne par ligne et
+  direction (dix au plus, celles qui ont un passage d'abord) : « 3 · 7 min »
+  en vert quand c'est du temps réel, « ≈ 3 · 7 min » en bleu pour le
+  théorique. La légende liste les perturbations de ses lignes (⚠), ou rappelle
+  la signification de « ≈ ».
+- **VélôToulouse** : choisissez vos stations (vide : toutes, dix au plus). Une
+  seule station donne quatre tuiles en direct ; plusieurs donnent une ligne
+  chacune (« 3 méca · 2 élec · 12 places »), en rouge quand il n'y a plus de
+  vélo, en orange à deux ou moins.
+
+## Déclencheurs de scène
+
+- **Perturbation Tisséo** : une nouvelle perturbation apparaît sur une ligne
+  de vos arrêts surveillés (le filtre de lignes d'un arrêt la restreint), ou
+  sur tout le réseau (grève, fermetures). Filtres : **portée** (une ligne
+  suivie, tout le réseau, ou vide pour les deux) et **ligne** (telle qu'écrite
+  par Tisséo : A, T1, L9, 15). Variables : ligne, titre, détails (texte
+  brut), lien vers tisseo.fr. Une perturbation est annoncée une fois ; celles
+  déjà présentes quand vous ajoutez un arrêt ne le sont pas.
+- **Vélos qui manquent à une station** : les vélos d'un type (tous,
+  mécaniques, électriques) à une station surveillée descendent **au** nombre
+  choisi **ou en dessous** (0, 1, 2, 3 ou 5). Se déclenche une fois au
+  franchissement du seuil, pas à chaque mise à jour.
+- **Vélos de retour à une station** : ces mêmes vélos repassent **au-dessus**
+  du nombre choisi.
+
+Pour « le prochain bus est dans moins de 5 minutes », utilisez le déclencheur
+« Changement d'état de l'appareil » de Gladys sur le compte à rebours de l'arrêt : il sait
+déjà comparer des valeurs.
+
+## Actions de scène
+
+- **Lire les prochains passages Tisséo** : un arrêt surveillé et,
+  facultativement, une ligne. Sorties : **phrase** (jusqu'à quatre lignes et
+  directions, les plus proches d'abord), arrêt, ligne et direction du prochain
+  passage, minutes d'attente, minutes jusqu'au suivant, temps réel (1) ou
+  théorique (0), nombre de lignes avec un passage.
+- **Lire une station VélôToulouse** : sorties phrase, vélos disponibles,
+  mécaniques, électriques, places libres, en service (1 ou 0).
+
+Les phrases suivent la langue de la configuration.
+
+## Exemples de scènes
+
+- **C'est l'heure** : à 7 h 45 en semaine, « Lire les prochains passages
+  Tisséo » à votre arrêt pour la ligne L1, puis envoyez `{{sentence}}` par
+  Telegram ou annoncez-la sur une enceinte.
+- **Matin de grève** : déclencheur « Perturbation Tisséo » avec la portée
+  « tout le réseau », puis envoyez le titre et le lien sur votre téléphone.
+- **Le dernier vélo électrique** : déclencheur « Vélos qui manquent à une
+  station », votre station, vélos électriques, au plus 0 : envoyez « Plus de
+  vélo électrique à la station, prends le métro ».
+- **Partir quand le bus arrive** : déclencheur « Changement d'état de l'appareil », compte
+  à rebours de votre bus inférieur à 4, condition « quelqu'un à la maison » et
+  avant 8 h 30 : faites clignoter la lampe de l'entrée.
+
+## Données, rafraîchissement et bande passante
+
+| Données                      | Source                                    | Quand                                                           |
+| ---------------------------- | ----------------------------------------- | --------------------------------------------------------------- |
+| Horaires (GTFS, 15 Mo)       | Tisséo, via data.gouv.fr                  | une fois par jour au plus, gardés dans `/data`                  |
+| Temps réel (GTFS-RT, 1,7 Mo) | Tisséo (api.tisseo.fr)                    | à chaque mise à jour, toutes les 15 min quand rien ne roule     |
+| Stations vélo (GBFS)         | VélôToulouse (JCDecaux), via data.gouv.fr | liste des stations une fois par jour, état à chaque mise à jour |
+
+Le flux temps réel est le plus lourd : environ **100 Mo par heure** à une
+mise à jour par minute pendant les heures de service. La nuit, sans passage
+dans les 90 minutes à vos arrêts, il n'est lu que toutes les 15 minutes.
+Choisissez 2 ou 5 minutes, ou désactivez le temps réel, sur une connexion
+limitée. L'open data n'impose pas de quota ; Tisséo reconstruit le flux temps
+réel environ toutes les 20 secondes.
 
 ## Dépannage
 
-L'intégration journalise tout ce qu'elle fait : consultez les logs de
-l'intégration depuis l'interface Gladys (ou `docker logs` sur l'hôte) avec
-`LOG_LEVEL=debug` pour le détail complet.
+- **« Les horaires Tisséo sont encore en cours de chargement »** : le premier
+  téléchargement prend une minute ; réessayez.
+- **« Plusieurs résultats »** : ajoutez l'arrêt par son identifiant (`SA_…`),
+  donné par « Chercher un arrêt ».
+- **Tous les horaires d'un arrêt sont marqués ≈** : c'est toujours le cas du
+  métro ; pour un bus, le véhicule n'est pas suivi en ce moment, ou le flux
+  temps réel est en panne (« Afficher la surveillance » donne la dernière
+  erreur). Les horaires théoriques continuent de fonctionner.
+- **Une ligne affiche 1440** : aucun passage dans les 24 heures (service de
+  nuit, ligne qui ne circule pas ce jour-là, déviation).
+- **Aucun appareil dans l'onglet Découverte** : ajoutez d'abord un arrêt ou
+  une station ; pour les arrêts, les horaires doivent être téléchargés.
+- **Une nouvelle ligne à mon arrêt** : Gladys propose de mettre à jour
+  l'appareil dans l'onglet Découverte.
+- **Logs** : dans Gladys, les logs de l'intégration disent quel flux a échoué
+  et pourquoi.
+
+## Limites
+
+- Toulouse seulement (le réseau Tisséo et VélôToulouse).
+- **Le métro est en horaires théoriques** : Tisséo ne le publie pas en temps
+  réel.
+- **Pas de places libres dans les parkings relais** : l'open data de Toulouse
+  Métropole ne donne que leur capacité, pas leur occupation.
+- Les perturbations sont celles que Tisséo publie dans son flux temps réel ;
+  leur texte est en français.
+- L'API officielle de Tisséo (api.tisseo.fr, avec clé) n'est pas utilisée :
+  les flux ouverts donnent les mêmes passages sans aucun compte.
+- Un compte à rebours est précis à la fréquence de mise à jour près.
+- Développée et testée avec les vraies données Tisséo et VélôToulouse, sans
+  instance Gladys : vos retours sont bienvenus sur le forum.
+
+## Crédits
+
+- Données : Tisséo, Toulouse Métropole, VélôToulouse (JCDecaux), sous licence
+  ODbL.
+- Inspirée de l'intégration **TCL** de prohand (Lyon) et des intégrations
+  GTFS de Home Assistant.
+- Code sous licence Apache 2.0.

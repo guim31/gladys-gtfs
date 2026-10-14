@@ -1,177 +1,810 @@
 {
   "manifest_version": 1,
   "type": "device",
-  "name": "Demo Devices Template",
+  "name": "Transports en commun (GTFS)",
   "description": {
-    "en": "Starter template showing sensors, a switch, a dimmable light and a smart plug.",
-    "fr": "Template de démarrage : capteurs, interrupteur, lampe variable et prise connectée."
+    "en": "Next departures and traffic alerts for any French transit network, from open data.",
+    "fr": "Prochains passages et perturbations de tout réseau de transport français, en données ouvertes.",
+    "de": "Nächste Abfahrten und Störungen jedes französischen Nahverkehrsnetzes, aus offenen Daten.",
+    "es": "Próximas salidas e incidencias de cualquier red de transporte francesa, con datos abiertos."
   },
   "version": "1.0.0",
-  "docker_image": "ghcr.io/gladysassistant/integration-template-js:1.0.0",
+  "docker_image": "ghcr.io/guim31/gladys-gtfs:1.0.0",
   "gladys_version": ">=5.1.0",
-  "cover_image": "https://raw.githubusercontent.com/GladysAssistant/integration-template-js/master/cover.png",
-  "categories": ["lighting", "security", "environment"],
-  "transports": ["local", "cloud"],
+  "cover_image": "https://raw.githubusercontent.com/guim31/gladys-gtfs/main/cover.png",
+  "categories": ["services"],
+  "transports": ["cloud"],
+  "location": true,
   "config_schema": [
     {
       "key": "intro",
       "type": "section",
-      "label": { "en": "Getting started", "fr": "Pour commencer" },
+      "label": {
+        "en": "How it works",
+        "fr": "Fonctionnement",
+        "de": "So funktioniert es",
+        "es": "Funcionamiento"
+      },
       "description": {
-        "en": "The demo weather station reads real data from the free Open-Meteo API: pick the coordinates to observe. No account, no API key.",
-        "fr": "La station météo de démonstration lit de vraies données via l'API gratuite Open-Meteo : choisissez les coordonnées à observer. Pas de compte, pas de clé d'API."
+        "en": "Add your network with the actions below (search the national catalog of transport.data.gouv.fr, or give the URL of a GTFS file), then your stops (by name, or around your home), and create their devices in the Discover tab. Open data: no account, no key.",
+        "fr": "Ajoutez votre réseau avec les actions ci-dessous (recherche dans le catalogue national transport.data.gouv.fr, ou adresse d'un fichier GTFS), puis vos arrêts (par nom, ou autour de la maison), et créez leurs appareils dans l'onglet Découverte. Données ouvertes : ni compte, ni clé.",
+        "de": "Füge mit den Aktionen unten dein Netz hinzu (Suche im nationalen Katalog transport.data.gouv.fr oder Adresse einer GTFS-Datei), dann deine Haltestellen (nach Name oder rund um dein Zuhause), und lege ihre Geräte im Tab „Entdecken“ an. Offene Daten: kein Konto, kein Schlüssel.",
+        "es": "Añada su red con las acciones de abajo (búsqueda en el catálogo nacional transport.data.gouv.fr, o dirección de un archivo GTFS), luego sus paradas (por nombre, o alrededor de su casa), y cree sus dispositivos en la pestaña Descubrir. Datos abiertos: sin cuenta ni clave."
       },
       "links": [
         {
-          "url": "https://open-meteo.com/en/docs",
-          "label": { "en": "Open-Meteo documentation", "fr": "Documentation Open-Meteo" }
+          "url": "https://github.com/guim31/gladys-gtfs/blob/main/docs/en.md",
+          "label": {
+            "en": "Setup guide",
+            "fr": "Guide de configuration",
+            "de": "Einrichtungsanleitung",
+            "es": "Guía de configuración"
+          }
+        },
+        {
+          "url": "https://transport.data.gouv.fr/datasets?type=public-transit",
+          "label": {
+            "en": "Networks on transport.data.gouv.fr",
+            "fr": "Réseaux sur transport.data.gouv.fr",
+            "de": "Netze auf transport.data.gouv.fr",
+            "es": "Redes en transport.data.gouv.fr"
+          }
         }
       ]
     },
     {
-      "key": "latitude",
-      "type": "number",
-      "label": { "en": "Latitude", "fr": "Latitude" },
-      "description": {
-        "en": "Latitude used for the demo weather sensor.",
-        "fr": "Latitude utilisée par le capteur météo de démonstration."
-      },
-      "placeholder": { "en": "e.g. 48.8566", "fr": "ex. 48.8566" },
-      "required": true,
-      "default": 48.8566,
-      "min": -90,
-      "max": 90
-    },
-    {
-      "key": "longitude",
-      "type": "number",
-      "label": { "en": "Longitude", "fr": "Longitude" },
-      "description": {
-        "en": "Longitude used for the demo weather sensor.",
-        "fr": "Longitude utilisée par le capteur météo de démonstration."
-      },
-      "placeholder": { "en": "e.g. 2.3522", "fr": "ex. 2.3522" },
-      "required": true,
-      "default": 2.3522,
-      "min": -180,
-      "max": 180
-    },
-    {
-      "key": "unit",
+      "key": "language",
       "type": "select",
-      "label": { "en": "Temperature unit", "fr": "Unité de température" },
+      "label": {
+        "en": "Language of the texts",
+        "fr": "Langue des textes",
+        "de": "Sprache der Texte",
+        "es": "Idioma de los textos"
+      },
+      "description": {
+        "en": "Language of the feature names, of the line names and of the sentences sent to your scenes. Feature names are set when a device is created.",
+        "fr": "Langue des noms de fonctionnalités, des noms de lignes et des phrases envoyées à vos scènes. Les noms de fonctionnalités sont fixés à la création de l’appareil.",
+        "de": "Sprache der Funktionsnamen, der Liniennamen und der Sätze für deine Szenen. Funktionsnamen werden beim Anlegen des Geräts festgelegt.",
+        "es": "Idioma de los nombres de las funciones, de las líneas y de las frases enviadas a sus escenas. Los nombres de las funciones se fijan al crear el dispositivo."
+      },
       "required": false,
-      "default": "celsius",
+      "default": "fr",
       "options": [
-        { "value": "celsius", "label": { "en": "Celsius", "fr": "Celsius" } },
-        { "value": "fahrenheit", "label": { "en": "Fahrenheit", "fr": "Fahrenheit" } }
+        {
+          "value": "en",
+          "label": {
+            "en": "English",
+            "fr": "Anglais",
+            "de": "Englisch",
+            "es": "Inglés"
+          }
+        },
+        {
+          "value": "fr",
+          "label": {
+            "en": "French",
+            "fr": "Français",
+            "de": "Französisch",
+            "es": "Francés"
+          }
+        },
+        {
+          "value": "de",
+          "label": {
+            "en": "German",
+            "fr": "Allemand",
+            "de": "Deutsch",
+            "es": "Alemán"
+          }
+        },
+        {
+          "value": "es",
+          "label": {
+            "en": "Spanish",
+            "fr": "Espagnol",
+            "de": "Spanisch",
+            "es": "Español"
+          }
+        }
       ]
     },
     {
-      "key": "poll_frequency",
-      "type": "number",
-      "label": { "en": "Refresh interval (s)", "fr": "Intervalle de rafraîchissement (s)" },
+      "key": "refresh_interval",
+      "type": "select",
+      "label": {
+        "en": "Refresh interval",
+        "fr": "Fréquence de mise à jour",
+        "de": "Aktualisierungsintervall",
+        "es": "Intervalo de actualización"
+      },
       "description": {
-        "en": "How often sensors are polled, in seconds (one minute minimum).",
-        "fr": "Fréquence d'interrogation des capteurs, en secondes (une minute minimum)."
+        "en": "How often the departures are refreshed. Each refresh downloads the realtime feeds of your networks: from a few kB to 2 MB each (Tisséo: about 100 MB per hour at 1 minute). The integration status shows the volume of yours. At night, every 15 minutes only.",
+        "fr": "Fréquence de rafraîchissement des passages. Chaque rafraîchissement télécharge les flux temps réel de vos réseaux : de quelques Ko à 2 Mo chacun (Tisséo : environ 100 Mo par heure à 1 minute). L'action « État » affiche le volume des vôtres. La nuit, toutes les 15 minutes seulement.",
+        "de": "Wie oft die Abfahrten aktualisiert werden. Jede Aktualisierung lädt die Echtzeit-Feeds deiner Netze: von wenigen kB bis 2 MB pro Feed (Tisséo: etwa 100 MB pro Stunde bei 1 Minute). Die Aktion „Status“ zeigt das Volumen deiner Feeds. Nachts nur alle 15 Minuten.",
+        "es": "Frecuencia de actualización de las salidas. Cada actualización descarga los flujos en tiempo real de sus redes: de unos kB a 2 MB cada uno (Tisséo: unos 100 MB por hora a 1 minuto). La acción «Estado» muestra el volumen de los suyos. De noche, solo cada 15 minutos."
       },
       "required": false,
-      "default": 300,
-      "min": 60,
-      "max": 3600
+      "default": "60",
+      "options": [
+        {
+          "value": "30",
+          "label": {
+            "en": "30 seconds",
+            "fr": "30 secondes",
+            "de": "30 Sekunden",
+            "es": "30 segundos"
+          }
+        },
+        {
+          "value": "60",
+          "label": {
+            "en": "1 minute",
+            "fr": "1 minute",
+            "de": "1 Minute",
+            "es": "1 minuto"
+          }
+        },
+        {
+          "value": "120",
+          "label": {
+            "en": "2 minutes",
+            "fr": "2 minutes",
+            "de": "2 Minuten",
+            "es": "2 minutos"
+          }
+        },
+        {
+          "value": "300",
+          "label": {
+            "en": "5 minutes",
+            "fr": "5 minutes",
+            "de": "5 Minuten",
+            "es": "5 minutos"
+          }
+        }
+      ]
+    },
+    {
+      "key": "realtime",
+      "type": "boolean",
+      "label": {
+        "en": "Real time",
+        "fr": "Temps réel",
+        "de": "Echtzeit",
+        "es": "Tiempo real"
+      },
+      "description": {
+        "en": "Correct the timetable with the vehicles tracked live and read the traffic alerts, when your network publishes them (GTFS-RT). Off: timetable only, no download at each refresh.",
+        "fr": "Corriger les horaires avec les véhicules suivis en direct et lire les perturbations, quand votre réseau les publie (GTFS-RT). Désactivé : horaires théoriques seuls, aucun téléchargement à chaque rafraîchissement.",
+        "de": "Den Fahrplan mit den live verfolgten Fahrzeugen korrigieren und die Störungen lesen, wenn dein Netz sie veröffentlicht (GTFS-RT). Aus: nur Fahrplan, kein Download bei jeder Aktualisierung.",
+        "es": "Corregir los horarios con los vehículos seguidos en directo y leer las incidencias, cuando su red los publica (GTFS-RT). Desactivado: solo horarios teóricos, sin descarga en cada actualización."
+      },
+      "required": false,
+      "default": true
     }
   ],
   "actions": [
     {
-      "key": "test_weather",
-      "label": { "en": "Test the weather provider", "fr": "Tester le fournisseur météo" },
-      "timeout_seconds": 30
-    },
-    {
-      "key": "identify",
-      "label": { "en": "Identify a device", "fr": "Identifier un appareil" },
+      "key": "search_networks",
+      "label": {
+        "en": "Find a network",
+        "fr": "Chercher un réseau",
+        "de": "Netz suchen",
+        "es": "Buscar una red"
+      },
+      "description": {
+        "en": "Searches the national catalog transport.data.gouv.fr: networks with a GTFS timetable, and whether they publish real time.",
+        "fr": "Cherche dans le catalogue national transport.data.gouv.fr : réseaux publiant des horaires GTFS, et s’ils publient du temps réel.",
+        "de": "Sucht im nationalen Katalog transport.data.gouv.fr: Netze mit GTFS-Fahrplan, und ob sie Echtzeit veröffentlichen.",
+        "es": "Busca en el catálogo nacional transport.data.gouv.fr: redes con horarios GTFS, y si publican tiempo real."
+      },
+      "timeout_seconds": 60,
       "fields": [
         {
-          "key": "device",
+          "key": "query",
+          "type": "string",
+          "required": true,
+          "label": {
+            "en": "Network, city or region",
+            "fr": "Réseau, ville ou région",
+            "de": "Netz, Stadt oder Region",
+            "es": "Red, ciudad o región"
+          },
+          "placeholder": {
+            "en": "e.g. Naolib, Rennes, TER",
+            "fr": "ex. Naolib, Rennes, TER",
+            "de": "z. B. Naolib, Rennes, TER",
+            "es": "p. ej. Naolib, Rennes, TER"
+          }
+        }
+      ]
+    },
+    {
+      "key": "add_network",
+      "label": {
+        "en": "Add a network",
+        "fr": "Ajouter un réseau",
+        "de": "Netz hinzufügen",
+        "es": "Añadir una red"
+      },
+      "description": {
+        "en": "Downloads the timetable of a network (up to a minute for a big one). Three networks at most.",
+        "fr": "Télécharge les horaires d'un réseau (jusqu'à une minute pour un gros). Trois réseaux au plus.",
+        "de": "Lädt den Fahrplan eines Netzes herunter (bis zu einer Minute bei einem großen). Höchstens drei Netze.",
+        "es": "Descarga los horarios de una red (hasta un minuto para una grande). Tres redes como máximo."
+      },
+      "timeout_seconds": 300,
+      "fields": [
+        {
+          "key": "network",
+          "type": "string",
+          "required": true,
+          "label": {
+            "en": "Identifier, name or GTFS URL",
+            "fr": "Identifiant, nom ou URL GTFS",
+            "de": "Kennung, Name oder GTFS-URL",
+            "es": "Identificador, nombre o URL GTFS"
+          },
+          "description": {
+            "en": "The identifier (tdg…) is shown by \"Find a network\". A network outside the catalog: the URL of its GTFS zip file.",
+            "fr": "L'identifiant (tdg…) est affiché par « Chercher un réseau ». Un réseau hors catalogue : l'URL de son fichier GTFS (zip).",
+            "de": "Die Kennung (tdg…) zeigt „Netz suchen“ an. Ein Netz außerhalb des Katalogs: die URL seiner GTFS-Datei (zip).",
+            "es": "El identificador (tdg…) lo muestra «Buscar una red». Una red fuera del catálogo: la URL de su archivo GTFS (zip)."
+          },
+          "placeholder": {
+            "en": "e.g. tdg84101",
+            "fr": "ex. tdg84101",
+            "de": "z. B. tdg84101",
+            "es": "p. ej. tdg84101"
+          }
+        },
+        {
+          "key": "realtime",
+          "type": "string",
+          "required": false,
+          "label": {
+            "en": "GTFS-RT URLs (optional)",
+            "fr": "URL GTFS-RT (facultatif)",
+            "de": "GTFS-RT-URLs (optional)",
+            "es": "URL GTFS-RT (opcional)"
+          },
+          "description": {
+            "en": "Realtime feeds to add, separated by spaces. Catalog networks already get theirs.",
+            "fr": "Flux temps réel à ajouter, séparés par des espaces. Les réseaux du catalogue ont déjà les leurs.",
+            "de": "Hinzuzufügende Echtzeit-Feeds, durch Leerzeichen getrennt. Netze aus dem Katalog haben ihre schon.",
+            "es": "Flujos en tiempo real que añadir, separados por espacios. Las redes del catálogo ya tienen los suyos."
+          },
+          "placeholder": {
+            "en": "e.g. https://example.org/trip-updates.pb",
+            "fr": "ex. https://example.org/trip-updates.pb",
+            "de": "z. B. https://example.org/trip-updates.pb",
+            "es": "p. ej. https://example.org/trip-updates.pb"
+          }
+        },
+        {
+          "key": "name",
+          "type": "string",
+          "required": false,
+          "label": {
+            "en": "Name shown (optional)",
+            "fr": "Nom affiché (facultatif)",
+            "de": "Angezeigter Name (optional)",
+            "es": "Nombre mostrado (opcional)"
+          },
+          "description": {
+            "en": "Put before the stop names of its devices.",
+            "fr": "Placé devant le nom des arrêts de ses appareils.",
+            "de": "Steht vor den Haltestellennamen seiner Geräte.",
+            "es": "Se pone delante del nombre de las paradas de sus dispositivos."
+          },
+          "placeholder": {
+            "en": "e.g. Naolib",
+            "fr": "ex. Naolib",
+            "de": "z. B. Naolib",
+            "es": "p. ej. Naolib"
+          }
+        }
+      ]
+    },
+    {
+      "key": "search_stops",
+      "label": {
+        "en": "Find a stop",
+        "fr": "Chercher un arrêt",
+        "de": "Haltestelle suchen",
+        "es": "Buscar una parada"
+      },
+      "description": {
+        "en": "Lists the stops of your networks matching a name, or the closest ones to your home when the name is empty, with their lines and identifier.",
+        "fr": "Liste les arrêts de vos réseaux correspondant à un nom, ou les plus proches de la maison si le nom est vide, avec leurs lignes et leur identifiant.",
+        "de": "Listet die Haltestellen deiner Netze, die zu einem Namen passen, oder die nächstgelegenen zu deinem Zuhause, wenn der Name leer ist, mit Linien und Kennung.",
+        "es": "Lista las paradas de sus redes que coinciden con un nombre, o las más cercanas a su casa si el nombre está vacío, con sus líneas y su identificador."
+      },
+      "timeout_seconds": 120,
+      "fields": [
+        {
+          "key": "query",
+          "type": "string",
+          "required": false,
+          "label": {
+            "en": "Stop name",
+            "fr": "Nom de l'arrêt",
+            "de": "Name der Haltestelle",
+            "es": "Nombre de la parada"
+          },
+          "description": {
+            "en": "Empty: the stops around your home (position set in Gladys).",
+            "fr": "Vide : les arrêts autour de votre maison (position renseignée dans Gladys).",
+            "de": "Leer: die Haltestellen rund um dein Zuhause (Position in Gladys eingetragen).",
+            "es": "Vacío: las paradas alrededor de su casa (posición indicada en Gladys)."
+          },
+          "placeholder": {
+            "en": "e.g. Commerce",
+            "fr": "ex. Commerce",
+            "de": "z. B. Commerce",
+            "es": "p. ej. Commerce"
+          }
+        },
+        {
+          "key": "network",
+          "type": "string",
+          "required": false,
+          "label": {
+            "en": "Network (empty: all)",
+            "fr": "Réseau (vide : tous)",
+            "de": "Netz (leer: alle)",
+            "es": "Red (vacío: todas)"
+          },
+          "description": {
+            "en": "Only when several networks are added: its name or identifier.",
+            "fr": "Seulement si plusieurs réseaux sont ajoutés : son nom ou son identifiant.",
+            "de": "Nur wenn mehrere Netze hinzugefügt sind: sein Name oder seine Kennung.",
+            "es": "Solo si hay varias redes añadidas: su nombre o su identificador."
+          },
+          "placeholder": {
+            "en": "e.g. Naolib",
+            "fr": "ex. Naolib",
+            "de": "z. B. Naolib",
+            "es": "p. ej. Naolib"
+          }
+        }
+      ]
+    },
+    {
+      "key": "add_stop",
+      "label": {
+        "en": "Add a stop",
+        "fr": "Ajouter un arrêt",
+        "de": "Haltestelle hinzufügen",
+        "es": "Añadir una parada"
+      },
+      "description": {
+        "en": "Watches a stop: its device then appears in the Discover tab. Adding a stop already watched changes its lines.",
+        "fr": "Surveille un arrêt : son appareil apparaît ensuite dans l'onglet Découverte. Ajouter un arrêt déjà surveillé change ses lignes.",
+        "de": "Überwacht eine Haltestelle: Das Gerät der Haltestelle erscheint danach im Tab „Entdecken“. Eine bereits überwachte Haltestelle erneut hinzuzufügen ändert ihre Linien.",
+        "es": "Vigila una parada: su dispositivo aparece después en la pestaña Descubrir. Añadir una parada ya vigilada cambia sus líneas."
+      },
+      "timeout_seconds": 120,
+      "fields": [
+        {
+          "key": "stop",
+          "type": "string",
+          "required": true,
+          "label": {
+            "en": "Stop name or identifier",
+            "fr": "Nom ou identifiant de l'arrêt",
+            "de": "Name oder Kennung der Haltestelle",
+            "es": "Nombre o identificador de la parada"
+          },
+          "description": {
+            "en": "The identifier (in brackets) is shown by \"Find a stop\": use it when several stops share a name.",
+            "fr": "L'identifiant (entre crochets) est affiché par « Chercher un arrêt » : utilisez-le quand plusieurs arrêts portent le même nom.",
+            "de": "Die Kennung (in Klammern) zeigt „Haltestelle suchen“ an: Nutze sie, wenn mehrere Haltestellen gleich heißen.",
+            "es": "El identificador (entre corchetes) lo muestra «Buscar una parada»: úselo cuando varias paradas tienen el mismo nombre."
+          },
+          "placeholder": {
+            "en": "e.g. Commerce",
+            "fr": "ex. Commerce",
+            "de": "z. B. Commerce",
+            "es": "p. ej. Commerce"
+          }
+        },
+        {
+          "key": "lines",
+          "type": "string",
+          "required": false,
+          "label": {
+            "en": "Lines (empty: all)",
+            "fr": "Lignes (vide : toutes)",
+            "de": "Linien (leer: alle)",
+            "es": "Líneas (vacío: todas)"
+          },
+          "description": {
+            "en": "Only these lines, separated by commas. Each line and direction becomes two features of the device.",
+            "fr": "Seulement ces lignes, séparées par des virgules. Chaque ligne et direction devient deux fonctionnalités de l'appareil.",
+            "de": "Nur diese Linien, durch Kommas getrennt. Jede Linie und Richtung wird zu zwei Funktionen des Geräts.",
+            "es": "Solo estas líneas, separadas por comas. Cada línea y dirección se convierte en dos funciones del dispositivo."
+          },
+          "placeholder": {
+            "en": "e.g. 1, C1",
+            "fr": "ex. 1, C1",
+            "de": "z. B. 1, C1",
+            "es": "p. ej. 1, C1"
+          }
+        },
+        {
+          "key": "network",
+          "type": "string",
+          "required": false,
+          "label": {
+            "en": "Network (empty: all)",
+            "fr": "Réseau (vide : tous)",
+            "de": "Netz (leer: alle)",
+            "es": "Red (vacío: todas)"
+          },
+          "description": {
+            "en": "Only when several networks are added: its name or identifier.",
+            "fr": "Seulement si plusieurs réseaux sont ajoutés : son nom ou son identifiant.",
+            "de": "Nur wenn mehrere Netze hinzugefügt sind: sein Name oder seine Kennung.",
+            "es": "Solo si hay varias redes añadidas: su nombre o su identificador."
+          },
+          "placeholder": {
+            "en": "e.g. Naolib",
+            "fr": "ex. Naolib",
+            "de": "z. B. Naolib",
+            "es": "p. ej. Naolib"
+          }
+        }
+      ]
+    },
+    {
+      "key": "remove",
+      "label": {
+        "en": "Remove a stop or a network",
+        "fr": "Retirer un arrêt ou un réseau",
+        "de": "Haltestelle oder Netz entfernen",
+        "es": "Eliminar una parada o una red"
+      },
+      "description": {
+        "en": "Stops watching it (a network: with all its stops). Devices stay in Gladys until you delete them.",
+        "fr": "Arrête de le surveiller (un réseau : avec tous ses arrêts). Les appareils restent dans Gladys jusqu'à ce que vous les supprimiez.",
+        "de": "Beendet die Überwachung (ein Netz: mit allen Haltestellen). Die Geräte bleiben in Gladys, bis du sie löschst.",
+        "es": "Deja de vigilarlo (una red: con todas sus paradas). Los dispositivos permanecen en Gladys hasta que los elimine."
+      },
+      "timeout_seconds": 30,
+      "fields": [
+        {
+          "key": "name",
+          "type": "string",
+          "required": true,
+          "label": {
+            "en": "Name or identifier",
+            "fr": "Nom ou identifiant",
+            "de": "Name oder Kennung",
+            "es": "Nombre o identificador"
+          },
+          "placeholder": {
+            "en": "e.g. Commerce",
+            "fr": "ex. Commerce",
+            "de": "z. B. Commerce",
+            "es": "p. ej. Commerce"
+          }
+        }
+      ]
+    },
+    {
+      "key": "status",
+      "label": {
+        "en": "Show what is watched",
+        "fr": "Afficher la surveillance",
+        "de": "Überwachung anzeigen",
+        "es": "Mostrar lo vigilado"
+      },
+      "description": {
+        "en": "The networks and stops watched, the state of each feed and the realtime volume.",
+        "fr": "Les réseaux et arrêts surveillés, l'état de chaque flux et le volume du temps réel.",
+        "de": "Die überwachten Netze und Haltestellen, der Zustand jedes Feeds und das Echtzeit-Volumen.",
+        "es": "Las redes y paradas vigiladas, el estado de cada flujo y el volumen del tiempo real."
+      },
+      "timeout_seconds": 10
+    }
+  ],
+  "widgets": [
+    {
+      "key": "departures",
+      "label": {
+        "en": "Next departures",
+        "fr": "Prochains passages",
+        "de": "Nächste Abfahrten",
+        "es": "Próximas salidas"
+      },
+      "description": {
+        "en": "The next two departures of each line at a stop, real time or timetable.",
+        "fr": "Les deux prochains passages de chaque ligne à un arrêt, en temps réel ou théoriques.",
+        "de": "Die nächsten zwei Abfahrten jeder Linie an einer Haltestelle, Echtzeit oder Fahrplan.",
+        "es": "Las dos próximas salidas de cada línea en una parada, en tiempo real o teóricas."
+      },
+      "icon": "clock",
+      "settings": [
+        {
+          "key": "stop",
           "type": "select",
           "source": "devices",
-          "label": { "en": "Device", "fr": "Appareil" },
-          "required": true
+          "required": true,
+          "label": {
+            "en": "Stop",
+            "fr": "Arrêt",
+            "de": "Haltestelle",
+            "es": "Parada"
+          }
         }
       ]
     }
   ],
   "scene_triggers": [
     {
-      "key": "motion_detected",
-      "label": { "en": "Motion detected", "fr": "Mouvement détecté" },
+      "key": "line_disruption",
+      "label": {
+        "en": "Disruption on a followed line",
+        "fr": "Perturbation sur une ligne suivie",
+        "de": "Störung auf einer verfolgten Linie",
+        "es": "Incidencia en una línea seguida"
+      },
       "description": {
-        "en": "A demo motion sensor saw a person or an animal move.",
-        "fr": "Un détecteur de démonstration a vu bouger une personne ou un animal."
+        "en": "A new traffic alert on a line of your watched stops, or on the whole network (strike, closures). Needs a network publishing its alerts.",
+        "fr": "Une nouvelle alerte trafic sur une ligne de vos arrêts surveillés, ou sur tout le réseau (grève, fermetures). Il faut un réseau qui publie ses alertes.",
+        "de": "Eine neue Verkehrsmeldung auf einer Linie deiner überwachten Haltestellen oder im ganzen Netz (Streik, Schließungen). Dein Netz muss seine Meldungen veröffentlichen.",
+        "es": "Un nuevo aviso de tráfico en una línea de sus paradas vigiladas, o en toda la red (huelga, cierres). Requiere una red que publique sus avisos."
       },
       "fields": [
         {
-          "key": "device",
+          "key": "scope",
           "type": "select",
-          "source": "devices",
-          "label": { "en": "Sensor", "fr": "Détecteur" }
+          "required": false,
+          "label": {
+            "en": "Scope (empty: any)",
+            "fr": "Portée (vide : toutes)",
+            "de": "Umfang (leer: alle)",
+            "es": "Alcance (vacío: todos)"
+          },
+          "options": [
+            {
+              "value": "line",
+              "label": {
+                "en": "A followed line",
+                "fr": "Une ligne suivie",
+                "de": "Eine verfolgte Linie",
+                "es": "Una línea seguida"
+              }
+            },
+            {
+              "value": "network",
+              "label": {
+                "en": "The whole network",
+                "fr": "Tout le réseau",
+                "de": "Das ganze Netz",
+                "es": "Toda la red"
+              }
+            }
+          ]
         },
         {
-          "key": "target",
-          "type": "multi_select",
-          "label": { "en": "What moved", "fr": "Ce qui a bougé" },
-          "options": [
-            { "value": "person", "label": { "en": "Person", "fr": "Personne" } },
-            { "value": "animal", "label": { "en": "Animal", "fr": "Animal" } }
-          ]
+          "key": "line",
+          "type": "string",
+          "required": false,
+          "label": {
+            "en": "Line (empty: any)",
+            "fr": "Ligne (vide : toutes)",
+            "de": "Linie (leer: alle)",
+            "es": "Línea (vacío: todas)"
+          },
+          "description": {
+            "en": "As written by the network, e.g. A, C1, 15.",
+            "fr": "Telle qu’écrite par le réseau, par exemple A, C1, 15.",
+            "de": "Wie vom Netz geschrieben, z. B. A, C1, 15.",
+            "es": "Tal como la escribe la red, por ejemplo A, C1, 15."
+          },
+          "placeholder": {
+            "en": "e.g. C1",
+            "fr": "ex. C1",
+            "de": "z. B. C1",
+            "es": "p. ej. C1"
+          }
         }
       ],
       "variables": [
         {
-          "key": "target",
+          "key": "scope",
           "type": "string",
-          "label": { "en": "What moved", "fr": "Ce qui a bougé" }
+          "label": {
+            "en": "Scope (line or network)",
+            "fr": "Portée (line ou network)",
+            "de": "Umfang (line oder network)",
+            "es": "Alcance (line o network)"
+          }
+        },
+        {
+          "key": "network",
+          "type": "string",
+          "label": {
+            "en": "Network",
+            "fr": "Réseau",
+            "de": "Netz",
+            "es": "Red"
+          }
+        },
+        {
+          "key": "line",
+          "type": "string",
+          "label": {
+            "en": "Line",
+            "fr": "Ligne",
+            "de": "Linie",
+            "es": "Línea"
+          }
+        },
+        {
+          "key": "title",
+          "type": "string",
+          "label": {
+            "en": "Title",
+            "fr": "Titre",
+            "de": "Titel",
+            "es": "Título"
+          }
+        },
+        {
+          "key": "description",
+          "type": "string",
+          "label": {
+            "en": "Details",
+            "fr": "Détails",
+            "de": "Details",
+            "es": "Detalles"
+          }
+        },
+        {
+          "key": "url",
+          "type": "string",
+          "label": {
+            "en": "Link",
+            "fr": "Lien",
+            "de": "Link",
+            "es": "Enlace"
+          }
         }
       ]
     }
   ],
   "scene_actions": [
     {
-      "key": "identify_device",
-      "label": { "en": "Identify a device", "fr": "Identifier un appareil" },
-      "description": {
-        "en": "Make a device signal itself (the demo light blinks).",
-        "fr": "Fait se signaler un appareil (la lampe de démonstration clignote)."
+      "key": "get_next_departures",
+      "label": {
+        "en": "Read the next departures",
+        "fr": "Lire les prochains passages",
+        "de": "Nächste Abfahrten lesen",
+        "es": "Leer las próximas salidas"
       },
-      "timeout_seconds": 15,
+      "description": {
+        "en": "The next departures of a watched stop, with a sentence ready to send: \"Tram 1 towards François Mitterrand at Commerce: in 3 and 7 min\".",
+        "fr": "Les prochains passages d’un arrêt surveillé, avec une phrase prête à envoyer : « Tram 1 vers François Mitterrand à Commerce : dans 3 et 7 min ».",
+        "de": "Die nächsten Abfahrten einer überwachten Haltestelle, mit einem fertigen Satz: „Tram 1 Richtung François Mitterrand ab Commerce: in 3 und 7 Min.“",
+        "es": "Las próximas salidas de una parada vigilada, con una frase lista para enviar: «Tranvía 1 hacia François Mitterrand en Commerce: dentro de 3 y 7 min»."
+      },
+      "timeout_seconds": 30,
       "fields": [
         {
-          "key": "device",
+          "key": "stop",
           "type": "select",
           "source": "devices",
-          "label": { "en": "Device", "fr": "Appareil" },
-          "required": true
+          "required": true,
+          "label": {
+            "en": "Stop",
+            "fr": "Arrêt",
+            "de": "Haltestelle",
+            "es": "Parada"
+          }
+        },
+        {
+          "key": "line",
+          "type": "string",
+          "required": false,
+          "label": {
+            "en": "Line (empty: any)",
+            "fr": "Ligne (vide : toutes)",
+            "de": "Linie (leer: alle)",
+            "es": "Línea (vacío: todas)"
+          },
+          "placeholder": {
+            "en": "e.g. 1",
+            "fr": "ex. 1",
+            "de": "z. B. 1",
+            "es": "p. ej. 1"
+          }
         }
       ],
       "outputs": [
         {
-          "key": "signalled",
-          "type": "boolean",
-          "label": { "en": "Device signalled", "fr": "Appareil signalé" }
+          "key": "sentence",
+          "type": "string",
+          "label": {
+            "en": "Sentence",
+            "fr": "Phrase",
+            "de": "Satz",
+            "es": "Frase"
+          }
+        },
+        {
+          "key": "stop_name",
+          "type": "string",
+          "label": {
+            "en": "Stop",
+            "fr": "Arrêt",
+            "de": "Haltestelle",
+            "es": "Parada"
+          }
+        },
+        {
+          "key": "line",
+          "type": "string",
+          "label": {
+            "en": "Line of the next departure",
+            "fr": "Ligne du prochain passage",
+            "de": "Linie der nächsten Abfahrt",
+            "es": "Línea de la próxima salida"
+          }
+        },
+        {
+          "key": "direction",
+          "type": "string",
+          "label": {
+            "en": "Direction",
+            "fr": "Direction",
+            "de": "Richtung",
+            "es": "Dirección"
+          }
+        },
+        {
+          "key": "minutes",
+          "type": "number",
+          "label": {
+            "en": "Minutes to wait",
+            "fr": "Minutes d'attente",
+            "de": "Minuten Wartezeit",
+            "es": "Minutos de espera"
+          }
+        },
+        {
+          "key": "following_minutes",
+          "type": "number",
+          "label": {
+            "en": "Minutes to the following one",
+            "fr": "Minutes jusqu'au suivant",
+            "de": "Minuten bis zur nächsten",
+            "es": "Minutos hasta la siguiente"
+          }
+        },
+        {
+          "key": "realtime",
+          "type": "number",
+          "label": {
+            "en": "Real time (1 = yes, 0 = timetable)",
+            "fr": "Temps réel (1 = oui, 0 = théorique)",
+            "de": "Echtzeit (1 = ja, 0 = Fahrplan)",
+            "es": "Tiempo real (1 = sí, 0 = teórico)"
+          }
+        },
+        {
+          "key": "count",
+          "type": "number",
+          "label": {
+            "en": "Lines with a departure",
+            "fr": "Lignes avec un passage",
+            "de": "Linien mit Abfahrt",
+            "es": "Líneas con salida"
+          }
         }
       ]
-    }
-  ],
-  "widgets": [
-    {
-      "key": "demo_status",
-      "label": { "en": "Demo status", "fr": "État de la démo" },
-      "description": {
-        "en": "Live temperature and plug power, plug connection and observed location.",
-        "fr": "Température et puissance en direct, connexion de la prise, position observée."
-      },
-      "icon": "activity",
-      "action_timeout_seconds": 15
     }
   ]
 }
