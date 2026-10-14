@@ -14,10 +14,25 @@ import { pipeline } from 'node:stream/promises';
 export const USER_AGENT = 'gladys-gtfs (+https://github.com/guim31/gladys-gtfs)';
 
 export class HttpError extends Error {
-  constructor(message, status = null) {
+  constructor(message, status = null, retryAfterMs = null) {
     super(message);
     this.status = status;
+    this.retryAfterMs = retryAfterMs;
   }
+}
+
+/** The Retry-After header of a 429 or a 503, in ms (seconds or an HTTP date). */
+export function retryAfterMs(response) {
+  const value = response.headers?.get?.('retry-after');
+  if (!value) {
+    return null;
+  }
+  const seconds = Number(value);
+  if (Number.isFinite(seconds)) {
+    return Math.max(0, seconds * 1000);
+  }
+  const date = Date.parse(value);
+  return Number.isFinite(date) ? Math.max(0, date - Date.now()) : null;
 }
 
 /** Host of a URL, for messages and logs (never the query string). */
@@ -29,11 +44,13 @@ export function hostOf(url) {
   }
 }
 
-async function request(fetchImpl, url, { timeoutMs, headers = {} }) {
+async function request(fetchImpl, url, { timeoutMs, headers = {}, method = 'GET', body }) {
   let response;
   try {
     response = await fetchImpl(url, {
+      method,
       headers: { 'user-agent': USER_AGENT, ...headers },
+      ...(body === undefined ? {} : { body }),
       redirect: 'follow',
       signal: AbortSignal.timeout(timeoutMs),
     });
@@ -77,27 +94,47 @@ async function readCapped(response, url, maxBytes) {
 
 /**
  * GET a body into memory. With `etag`, a 304 resolves `{ notModified: true }`.
+ * `method`, `body` and `headers` make another request (a SIRI SOAP POST).
  * @returns {Promise<{ body: Buffer|null, etag: string|null, notModified: boolean }>}
  */
 export async function getBuffer(
   fetchImpl,
   url,
-  { timeoutMs = 20000, maxBytes = 20e6, etag = null } = {},
+  {
+    timeoutMs = 20000,
+    maxBytes = 20e6,
+    etag = null,
+    method = 'GET',
+    body,
+    headers = {},
+    errorBody = false,
+  } = {},
 ) {
   const response = await request(fetchImpl, url, {
     timeoutMs,
-    headers: etag ? { 'if-none-match': etag } : {},
+    method,
+    body,
+    headers: { ...headers, ...(etag ? { 'if-none-match': etag } : {}) },
   });
   if (response.status === 304) {
     await response.body?.cancel?.().catch(() => {});
     return { body: null, etag, notModified: true };
   }
   if (!response.ok) {
-    await response.body?.cancel?.().catch(() => {});
-    throw new HttpError(`${hostOf(url)}: HTTP ${response.status}`, response.status);
+    const error = new HttpError(
+      `${hostOf(url)}: HTTP ${response.status}`,
+      response.status,
+      retryAfterMs(response),
+    );
+    // A SIRI server explains a refusal in the body (a SOAP fault, an ErrorCondition).
+    error.body = errorBody ? await readCapped(response, url, 64e3).catch(() => null) : null;
+    if (!errorBody) {
+      await response.body?.cancel?.().catch(() => {});
+    }
+    throw error;
   }
-  const body = await readCapped(response, url, maxBytes);
-  return { body, etag: response.headers?.get?.('etag') ?? null, notModified: false };
+  const content = await readCapped(response, url, maxBytes);
+  return { body: content, etag: response.headers?.get?.('etag') ?? null, notModified: false };
 }
 
 /** GET a JSON document. */

@@ -9,6 +9,8 @@
 //   256 MB, a big timetable takes ~100 MB while it is read.
 // - The realtime feeds are read every 15 minutes only while no departure is
 //   scheduled within 90 minutes at the network's watched stops (the night).
+// - A network without GTFS-RT but with SIRI is read stop by stop instead
+//   (src/siri-feed.js), with the same rhythm, stop by stop.
 // -----------------------------------------------------------------------------
 
 import { mkdir, rm, stat } from 'node:fs/promises';
@@ -18,6 +20,7 @@ import { indexRealtime, resolveLines, upcomingDepartures } from './departures.js
 import { decodeFeed } from './gtfsrt.js';
 import { parseGtfs } from './gtfs.js';
 import { downloadFile, getBuffer, hostOf } from './http.js';
+import { SiriReader } from './siri-feed.js';
 import { localDate } from './time.js';
 
 const logger = createLogger({ name: 'gtfs-feed' });
@@ -61,9 +64,12 @@ export class Feed {
    * @param {string} options.dataDir
    * @param {() => { id: string, lines: string[] }[]} options.stops the watched stops of the network
    * @param {(task: () => Promise<any>) => Promise<any>} options.queue serializes the parses
+   * @param {() => string} [options.key] the SIRI key of the network ('' when none)
    */
-  constructor({ network, fetch, now, dataDir, stops, queue }) {
+  constructor({ network, fetch, now, dataDir, stops, queue, key = () => '' }) {
     this.info = network;
+    this.key = key;
+    this.reader = null;
     this.fetch = fetch;
     this.now = now;
     this.dataDir = dataDir;
@@ -109,6 +115,7 @@ export class Feed {
     this.network = null;
     this.realtime = null;
     this.parts.clear();
+    this.reader = null;
     await rm(this.path, { force: true }).catch(() => {});
   }
 
@@ -235,8 +242,26 @@ export class Feed {
     );
   }
 
+  /** True when the network is read by SIRI: no GTFS-RT, a SIRI endpoint. */
+  get usesSiri() {
+    return (this.info.realtime ?? []).length === 0 && (this.info.siri ?? []).length > 0;
+  }
+
+  /** The SIRI reader, made again when the endpoints changed (catalog read again). */
+  siriReader() {
+    const signature = JSON.stringify(this.info.siri ?? []);
+    if (!this.reader || this.reader.signature !== signature) {
+      this.reader = new SiriReader({ info: this.info, fetch: this.fetch });
+      this.reader.signature = signature;
+    }
+    return this.reader;
+  }
+
   /** Reads the realtime feeds of the network (conditional requests). */
   async refreshRealtime(now, enabled) {
+    if (this.usesSiri) {
+      return this.refreshSiri(now, enabled);
+    }
     const urls = this.info.realtime ?? [];
     if (!enabled || urls.length === 0 || !this.network) {
       this.realtime = null;
@@ -299,6 +324,47 @@ export class Feed {
     } else {
       if (this.realtimeError) {
         logger.info(`${this.info.name}: realtime feed back`);
+      }
+      this.realtimeError = null;
+    }
+  }
+
+  /** Reads the SIRI servers of the network: the due stops, then the disruptions. */
+  async refreshSiri(now, enabled) {
+    if (!enabled || !this.network) {
+      this.realtime = null;
+      return;
+    }
+    const reader = this.siriReader();
+    const stops = this.stops();
+    reader.forget(new Set(stops.map((stop) => stop.id)));
+    const busy = (stop) =>
+      upcomingDepartures(this.network, null, stop.id, {
+        now,
+        routes: resolveLines(this.network, stop.lines),
+        horizonMs: QUIET_HORIZON_MS,
+      }).length > 0;
+    const { read, failures } = await reader.refresh(stops, this.network, {
+      key: this.key(),
+      now,
+      busy,
+    });
+    this.realtime = reader.realtime(now);
+    if (read > 0) {
+      this.realtimeAt = now;
+    }
+    // Every request answered: what is missing from them has really left.
+    this.realtimeComplete = read > 0 && failures === 0;
+    this.siriAccessError = reader.accessError;
+    this.siriUnknownStops = [...reader.unknownStops];
+    if (failures > 0) {
+      if (!this.realtimeError) {
+        logger.warn(`${this.info.name}: realtime (SIRI) unavailable: ${reader.error}`);
+      }
+      this.realtimeError = reader.error;
+    } else if (read > 0) {
+      if (this.realtimeError) {
+        logger.info(`${this.info.name}: realtime (SIRI) back`);
       }
       this.realtimeError = null;
     }

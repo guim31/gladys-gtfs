@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<S:Envelope xmlns:S="http://schemas.xmlsoap.org/soap/envelope/">
+  <S:Body>
+    <sw:GetStopMonitoringResponse xmlns:sw="http://wsdl.siri.org.uk" xmlns:siri="http://www.siri.org.uk/siri">
+      <Answer>
+        <siri:StopMonitoringDelivery version="2.0">
+          <siri:ResponseTimestamp>2026-10-13T17:19:02.000+02:00</siri:ResponseTimestamp>
+          <siri:Status>false</siri:Status>
+          <siri:ErrorCondition>
+            <siri:AccessNotAllowedError>
+              <siri:ErrorText>RequestorRef KEY-PLACEHOLDER is not allowed</siri:ErrorText>
+            </siri:AccessNotAllowedError>
+          </siri:ErrorCondition>
+        </siri:StopMonitoringDelivery>
+      </Answer>
+    </sw:GetStopMonitoringResponse>
+  </S:Body>
+</S:Envelope>

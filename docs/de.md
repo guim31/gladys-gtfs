@@ -6,8 +6,7 @@ GTFS auf [transport.data.gouv.fr](https://transport.data.gouv.fr)
 veröffentlicht: TER und TGV (SNCF), Naolib (Nantes), STAR (Rennes), TaM
 (Montpellier), M (Grenoble), Ilévia (Lille), Stan (Nancy) und Hunderte
 weitere. Echtzeit (GTFS-RT) wird genutzt, wenn das Netz sie veröffentlicht,
-bei etwa 220 Datensätzen. Alles stammt aus offenen Daten: **kein Konto, kein
-API-Schlüssel**.
+bei etwa 220 Datensätzen. Für etwa zwanzig Netze ohne GTFS-RT wird stattdessen SIRI-Echtzeit genutzt (siehe „SIRI-Echtzeit“). Alles stammt aus offenen Daten: **kein Konto**, ein API-Schlüssel nur für manche SIRI-Feeds.
 
 Für **Toulouse, Lyon, die Île-de-France oder Bordeaux** nimm lieber die
 eigenen Integrationen (Tisséo, TCL, IDFM, TBM), die mehr bieten (Leihräder,
@@ -70,6 +69,9 @@ Fahrplan“. Die Netzsuche zeigt, was jedes Netz veröffentlicht.
 - **Echtzeit**: standardmäßig an. Aus nutzt die Integration nur den Fahrplan
   und lädt keine Echtzeit-Feeds mehr herunter.
 
+- **SIRI-API-Schlüssel** (geheim, optional): nur für ein Netz, dessen
+  Echtzeit SIRI ist und einen Schlüssel verlangt (siehe „SIRI-Echtzeit“).
+
 ### Netz hinzufügen
 
 1. **Netz suchen**: ein Netzname, eine Stadt oder eine Region („Naolib“,
@@ -87,6 +89,9 @@ Fahrplan“. Die Netzsuche zeigt, was jedes Netz veröffentlicht.
 kennst, die Adressen seiner GTFS-RT-Feeds in **GTFS-RT-URLs**. **Angezeigter
 Name** ersetzt den Namen vor den Haltestellennamen.
 
+**SIRI- oder SIRI-Lite-URL** (optional): die SIRI-Echtzeit eines Netzes
+außerhalb des Katalogs, genutzt, wenn es kein GTFS-RT hat.
+
 ### Haltestelle hinzufügen
 
 1. **Haltestelle suchen**: Gib einen Namen ein („hotel dieu“ findet „Hôtel
@@ -102,6 +107,10 @@ Name** ersetzt den Namen vor den Haltestellennamen.
 
 Eine bereits überwachte Haltestelle erneut hinzuzufügen ändert ihre Linien:
 Gladys bietet dann im Tab „Entdecken“ an, das Gerät zu **aktualisieren**.
+
+**SIRI-Kennung** (optional, nur SIRI-Netze): Wenn „Überwachung anzeigen“
+meldet, dass der SIRI-Server die Haltestelle nicht kennt, ihre
+`MonitoringRef` (eine pro Steig, durch Kommas getrennt).
 
 ### Entfernen, Feeds prüfen
 
@@ -191,6 +200,7 @@ Linien mit Abfahrt. Die Sätze folgen der Sprache der Konfiguration.
 | Katalog der Netze  | transport.data.gouv.fr (öffentliche API) | beim Suchen oder Hinzufügen eines Netzes, einen Tag behalten |
 | Fahrplan (GTFS)    | das Netz, über transport.data.gouv.fr    | höchstens einmal täglich, in `/data` gespeichert             |
 | Echtzeit (GTFS-RT) | das Netz oder der Proxy des Katalogs     | bei jeder Aktualisierung, alle 15 Min., wenn nichts fährt    |
+| Echtzeit (SIRI)    | der SIRI-Server des Netzes               | je Haltestelle, bei jeder Aktualisierung vor einer Abfahrt   |
 
 Echtzeit ist am schwersten: von wenigen kB bis 2 MB pro Feed und Abruf. Bei
 einem Abruf pro Minute sind es für Tisséo etwa 100 MB pro Stunde und für die
@@ -206,6 +216,54 @@ Katalog und die offenen Feeds haben kein Kontingent; der Proxy von transport.dat
 angezeigt, und transport.data.gouv.fr nennt sie auf der Seite jedes
 Datensatzes.
 
+## SIRI-Echtzeit
+
+Etwa zwanzig Netze veröffentlichen ihre Echtzeit als **SIRI** oder
+**SIRI Lite** statt als GTFS-RT: Ginko (Besançon), CTS (Straßburg), das
+Aggregat der Pays de la Loire, Idelis, TUB, évolitY, Tanlib, Calibus, Tréma,
+R'Bus, Evalys, ARVI, TuT, Dordogne, BlaBlaCar Bus… Die Integration nutzt sie,
+wenn das Netz kein GTFS-RT hat; die Suche zeigt sie als „Echtzeit: Abfahrten
+je Haltestelle (SIRI)“. TCL und IDFM, die sie auch veröffentlichen, haben
+eigene Integrationen.
+
+- **Ohne Schlüssel**: Wenn der Katalog den Zugangsschlüssel des Servers
+  veröffentlicht (die öffentliche „RequestorRef“ mancher SIRI-Server) oder
+  der Server offen ist, ist nichts zu tun.
+- **Mit Schlüssel**: Viele Server verlangen einen, kostenlos beim Netz zu
+  bekommen; die Seite des Datensatzes auf transport.data.gouv.fr sagt, bei
+  wem (Ginko: sein Support per E-Mail; CTS: ein Konto auf seinem
+  Entwicklerportal). Gib ihn in der Konfiguration unter
+  **SIRI-API-Schlüssel** ein, als `Ginko = dein-Schlüssel`; einer pro Zeile
+  (oder durch „;“ getrennt), wenn mehrere Netze einen verlangen; ein
+  einzelner Schlüssel gilt für alle. Er erscheint nie in den Protokollen, in
+  „Überwachung anzeigen“ oder in `/data`. Die Integration setzt ihn dort ein,
+  wo der Server ihn erwartet: `RequestorRef` bei SIRI, HTTP-Authentifizierung
+  bei der CTS, Parameter `AccountKey` bei Mecatran-Servern. Will dein Netz
+  ihn woanders, schreib `name=Schlüssel` (URL-Parameter) oder
+  `Header-Name: Schlüssel` (HTTP-Header).
+- **Haltestellen**: SIRI benennt die Haltestellen mit eigenen Kennungen. Die
+  Integration fragt den Server nach seiner Haltestellenliste (einmal am Tag)
+  und verknüpft sie mit denen des Fahrplans (gleicher Code, sonst gleicher
+  Name im Umkreis von 100 m); ohne Liste probiert sie den öffentlichen Code
+  der Haltestelle, dann ihre GTFS-Kennung. Meldet „Überwachung anzeigen“ eine
+  dem Server unbekannte Haltestelle, gib ihre SIRI-Kennung unter
+  **SIRI-Kennung** in „Haltestelle hinzufügen“ an.
+- **Was sich ändert**: nichts am Gerät, am Widget oder an den Szenen. Die
+  vom Server gelieferten Abfahrten ersetzen den Fahrplan ihrer Linie und
+  Richtung, ohne „≈“, wenn das Fahrzeug verfolgt wird. Die Störungen
+  (GeneralMessage, sonst SituationExchange) speisen die Verkehrsinfo und den
+  Szenen-Auslöser.
+- **Sparsamkeit**: eine Anfrage pro Steig (höchstens vier pro Haltestelle)
+  bei jeder Aktualisierung, nur für Haltestellen mit einer Abfahrt in den
+  nächsten 90 Minuten (sonst alle 15 Minuten), und die Störungen alle
+  5 Minuten. Zwei Haltestellen mit je zwei Steigen, eine Aktualisierung pro
+  Minute: etwa 250 Anfragen pro Stunde tagsüber, je wenige kB. Ein Server,
+  der „zu viele Anfragen“ (429) antwortet, wird für die verlangte Zeit in
+  Ruhe gelassen (standardmäßig 5 Minuten), der Proxy von
+  transport.data.gouv.fr höchstens einmal pro 30 Sekunden abgefragt. Setzt
+  dein Netz ein niedrigeres Kontingent (siehe die Seite seines Datensatzes),
+  wähle eine Aktualisierung alle 2 oder 5 Minuten.
+
 ## Fehlerbehebung
 
 - **„… ist zu groß für die 256 MB der Integration“**: Das Netz übersteigt,
@@ -218,6 +276,10 @@ Datensatzes.
   veröffentlicht keine Echtzeit, oder nicht für diese Fahrzeuge, oder der Feed
   ist ausgefallen (die Aktion „Überwachung anzeigen“ zeigt den letzten Fehler). Der
   Fahrplan funktioniert weiter.
+- **„Echtzeit (SIRI): Zugriff vom Server verweigert“**: Der Schlüssel
+  fehlt oder ist falsch (Feld **SIRI-API-Schlüssel**). Ein Schlüssel in
+  anderer Form (URL-Parameter, Header) wird als `name=Schlüssel` oder
+  `Header-Name: Schlüssel` geschrieben.
 - **Eine Linie zeigt 1440**: keine Abfahrt in den nächsten 24 Stunden
   (Nachtverkehr, eine Linie, die an diesem Tag nicht fährt, eine Umleitung).
 - **Kein Gerät im Tab „Entdecken“**: Füge zuerst ein Netz hinzu, dann eine

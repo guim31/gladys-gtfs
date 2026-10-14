@@ -1,0 +1,73 @@
+{
+  "Siri": {
+    "ServiceDelivery": {
+      "ResponseTimestamp": "2026-10-13T15:19:06Z",
+      "GeneralMessageDelivery": [
+        {
+          "ResponseTimestamp": "2026-10-13T15:19:06Z",
+          "Status": "true",
+          "InfoMessage": [
+            {
+              "formatRef": "FRANCE",
+              "RecordedAtTime": "2026-10-13T06:00:00Z",
+              "ItemIdentifier": "GM-1",
+              "InfoMessageIdentifier": { "value": "TEST:InfoMessage::L10-travaux:LOC" },
+              "InfoChannelRef": { "value": "Perturbation" },
+              "ValidUntilTime": "2026-10-20T22:00:00Z",
+              "Content": {
+                "LineRef": [{ "value": "L10" }],
+                "Message": [
+                  {
+                    "MessageType": "shortMessage",
+                    "MessageText": { "value": "L10 : arrêt Borderouge déplacé", "lang": "fr" }
+                  },
+                  {
+                    "MessageType": "longMessage",
+                    "MessageText": {
+                      "value": "Travaux de voirie : l'arrêt Borderouge de la ligne L10 est déplacé de 50 m, rue Ernest Renan.",
+                      "lang": "fr"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "formatRef": "FRANCE",
+              "RecordedAtTime": "2026-10-13T06:00:00Z",
+              "InfoMessageIdentifier": { "value": "TEST:InfoMessage::agence:LOC" },
+              "InfoChannelRef": { "value": "Information" },
+              "ValidUntilTime": "2026-10-31T22:00:00Z",
+              "Content": {
+                "Message": [
+                  {
+                    "MessageType": "textOnly",
+                    "MessageText": {
+                      "value": "Agence commerciale fermée le 1er novembre",
+                      "lang": "fr"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "formatRef": "FRANCE",
+              "RecordedAtTime": "2026-10-01T06:00:00Z",
+              "InfoMessageIdentifier": { "value": "TEST:InfoMessage::fini:LOC" },
+              "InfoChannelRef": { "value": "Perturbation" },
+              "ValidUntilTime": "2026-10-05T22:00:00Z",
+              "Content": {
+                "LineRef": [{ "value": "29" }],
+                "Message": [
+                  {
+                    "MessageType": "shortMessage",
+                    "MessageText": { "value": "29 : déviation terminée", "lang": "fr" }
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

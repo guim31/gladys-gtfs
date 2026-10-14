@@ -1,0 +1,47 @@
+{
+  "Siri": {
+    "ServiceDelivery": {
+      "ResponseTimestamp": "2026-10-13T15:19:06.120Z",
+      "ProducerRef": { "value": "GLADYS-TEST" },
+      "StopMonitoringDelivery": [
+        {
+          "ResponseTimestamp": "2026-10-13T15:19:06.120Z",
+          "Status": "true",
+          "MonitoredStopVisit": [
+            {
+              "RecordedAtTime": "2026-10-13T15:19:00Z",
+              "MonitoringRef": { "value": "5781" },
+              "MonitoredVehicleJourney": {
+                "LineRef": { "value": "L10" },
+                "DirectionName": [{ "value": "La Vache" }],
+                "DestinationName": [{ "value": "La Vache", "lang": "fr" }],
+                "Monitored": true,
+                "MonitoredCall": {
+                  "StopPointRef": { "value": "5781" },
+                  "AimedDepartureTime": "2026-10-13T15:24:00Z",
+                  "ExpectedDepartureTime": "2026-10-13T15:24:00Z",
+                  "DepartureStatus": "cancelled"
+                }
+              }
+            },
+            {
+              "RecordedAtTime": "2026-10-13T15:19:00Z",
+              "MonitoringRef": { "value": "5781" },
+              "MonitoredVehicleJourney": {
+                "LineRef": { "value": "59" },
+                "DestinationName": [{ "value": "La Vache", "lang": "fr" }],
+                "Monitored": true,
+                "MonitoredCall": {
+                  "StopPointRef": { "value": "5781" },
+                  "AimedDepartureTime": "2026-10-13T15:20:00Z",
+                  "ExpectedDepartureTime": "2026-10-13T15:22:30Z",
+                  "DepartureStatus": "delayed"
+                }
+              }
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

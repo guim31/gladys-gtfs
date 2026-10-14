@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<S:Envelope xmlns:S="http://schemas.xmlsoap.org/soap/envelope/">
+  <S:Body>
+    <sw:StopPointsDiscoveryResponse xmlns:sw="http://wsdl.siri.org.uk" xmlns:siri="http://www.siri.org.uk/siri">
+      <Answer version="2.0">
+        <siri:ResponseTimestamp>2026-10-13T17:19:01.000+02:00</siri:ResponseTimestamp>
+        <siri:Status>true</siri:Status>
+        <siri:AnnotatedStopPointRef>
+          <siri:StopPointRef>TEST:StopPoint:BP:5780:LOC</siri:StopPointRef>
+          <siri:Monitored>true</siri:Monitored>
+          <siri:StopName>Pader</siri:StopName>
+          <siri:Lines>
+            <siri:LineRef>TEST:Line::209:LOC</siri:LineRef>
+            <siri:LineRef>TEST:Line::84:LOC</siri:LineRef>
+          </siri:Lines>
+          <siri:Location>
+            <siri:Longitude>1.43338</siri:Longitude>
+            <siri:Latitude>43.63712</siri:Latitude>
+          </siri:Location>
+        </siri:AnnotatedStopPointRef>
+        <siri:AnnotatedStopPointRef>
+          <siri:StopPointRef>TEST:StopPoint:BP:5781:LOC</siri:StopPointRef>
+          <siri:StopName>Pader</siri:StopName>
+          <siri:Location>
+            <siri:Longitude>1.43320</siri:Longitude>
+            <siri:Latitude>43.63592</siri:Latitude>
+          </siri:Location>
+        </siri:AnnotatedStopPointRef>
+        <siri:AnnotatedStopPointRef>
+          <siri:StopPointRef>TEST:StopPoint:BP:PADER3:LOC</siri:StopPointRef>
+          <siri:StopName>PADER</siri:StopName>
+          <siri:Location>
+            <siri:Longitude>1.43260</siri:Longitude>
+            <siri:Latitude>43.63645</siri:Latitude>
+          </siri:Location>
+        </siri:AnnotatedStopPointRef>
+        <siri:AnnotatedStopPointRef>
+          <siri:StopPointRef>TEST:StopPoint:BP:9999:LOC</siri:StopPointRef>
+          <siri:StopName>Jean Jaurès</siri:StopName>
+        </siri:AnnotatedStopPointRef>
+      </Answer>
+      <AnswerExtension/>
+    </sw:StopPointsDiscoveryResponse>
+  </S:Body>
+</S:Envelope>

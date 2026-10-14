@@ -6,7 +6,7 @@ horaires en GTFS sur [transport.data.gouv.fr](https://transport.data.gouv.fr) :
 TER et TGV (SNCF), Naolib (Nantes), STAR (Rennes), TaM (Montpellier), M
 (Grenoble), Ilévia (Lille), Stan (Nancy), et des centaines d'autres. Le temps
 réel (GTFS-RT) est utilisé quand le réseau le publie, soit environ 220 jeux de
-données. Tout vient de l'open data : **ni compte, ni clé d'API**.
+données. Pour une vingtaine de réseaux sans GTFS-RT, le temps réel SIRI est utilisé à la place (voir « Temps réel SIRI »). Tout vient de l'open data : **pas de compte**, et une clé d'API seulement pour certains flux SIRI.
 
 Pour **Toulouse, Lyon, l'Île-de-France ou Bordeaux**, préférez les
 intégrations dédiées (Tisséo, TCL, IDFM, TBM) : elles vont plus loin (vélos,
@@ -69,6 +69,9 @@ recherche de réseau indique ce que chacun publie.
 - **Temps réel** : activé par défaut. Désactivé, l'intégration n'utilise que
   les horaires théoriques et ne télécharge plus les flux temps réel.
 
+- **Clés d'API SIRI** (secret, facultatif) : seulement pour un réseau dont
+  le temps réel est en SIRI et demande une clé (voir « Temps réel SIRI »).
+
 ### Ajouter un réseau
 
 1. **Chercher un réseau** : un nom de réseau, une ville ou une région
@@ -86,6 +89,9 @@ recherche de réseau indique ce que chacun publie.
 adresses de ses flux GTFS-RT dans **URL GTFS-RT**. **Nom affiché** remplace le
 nom placé devant celui des arrêts.
 
+**URL SIRI ou SIRI Lite** (facultatif) : le temps réel SIRI d'un réseau
+hors catalogue, utilisé s'il n'a pas de GTFS-RT.
+
 ### Ajouter un arrêt
 
 1. **Chercher un arrêt** : saisissez un nom (« hotel dieu » trouve « Hôtel
@@ -101,6 +107,10 @@ nom placé devant celui des arrêts.
 
 Ajouter un arrêt déjà surveillé change ses lignes : Gladys propose alors de
 **mettre à jour** l'appareil dans l'onglet Découverte.
+
+**Identifiant SIRI** (facultatif, réseaux en SIRI seulement) : quand
+« Afficher la surveillance » dit que le serveur SIRI ne connaît pas l'arrêt,
+son `MonitoringRef` (un par quai, séparés par des virgules).
 
 ### Retirer, vérifier les flux
 
@@ -189,6 +199,7 @@ de lignes avec un passage. Les phrases suivent la langue de la configuration.
 | Catalogue des réseaux | transport.data.gouv.fr (API publique) | à la recherche ou à l'ajout d'un réseau, gardé un jour      |
 | Horaires (GTFS)       | le réseau, via transport.data.gouv.fr | une fois par jour au plus, gardés dans `/data`              |
 | Temps réel (GTFS-RT)  | le réseau, ou le proxy du catalogue   | à chaque mise à jour, toutes les 15 min quand rien ne roule |
+| Temps réel (SIRI)     | le serveur SIRI du réseau             | par arrêt, à chaque mise à jour quand un passage approche   |
 
 Le temps réel est le plus lourd : de quelques Ko à 2 Mo par flux et par
 lecture. À une lecture par minute, Tisséo représente environ 100 Mo par heure
@@ -203,6 +214,54 @@ ouverts n'imposent pas de quota ; le proxy de transport.data.gouv.fr n'accepte q
 ODbL selon le réseau ; l'ajout d'un réseau affiche la sienne, et
 transport.data.gouv.fr la précise sur la page de chaque jeu de données.
 
+## Temps réel SIRI
+
+Une vingtaine de réseaux publient leur temps réel au format **SIRI** ou
+**SIRI Lite** plutôt qu'en GTFS-RT : Ginko (Besançon), CTS (Strasbourg),
+l'agrégat des Pays de la Loire, Idelis, TUB, évolitY, Tanlib, Calibus,
+Tréma, R'Bus, Evalys, ARVI, TuT, Dordogne, BlaBlaCar Bus… L'intégration s'en
+sert quand le réseau n'a pas de GTFS-RT ; la recherche l'annonce par
+« temps réel : passages arrêt par arrêt (SIRI) ». TCL et IDFM, qui en
+publient aussi, ont leurs intégrations dédiées.
+
+- **Sans clé** : quand le catalogue publie la clé d'accès du serveur (le
+  « RequestorRef » public de certains serveurs SIRI) ou que le serveur est
+  ouvert, il n'y a rien à faire.
+- **Avec clé** : beaucoup de serveurs en demandent une, gratuite, à obtenir
+  auprès du réseau ; la page du jeu de données sur transport.data.gouv.fr
+  dit à qui la demander (Ginko : son support, par courriel ; CTS : un compte
+  sur son portail développeur). Saisissez-la dans **Clés d'API SIRI** de la
+  configuration, sous la forme `Ginko = votre-clé` ; une par ligne (ou
+  séparées par « ; ») si plusieurs réseaux en demandent ; seule, une clé vaut
+  pour tous. Elle n'apparaît ni dans les journaux, ni dans « Afficher la
+  surveillance », ni dans `/data`. L'intégration la place là où le serveur
+  l'attend : `RequestorRef` en SIRI, authentification HTTP pour la CTS,
+  paramètre `AccountKey` pour les serveurs Mecatran. Si votre réseau la
+  veut ailleurs, écrivez `nom=clé` (paramètre d'URL) ou `En-Tête: clé`
+  (en-tête HTTP).
+- **Arrêts** : SIRI désigne les arrêts par ses propres identifiants.
+  L'intégration demande au serveur la liste de ses arrêts (une fois par jour)
+  et les relie à ceux des horaires (même code, sinon même nom à moins de
+  100 m) ; sans liste, elle essaie le code public de l'arrêt puis son
+  identifiant GTFS. Si « Afficher la surveillance » signale un arrêt inconnu
+  du serveur, donnez son identifiant SIRI dans **Identifiant SIRI** de
+  « Ajouter un arrêt ».
+- **Ce qui change** : rien sur l'appareil, le widget ni les scènes. Les
+  passages donnés par le serveur remplacent les horaires théoriques de leur
+  ligne et direction, sans « ≈ » quand le véhicule est suivi. Les
+  perturbations (GeneralMessage, sinon SituationExchange) alimentent l'info
+  trafic et le déclencheur de scène.
+- **Sobriété** : une requête par quai (quatre au plus par arrêt) à chaque
+  mise à jour, seulement pour les arrêts qui ont un passage dans les
+  90 minutes (toutes les 15 minutes sinon), et les perturbations toutes les
+  5 minutes. Deux arrêts de deux quais, une mise à jour par minute : environ
+  250 requêtes par heure en journée, quelques Ko chacune. Un serveur qui
+  répond « trop de requêtes » (429) n'est plus interrogé pendant le délai
+  qu'il demande (5 minutes par défaut), le proxy de transport.data.gouv.fr
+  une fois par 30 secondes au plus. Si votre réseau fixe un quota plus bas
+  (voir la page de son jeu de données), choisissez une mise à jour toutes les
+  2 ou 5 minutes.
+
 ## Dépannage
 
 - **« … sont trop gros pour les 256 Mo de l'intégration »** : le réseau
@@ -215,6 +274,10 @@ transport.data.gouv.fr la précise sur la page de chaque jeu de données.
   de temps réel, ou pas pour ces véhicules, ou le flux est en panne (l'action
   « Afficher la surveillance » donne la dernière erreur). Les horaires théoriques continuent de
   fonctionner.
+- **« Temps réel (SIRI) : accès refusé par le serveur »** : la clé manque
+  ou n'est pas la bonne (champ **Clés d'API SIRI**). Une clé fournie sous
+  une autre forme (paramètre d'URL, en-tête) s'écrit `nom=clé` ou
+  `En-Tête: clé`.
 - **Une ligne affiche 1440** : aucun passage dans les 24 heures (service de
   nuit, ligne qui ne circule pas ce jour-là, déviation).
 - **Aucun appareil dans l'onglet Découverte** : ajoutez d'abord un réseau,

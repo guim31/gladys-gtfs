@@ -9,14 +9,16 @@
 //   - static GTFS of each network: downloaded to /data at most once a day,
 //     parsed in one streaming pass; parsed again when a stop is added;
 //   - GTFS-RT of each network with a watched stop: read at each refresh,
-//     every 15 minutes only when no departure is scheduled within 90 minutes.
+//     every 15 minutes only when no departure is scheduled within 90 minutes;
+//   - SIRI of a network without GTFS-RT: asked stop by stop, same rhythm
+//     (src/siri-feed.js), with the key of the configuration when it needs one.
 // -----------------------------------------------------------------------------
 
 import { createHash } from 'node:crypto';
 import { createLogger } from '@gladysassistant/integration-sdk';
 import { alertKey, readAlerts, routesFromTrips } from './alerts.js';
 import { Catalog, catalogNetworkId, searchCatalog } from './catalog.js';
-import { DEFAULT_CONFIG, normalizeConfig } from './config.js';
+import { DEFAULT_CONFIG, normalizeConfig, siriKeyFor } from './config.js';
 import {
   MAX_GROUPS,
   buildBoard,
@@ -39,6 +41,7 @@ import { Feed, serial } from './feed.js';
 import { hostOf } from './http.js';
 import { REPORTS, TEXT, lines, render, say } from './messages.js';
 import { formatDistance, nearest, normalize, searchByName } from './search.js';
+import { SIRI_LITE, guessFormat } from './siri.js';
 import { dataDirectory } from './store.js';
 
 const logger = createLogger({ name: 'gtfs' });
@@ -94,6 +97,23 @@ export function parseUrlList(value) {
     ),
   ];
 }
+
+/** SIRI endpoints typed by the user: `[{ url, format, requestorRef }]`. */
+export const parseSiriUrls = (value) =>
+  parseUrlList(value)
+    .slice(0, 3)
+    .map((url) => ({ url, format: guessFormat(url), requestorRef: null }));
+
+/** SIRI references typed for a stop ("A:StopPoint:Q:12:LOC, 4012" → two). */
+export const parseRefList = (value) =>
+  [
+    ...new Set(
+      String(value ?? '')
+        .split(/[\s,;|]+/)
+        .map((ref) => ref.trim())
+        .filter(Boolean),
+    ),
+  ].slice(0, 4);
 
 /** The id of a network added by URL: "url" and a hash of the URL. */
 export const customNetworkId = (url) =>
@@ -244,6 +264,7 @@ export class Transit {
     for (const feed of this.activeFeeds()) {
       await feed.ensure().catch(() => {});
     }
+    await this.fillSiriEndpoints();
     // Names restored from the devices carry the network and the line filter:
     // the timetable has the real ones.
     let renamed = false;
@@ -269,6 +290,38 @@ export class Transit {
     await this.publishDiscovered();
   }
 
+  /**
+   * The SIRI endpoints of the catalog networks added before the integration
+   * read SIRI (no `siri` saved) and publishing no GTFS-RT: asked once.
+   */
+  async fillSiriEndpoints() {
+    const missing = this.watch.networks.filter(
+      (network) =>
+        network.siri === undefined &&
+        network.source !== 'url' &&
+        /^tdg\d+$/.test(network.id) &&
+        (network.realtime ?? []).length === 0,
+    );
+    if (missing.length === 0) {
+      return;
+    }
+    let entries;
+    try {
+      entries = await this.catalog.load();
+    } catch (err) {
+      logger.debug(`Catalog unavailable, SIRI endpoints not checked: ${err.message}`);
+      return;
+    }
+    for (const network of missing) {
+      const entry = entries.find((e) => e.id === network.id);
+      network.siri = entry && entry.realtime.length === 0 ? entry.siri : [];
+      if (network.siri.length > 0) {
+        logger.info(`${network.name}: realtime available by SIRI`);
+      }
+    }
+    await this.save();
+  }
+
   /** The networks and stops of the devices created in Gladys but missing from /data. */
   async restoreFromDevices() {
     let devices;
@@ -291,11 +344,15 @@ export class Transit {
         if (!gtfs) {
           continue;
         }
+        const siriUrls = parseSiriUrls(param(device, 'siri_url'));
         this.watch.networks.push({
           id: networkId,
           name: param(device, 'network_name') || hostOf(gtfs),
           gtfs,
           realtime: parseUrlList(param(device, 'realtime_urls')),
+          source: /^url/.test(networkId) ? 'url' : 'catalog',
+          // A catalog network gets its SIRI endpoints from the catalog again.
+          ...(siriUrls.length > 0 ? { siri: siriUrls } : {}),
         });
       }
       if (!this.watch.stops.some((s) => s.network === networkId && s.id === stopId)) {
@@ -305,6 +362,10 @@ export class Transit {
           name: String(device.name ?? stopId).replace(/^[^·]*· /, ''),
           lines: parseLineList(param(device, 'lines')),
         });
+        const refs = parseRefList(param(device, 'siri_ref'));
+        if (refs.length > 0) {
+          this.watch.stops.at(-1).siri = refs;
+        }
         changed = true;
       }
     }
@@ -326,6 +387,7 @@ export class Transit {
       dataDir: this.dataDir,
       stops: () => this.watch.stops.filter((stop) => stop.network === network.id),
       queue: this.queue,
+      key: () => this.siriKeyOf(network),
     });
     this.feeds.set(network.id, feed);
     return feed;
@@ -361,6 +423,13 @@ export class Transit {
       { name: 'gtfs_url', value: feed.info.gtfs },
       { name: 'realtime_urls', value: (feed.info.realtime ?? []).join(' ') },
     );
+    // Only when set: the devices of the networks without SIRI stay as they were.
+    if (feed.info.source === 'url' && feed.info.siri?.length) {
+      device.params.push({ name: 'siri_url', value: feed.info.siri.map((e) => e.url).join(' ') });
+    }
+    if (stop.siri?.length) {
+      device.params.push({ name: 'siri_ref', value: stop.siri.join(' ') });
+    }
     return device;
   }
 
@@ -636,6 +705,9 @@ export class Transit {
 
   /** "Passages + alertes" / "aucun": the realtime feeds of a catalog entry. */
   realtimeLabel(entry, language) {
+    if (entry.realtime.length === 0 && entry.siri?.length > 0) {
+      return say(REPORTS, language, 'siriShort');
+    }
     if (entry.realtime.length === 0) {
       return say(REPORTS, language, 'noRealtime');
     }
@@ -678,14 +750,16 @@ export class Transit {
   }
 
   /** The network meant by an action: a catalog id, a catalog name, or a GTFS URL. */
-  async resolveNetwork({ network: query, realtime, name }) {
+  async resolveNetwork({ network: query, realtime, name, siri }) {
     const wanted = String(query ?? '').trim();
+    const typedSiri = parseSiriUrls(siri);
     if (/^https?:\/\//i.test(wanted)) {
       return {
         id: customNetworkId(wanted),
         name: clip(String(name ?? '').trim() || hostOf(wanted), 40),
         gtfs: wanted,
         realtime: parseUrlList(realtime).slice(0, 3),
+        siri: typedSiri,
         source: 'url',
       };
     }
@@ -722,6 +796,7 @@ export class Transit {
       name: clip(String(name ?? '').trim() || entry.name, 40),
       gtfs: entry.gtfs,
       realtime: [...new Set([...entry.realtime.map((r) => r.url), ...extra])].slice(0, 3),
+      siri: typedSiri.length > 0 ? typedSiri : entry.siri,
       source: 'catalog',
       licence: entry.licence,
       page: entry.page,
@@ -760,13 +835,45 @@ export class Transit {
           }),
           network.realtime.length > 0
             ? say(REPORTS, language, 'networkRealtime', { count: network.realtime.length })
-            : say(REPORTS, language, 'networkNoRealtime'),
+            : network.siri?.length > 0
+              ? say(REPORTS, language, 'networkSiri', { format: this.siriFormatName(network) })
+              : say(REPORTS, language, 'networkNoRealtime'),
+          this.needsKeyHint(network) ? say(REPORTS, language, 'siriKeyHint') : null,
           network.licence ? say(REPORTS, language, 'licence', { licence: network.licence }) : null,
           say(REPORTS, language, 'searchStopHint'),
         ]
           .filter(Boolean)
           .join('\n'),
       ]),
+    );
+  }
+
+  siriFormatName(network) {
+    return network.siri?.some((e) => e.format === SIRI_LITE) ? 'SIRI Lite' : 'SIRI';
+  }
+
+  /**
+   * The SIRI key of a network: the one named after it, else the key typed
+   * alone, unless the catalog publishes its RequestorRef (an open server must
+   * not get the key of another network).
+   */
+  siriKeyOf(network) {
+    const named = siriKeyFor(this.config.siriKeys, network, this.watch.networks, {
+      namedOnly: true,
+    });
+    if (named || network.siri?.every((endpoint) => endpoint.requestorRef)) {
+      return named;
+    }
+    return siriKeyFor(this.config.siriKeys, network, this.watch.networks);
+  }
+
+  /** A SIRI network whose key is not public and not typed yet. */
+  needsKeyHint(network) {
+    return (
+      (network.realtime ?? []).length === 0 &&
+      network.siri?.length > 0 &&
+      !network.siri.some((e) => e.requestorRef) &&
+      !this.siriKeyOf(network)
     );
   }
 
@@ -908,7 +1015,7 @@ export class Transit {
     throw ambiguous(candidates);
   }
 
-  async addStop({ stop: query, lines: lineField, network: networkQuery } = {}) {
+  async addStop({ stop: query, lines: lineField, network: networkQuery, siri_ref: siriRef } = {}) {
     const { feed, area } = await this.resolveStop(query, networkQuery);
     const served = this.routeNames(feed.network, area.routes);
     // "Nantes - Angers" typed without a comma is one line, not three.
@@ -934,11 +1041,24 @@ export class Transit {
     if (!existing && this.watch.stops.length >= MAX_STOPS) {
       throw reportError('tooMany', { max: MAX_STOPS });
     }
+    // Empty: found automatically (src/siri-feed.js).
+    const refs = parseRefList(siriRef);
     if (existing) {
       existing.lines = chosen;
       existing.name = area.name;
+      if (refs.length > 0) {
+        existing.siri = refs;
+      } else {
+        delete existing.siri;
+      }
     } else {
-      this.watch.stops.push({ network: feed.id, id: area.id, name: area.name, lines: chosen });
+      this.watch.stops.push({
+        network: feed.id,
+        id: area.id,
+        name: area.name,
+        lines: chosen,
+        ...(refs.length > 0 ? { siri: refs } : {}),
+      });
     }
     await this.save();
     logger.info(`Stop ${existing ? 'updated' : 'added'}: ${area.name} (${feed.info.name})`);
@@ -961,6 +1081,11 @@ export class Transit {
           }),
           groups > MAX_GROUPS
             ? say(REPORTS, language, 'tooManyLines', { count: groups, max: MAX_GROUPS })
+            : null,
+          refs.length > 0
+            ? say(REPORTS, language, feed.usesSiri ? 'siriRef' : 'siriRefUnused', {
+                refs: refs.join(', '),
+              })
             : null,
           say(REPORTS, language, 'toDiscovery'),
         ]
@@ -1042,22 +1167,24 @@ export class Transit {
               until: day(timetable.dates.at(-1), timetable.timeZone),
             })
           : render(REPORTS, 'timetableMissing'),
-        network.realtime.length === 0
-          ? render(REPORTS, 'networkNoRealtime')
-          : !this.config.realtime
-            ? render(REPORTS, 'realtimeOff')
-            : feed?.realtimeAt
-              ? render(REPORTS, 'realtime', {
-                  age: Math.round((now - feed.realtimeAt) / 1000),
-                  tracked: feed.realtime
-                    ? new Set([
-                        ...feed.realtime.trips.keys(),
-                        ...feed.realtime.added.map((u) => u.id),
-                      ]).size
-                    : 0,
-                  volume: megabytesPerHour.toLocaleString(language),
-                })
-              : render(REPORTS, 'realtimeWaiting'),
+        feed?.usesSiri
+          ? this.siriStatus(feed, now)
+          : network.realtime.length === 0
+            ? render(REPORTS, 'networkNoRealtime')
+            : !this.config.realtime
+              ? render(REPORTS, 'realtimeOff')
+              : feed?.realtimeAt
+                ? render(REPORTS, 'realtime', {
+                    age: Math.round((now - feed.realtimeAt) / 1000),
+                    tracked: feed.realtime
+                      ? new Set([
+                          ...feed.realtime.trips.keys(),
+                          ...feed.realtime.added.map((u) => u.id),
+                        ]).size
+                      : 0,
+                    volume: megabytesPerHour.toLocaleString(language),
+                  })
+                : render(REPORTS, 'realtimeWaiting'),
         render(REPORTS, 'watchedStops', { count: stops.length }),
         stops
           .map(
@@ -1076,6 +1203,33 @@ export class Transit {
       blocks.push(render(REPORTS, 'noNetwork'));
     }
     return lines(...blocks);
+  }
+
+  /** The SIRI lines of the status of a network. */
+  siriStatus(feed, now) {
+    if (!this.config.realtime) {
+      return render(REPORTS, 'realtimeOff');
+    }
+    const unknown = (feed.siriUnknownStops ?? [])
+      .map((id) => this.watch.stops.find((stop) => stop.network === feed.id && stop.id === id))
+      .filter(Boolean)
+      .map((stop) => stop.name);
+    return lines(
+      feed.siriAccessError
+        ? render(REPORTS, 'siriKeyRefused')
+        : feed.realtimeAt
+          ? render(REPORTS, 'siriRealtime', {
+              format: this.siriFormatName(feed.info),
+              age: Math.round((now - feed.realtimeAt) / 1000),
+              tracked: feed.realtime?.tracked ?? 0,
+              requests: feed.reader?.requestsPerRefresh() ?? 0,
+            })
+          : render(REPORTS, 'siriWaiting', { format: this.siriFormatName(feed.info) }),
+      this.needsKeyHint(feed.info) && !feed.realtimeAt ? render(REPORTS, 'siriKeyHint') : null,
+      unknown.length > 0
+        ? render(REPORTS, 'siriUnknownStops', { stops: unknown.join(', ') })
+        : null,
+    );
   }
 
   // --- reads for the widgets and the scene actions ----------------------------------

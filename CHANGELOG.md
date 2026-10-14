@@ -10,6 +10,19 @@ the notes of the version's GitHub Release.
 
 ## [Unreleased]
 
+### Added
+
+- Real time for the networks that publish SIRI or SIRI Lite instead of GTFS-RT (Ginko in Besançon,
+  CTS in Strasbourg, the Pays de la Loire aggregate, Idelis, TUB, évolitY, Tanlib…): the next
+  departures are asked stop by stop (StopMonitoring) and replace the timetable of their line and
+  direction, the disruptions (GeneralMessage, else SituationExchange) feed the traffic info and the
+  scene trigger. Same devices, features, widget and trigger as with GTFS-RT; networks already added
+  get it at the next start when the catalog lists a SIRI feed for them.
+- "SIRI API keys" in the configuration (secret, never logged), for the servers that ask for a key;
+  "SIRI or SIRI Lite URL" in "Add a network" for a network outside the catalog; "SIRI identifier"
+  in "Add a stop" when the server does not recognise a stop.
+- `scripts/probe-siri.mjs`: asks a real SIRI server, read only, what the integration would ask.
+
 ## [1.0.0] - 2026-10-14
 
 ### Added

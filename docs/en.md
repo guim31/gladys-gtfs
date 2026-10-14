@@ -5,8 +5,7 @@ for **any French public transport network** that publishes its timetable as
 GTFS on [transport.data.gouv.fr](https://transport.data.gouv.fr): TER and TGV
 (SNCF), Naolib (Nantes), STAR (Rennes), TaM (Montpellier), M (Grenoble),
 Ilévia (Lille), Stan (Nancy), and hundreds more. Real time (GTFS-RT) is used
-when the network publishes it, about 220 datasets. Everything comes from open
-data: **no account, no API key**.
+when the network publishes it, about 220 datasets. For about twenty networks without GTFS-RT, SIRI real time is used instead (see "SIRI real time"). Everything comes from open data: **no account**, and an API key only for some SIRI feeds.
 
 For **Toulouse, Lyon, Île-de-France or Bordeaux**, prefer the dedicated
 integrations (Tisséo, TCL, IDFM, TBM): they go further (bikes, metro in real
@@ -65,6 +64,9 @@ tells what each one publishes.
 - **Real time**: on by default. Off, the integration only uses the timetable
   and no longer downloads the realtime feeds.
 
+- **SIRI API keys** (secret, optional): only for a network whose real time
+  is SIRI and needs a key (see "SIRI real time").
+
 ### Add a network
 
 1. **Find a network**: a network name, a city or a region ("Naolib",
@@ -81,6 +83,9 @@ tells what each one publishes.
 the addresses of its GTFS-RT feeds in **GTFS-RT URLs**. **Name shown**
 replaces the name put before the stop names.
 
+**SIRI or SIRI Lite URL** (optional): the SIRI real time of a network
+outside the catalog, used when it has no GTFS-RT.
+
 ### Add a stop
 
 1. **Find a stop**: type a name ("hotel dieu" finds "Hôtel Dieu", accents and
@@ -95,6 +100,10 @@ replaces the name put before the stop names.
 
 Adding a stop already watched changes its lines: Gladys then offers to
 **update** the device in the Discover tab.
+
+**SIRI identifier** (optional, SIRI networks only): when "Show what is
+watched" says the SIRI server does not know the stop, its `MonitoringRef`
+(one per stop point, separated by commas).
 
 ### Remove, check the feeds
 
@@ -175,11 +184,12 @@ departure. The sentences follow the language of the configuration.
 
 ## Data, refresh and bandwidth
 
-| Data                | Source                                  | When                                            |
-| ------------------- | --------------------------------------- | ----------------------------------------------- |
-| Catalog of networks | transport.data.gouv.fr (public API)     | when a network is searched or added, kept a day |
-| Timetable (GTFS)    | the network, via transport.data.gouv.fr | once a day at most, kept in `/data`             |
-| Real time (GTFS-RT) | the network, or the catalog's proxy     | at each refresh, every 15 min when nothing runs |
+| Data                | Source                                  | When                                             |
+| ------------------- | --------------------------------------- | ------------------------------------------------ |
+| Catalog of networks | transport.data.gouv.fr (public API)     | when a network is searched or added, kept a day  |
+| Timetable (GTFS)    | the network, via transport.data.gouv.fr | once a day at most, kept in `/data`              |
+| Real time (GTFS-RT) | the network, or the catalog's proxy     | at each refresh, every 15 min when nothing runs  |
+| Real time (SIRI)    | the SIRI server of the network          | per stop, at each refresh when a departure nears |
 
 Real time is the heaviest: from a few kB to 2 MB per feed and per read. At
 one read a minute, Tisséo is about 100 MB per hour and SNCF about 90 MB per
@@ -193,6 +203,48 @@ a metered connection. The catalog and the open feeds set no quota; the transport
 the ODbL depending on the network; adding a network shows its own, and
 transport.data.gouv.fr states it on the page of each dataset.
 
+## SIRI real time
+
+About twenty networks publish their real time as **SIRI** or **SIRI Lite**
+rather than GTFS-RT: Ginko (Besançon), CTS (Strasbourg), the Pays de la Loire
+aggregate, Idelis, TUB, évolitY, Tanlib, Calibus, Tréma, R'Bus, Evalys, ARVI,
+TuT, Dordogne, BlaBlaCar Bus… The integration uses it when the network has no
+GTFS-RT; the search shows it as "real time : departures stop by stop (SIRI)".
+TCL and IDFM, which publish it too, have their dedicated integrations.
+
+- **Without a key**: when the catalog publishes the access key of the server
+  (the public "RequestorRef" of some SIRI servers) or the server is open,
+  there is nothing to do.
+- **With a key**: many servers ask for one, free, from the network; the page
+  of the dataset on transport.data.gouv.fr tells whom to ask (Ginko: its
+  support, by email; CTS: an account on its developer portal). Type it in
+  **SIRI API keys** in the configuration, as `Ginko = your-key`; one per line
+  (or separated by ";") when several networks need one; alone, a key serves
+  them all. It never shows in the logs, in "Show what is watched" or in
+  `/data`. The integration puts it where the server expects it:
+  `RequestorRef` for SIRI, HTTP authentication for the CTS, the `AccountKey`
+  parameter for Mecatran servers. If your network wants it elsewhere, write
+  `name=key` (URL parameter) or `Header-Name: key` (HTTP header).
+- **Stops**: SIRI names the stops with its own identifiers. The integration
+  asks the server for its list of stops (once a day) and links them to those
+  of the timetable (same code, else same name within 100 m); without a list,
+  it tries the public code of the stop, then its GTFS identifier. If "Show
+  what is watched" reports a stop unknown to the server, give its SIRI
+  identifier in **SIRI identifier** of "Add a stop".
+- **What changes**: nothing on the device, the widget or the scenes. The
+  departures given by the server replace the timetable of their line and
+  direction, without "≈" when the vehicle is tracked. The disruptions
+  (GeneralMessage, else SituationExchange) feed the traffic info and the
+  scene trigger.
+- **Restraint**: one request per stop point (four at most per stop) at each
+  refresh, only for the stops with a departure within 90 minutes (every
+  15 minutes otherwise), and the disruptions every 5 minutes. Two stops of two
+  stop points, one refresh a minute: about 250 requests per hour in the day,
+  a few kB each. A server answering "too many requests" (429) is left alone
+  for the delay it asks (5 minutes by default), the transport.data.gouv.fr
+  proxy is asked once per 30 seconds at most. If your network sets a lower
+  quota (see the page of its dataset), choose a refresh every 2 or 5 minutes.
+
 ## Troubleshooting
 
 - **"… is too big for the 256 MB of the integration"**: the network exceeds
@@ -204,6 +256,9 @@ transport.data.gouv.fr states it on the page of each dataset.
 - **Every time of a stop is marked ≈**: the network publishes no real time,
   or not for these vehicles, or the feed is down (the "Show what is watched"
   action gives the last error). The timetable keeps working.
+- **"Real time (SIRI): access refused by the server"**: the key is missing
+  or wrong (**SIRI API keys** field). A key given in another form (URL
+  parameter, header) is written `name=key` or `Header-Name: key`.
 - **A line reads 1440**: no departure in the next 24 hours (night service, a
   line not running that day, a diversion).
 - **No device in the Discover tab**: add a network first, then a stop.

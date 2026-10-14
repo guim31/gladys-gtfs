@@ -1,0 +1,119 @@
+{
+  "ServiceDelivery": {
+    "ResponseTimestamp": "2026-10-13T17:19:05+02:00",
+    "ProducerRef": "GLADYS-TEST",
+    "RequestMessageRef": "gladys-gtfs:test",
+    "StopMonitoringDelivery": [
+      {
+        "Version": "2.0",
+        "ResponseTimestamp": "2026-10-13T17:19:05+02:00",
+        "ValidUntil": "2026-10-13T17:20:05+02:00",
+        "ShortestPossibleCycle": "PT30S",
+        "MonitoringRef": "5780",
+        "MonitoredStopVisit": [
+          {
+            "RecordedAtTime": "2026-10-13T17:19:00+02:00",
+            "MonitoringRef": "5780",
+            "StopCode": "5780",
+            "MonitoredVehicleJourney": {
+              "LineRef": "29",
+              "DirectionRef": "0",
+              "FramedVehicleJourneyRef": {
+                "DataFrameRef": "2026-10-13",
+                "DatedVehicleJourneyRef": "29-0-1721"
+              },
+              "VehicleMode": "bus",
+              "PublishedLineName": "29",
+              "DestinationName": "Fonbeauzard Mermoz",
+              "MonitoredCall": {
+                "StopPointName": "Pader",
+                "Order": 18,
+                "ExpectedArrivalTime": "2026-10-13T17:21:40+02:00",
+                "ExpectedDepartureTime": "2026-10-13T17:21:40+02:00",
+                "Extension": { "IsRealTime": true }
+              }
+            }
+          },
+          {
+            "RecordedAtTime": "2026-10-13T17:19:00+02:00",
+            "MonitoringRef": "5780",
+            "StopCode": "5780",
+            "MonitoredVehicleJourney": {
+              "LineRef": "L10",
+              "DirectionRef": "0",
+              "FramedVehicleJourneyRef": {
+                "DataFrameRef": "2026-10-13",
+                "DatedVehicleJourneyRef": "L10-0-1722"
+              },
+              "VehicleMode": "bus",
+              "PublishedLineName": "L10",
+              "DestinationName": "Fenouillet Ctre Cial - Entrée Nord",
+              "MonitoredCall": {
+                "StopPointName": "Pader",
+                "Order": 9,
+                "ExpectedArrivalTime": "2026-10-13T17:24:30+02:00",
+                "ExpectedDepartureTime": "2026-10-13T17:24:30+02:00",
+                "Extension": { "IsRealTime": true }
+              }
+            }
+          },
+          {
+            "RecordedAtTime": "2026-10-13T17:19:00+02:00",
+            "MonitoringRef": "5780",
+            "StopCode": "5780",
+            "MonitoredVehicleJourney": {
+              "LineRef": "169",
+              "DirectionRef": "0",
+              "VehicleMode": "bus",
+              "PublishedLineName": "169",
+              "DestinationName": "Bruguières Mairie",
+              "MonitoredCall": {
+                "StopPointName": "Pader",
+                "Order": 12,
+                "ExpectedArrivalTime": "2026-10-13T17:27:00+02:00",
+                "ExpectedDepartureTime": "2026-10-13T17:27:00+02:00",
+                "Extension": { "IsRealTime": false }
+              }
+            }
+          },
+          {
+            "RecordedAtTime": "2026-10-13T17:19:00+02:00",
+            "MonitoringRef": "5780",
+            "StopCode": "5780",
+            "MonitoredVehicleJourney": {
+              "LineRef": "L10",
+              "DirectionRef": "0",
+              "VehicleMode": "bus",
+              "PublishedLineName": "L10",
+              "DestinationName": "Fenouillet Ctre Cial - Entrée Nord",
+              "MonitoredCall": {
+                "StopPointName": "Pader",
+                "Order": 9,
+                "ExpectedArrivalTime": "2026-10-13T17:32:10+02:00",
+                "ExpectedDepartureTime": "2026-10-13T17:32:10+02:00",
+                "Extension": { "IsRealTime": true }
+              }
+            }
+          },
+          {
+            "RecordedAtTime": "2026-10-13T17:19:00+02:00",
+            "MonitoringRef": "5780",
+            "StopCode": "5780",
+            "MonitoredVehicleJourney": {
+              "LineRef": "T9",
+              "DirectionRef": "0",
+              "VehicleMode": "tram",
+              "PublishedLineName": "T9",
+              "DestinationName": "Nulle Part",
+              "MonitoredCall": {
+                "StopPointName": "Pader",
+                "ExpectedDepartureTime": "2026-10-13T17:23:00+02:00",
+                "Extension": { "IsRealTime": true }
+              }
+            }
+          }
+        ]
+      }
+    ]
+  }
+}

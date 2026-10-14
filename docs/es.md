@@ -5,8 +5,7 @@ para **cualquier red de transporte francesa** que publique sus horarios en
 GTFS en [transport.data.gouv.fr](https://transport.data.gouv.fr): TER y TGV
 (SNCF), Naolib (Nantes), STAR (Rennes), TaM (Montpellier), M (Grenoble),
 Ilévia (Lille), Stan (Nancy) y cientos más. El tiempo real (GTFS-RT) se usa
-cuando la red lo publica, unos 220 conjuntos de datos. Todo procede de datos
-abiertos: **sin cuenta ni clave de API**.
+cuando la red lo publica, unos 220 conjuntos de datos. Para una veintena de redes sin GTFS-RT se usa en su lugar el tiempo real SIRI (vea «Tiempo real SIRI»). Todo procede de datos abiertos: **sin cuenta**, y una clave de API solo para algunos flujos SIRI.
 
 Para **Toulouse, Lyon, Île-de-France o Burdeos**, es preferible usar las
 integraciones específicas (Tisséo, TCL, IDFM, TBM): llegan más lejos
@@ -68,6 +67,9 @@ red indica lo que publica cada una.
 - **Tiempo real**: activado por defecto. Desactivado, la integración solo usa
   los horarios teóricos y deja de descargar los flujos en tiempo real.
 
+- **Claves de API SIRI** (secreto, opcional): solo para una red cuyo
+  tiempo real es SIRI y pide una clave (vea «Tiempo real SIRI»).
+
 ### Añadir una red
 
 1. **Buscar una red**: un nombre de red, una ciudad o una región («Naolib»,
@@ -84,6 +86,9 @@ red indica lo que publica cada una.
 las direcciones de sus flujos GTFS-RT en **URL GTFS-RT**. **Nombre mostrado**
 sustituye el nombre que se pone delante del de las paradas.
 
+**URL SIRI o SIRI Lite** (opcional): el tiempo real SIRI de una red
+fuera del catálogo, usado si no tiene GTFS-RT.
+
 ### Añadir una parada
 
 1. **Buscar una parada**: escriba un nombre («hotel dieu» encuentra «Hôtel
@@ -99,6 +104,9 @@ sustituye el nombre que se pone delante del de las paradas.
 
 Añadir una parada ya vigilada cambia sus líneas: Gladys propone entonces
 **actualizar** el dispositivo en la pestaña Descubrir.
+
+**Identificador SIRI** (opcional, solo redes SIRI): cuando «Mostrar lo vigilado» dice que el servidor SIRI no conoce la parada, su `MonitoringRef`
+(uno por andén, separados por comas).
 
 ### Eliminar, comprobar los flujos
 
@@ -180,11 +188,12 @@ con una salida. Las frases siguen el idioma de la configuración.
 
 ## Datos, actualización y ancho de banda
 
-| Datos                 | Fuente                                     | Cuándo                                                 |
-| --------------------- | ------------------------------------------ | ------------------------------------------------------ |
-| Catálogo de redes     | transport.data.gouv.fr (API pública)       | al buscar o añadir una red, guardado un día            |
-| Horarios (GTFS)       | la red, a través de transport.data.gouv.fr | una vez al día como máximo, guardados en `/data`       |
-| Tiempo real (GTFS-RT) | la red, o el proxy del catálogo            | en cada actualización, cada 15 min cuando nada circula |
+| Datos                 | Fuente                                     | Cuándo                                                        |
+| --------------------- | ------------------------------------------ | ------------------------------------------------------------- |
+| Catálogo de redes     | transport.data.gouv.fr (API pública)       | al buscar o añadir una red, guardado un día                   |
+| Horarios (GTFS)       | la red, a través de transport.data.gouv.fr | una vez al día como máximo, guardados en `/data`              |
+| Tiempo real (GTFS-RT) | la red, o el proxy del catálogo            | en cada actualización, cada 15 min cuando nada circula        |
+| Tiempo real (SIRI)    | el servidor SIRI de la red                 | por parada, en cada actualización cuando se acerca una salida |
 
 El tiempo real es lo más pesado: de unos kB a 2 MB por flujo y por lectura. A
 una lectura por minuto, Tisséo supone unos 100 MB por hora y la SNCF unos
@@ -198,6 +207,52 @@ una conexión limitada. El catálogo y los flujos abiertos no imponen cuota; el 
 ODbL según la red; al añadir una red se muestra la suya, y
 transport.data.gouv.fr la indica en la página de cada conjunto de datos.
 
+## Tiempo real SIRI
+
+Una veintena de redes publican su tiempo real en **SIRI** o **SIRI Lite** en
+lugar de GTFS-RT: Ginko (Besanzón), CTS (Estrasburgo), el agregado de Pays de
+la Loire, Idelis, TUB, évolitY, Tanlib, Calibus, Tréma, R'Bus, Evalys, ARVI,
+TuT, Dordogne, BlaBlaCar Bus… La integración lo usa cuando la red no tiene
+GTFS-RT; la búsqueda lo indica con «tiempo real: salidas parada por parada
+(SIRI)». TCL e IDFM, que también lo publican, tienen sus integraciones
+dedicadas.
+
+- **Sin clave**: cuando el catálogo publica la clave de acceso del servidor
+  (el «RequestorRef» público de algunos servidores SIRI) o el servidor es
+  abierto, no hay nada que hacer.
+- **Con clave**: muchos servidores piden una, gratuita, que se obtiene de la
+  red; la página del conjunto de datos en transport.data.gouv.fr indica a
+  quién pedirla (Ginko: su soporte, por correo; CTS: una cuenta en su portal
+  para desarrolladores). Escríbala en **Claves de API SIRI** de la
+  configuración, como `Ginko = su-clave`; una por línea (o separadas por
+  «;») si varias redes la piden; sola, una clave vale para todas. Nunca
+  aparece en los registros, en «Mostrar lo vigilado» ni en `/data`. La
+  integración la pone donde el servidor la espera: `RequestorRef` en SIRI,
+  autenticación HTTP para la CTS, parámetro `AccountKey` para los servidores
+  Mecatran. Si su red la quiere en otro sitio, escriba `nombre=clave`
+  (parámetro de URL) o `Nombre-Cabecera: clave` (cabecera HTTP).
+- **Paradas**: SIRI designa las paradas con sus propios identificadores. La
+  integración pide al servidor su lista de paradas (una vez al día) y las
+  enlaza con las de los horarios (mismo código, si no mismo nombre a menos de
+  100 m); sin lista, prueba el código público de la parada y luego su
+  identificador GTFS. Si «Mostrar lo vigilado» señala una parada
+  desconocida para el servidor, indique su identificador SIRI en
+  **Identificador SIRI** de «Añadir una parada».
+- **Qué cambia**: nada en el dispositivo, el widget ni las escenas. Las
+  salidas que da el servidor sustituyen los horarios teóricos de su línea y
+  dirección, sin «≈» cuando el vehículo está seguido. Las incidencias
+  (GeneralMessage, si no SituationExchange) alimentan la info de tráfico y el
+  disparador de escena.
+- **Moderación**: una petición por andén (cuatro como máximo por parada) en
+  cada actualización, solo para las paradas con una salida en los próximos
+  90 minutos (cada 15 minutos si no), y las incidencias cada 5 minutos. Dos
+  paradas de dos andenes, una actualización por minuto: unas 250 peticiones
+  por hora durante el día, de pocos kB cada una. Un servidor que responde
+  «demasiadas peticiones» (429) se deja en paz el tiempo que pide (5 minutos
+  por defecto), y el proxy de transport.data.gouv.fr se consulta una vez cada
+  30 segundos como máximo. Si su red fija una cuota más baja (vea la página
+  de su conjunto de datos), elija una actualización cada 2 o 5 minutos.
+
 ## Solución de problemas
 
 - **«… son demasiado grandes para los 256 MB de la integración»**: la red
@@ -209,6 +264,10 @@ transport.data.gouv.fr la indica en la página de cada conjunto de datos.
 - **Todos los horarios de una parada aparecen con ≈**: la red no publica
   tiempo real, o no para esos vehículos, o el flujo está caído (la acción
   «Mostrar lo vigilado» da el último error). Los horarios teóricos siguen funcionando.
+- **«Tiempo real (SIRI): el servidor ha rechazado el acceso»**: falta la
+  clave o no es la correcta (campo **Claves de API SIRI**). Una clave dada de
+  otra forma (parámetro de URL, cabecera) se escribe `nombre=clave` o
+  `Nombre-Cabecera: clave`.
 - **Una línea muestra 1440**: ninguna salida en las próximas 24 horas
   (servicio nocturno, línea que no circula ese día, desvío).
 - **Ningún dispositivo en la pestaña Descubrir**: añada primero una red y

@@ -4,7 +4,8 @@ Next departures at your stops and traffic alerts, in
 [Gladys Assistant](https://gladysassistant.com), for **any French public transport network**
 that publishes its timetable as GTFS on [transport.data.gouv.fr](https://transport.data.gouv.fr):
 TER and TGV (SNCF), Naolib, STAR, TaM, M, Ilévia, Stan and hundreds more, with real time
-(GTFS-RT) when the network publishes it. Open data only: no account, no API key.
+(GTFS-RT) when the network publishes it, else SIRI or SIRI Lite (Ginko, CTS, Pays de la Loire…).
+Open data only: no account; an API key only for the SIRI servers that ask for one.
 
 For Toulouse, Lyon, Île-de-France or Bordeaux, the dedicated integrations (Tisséo, TCL, IDFM, TBM)
 go further; Île-de-France is too big for this one.
@@ -17,11 +18,13 @@ go further; Île-de-France is too big for this one.
 - **One device per stop** (up to twenty, by name or around your home): for each line and
   direction, the minutes before the next and the following departure; the three soonest departures
   as text; the traffic info of its lines.
-- **Real time** from GTFS-RT TripUpdates (delays, cancellations, skipped stops, added trips);
+- **Real time** from GTFS-RT TripUpdates (delays, cancellations, skipped stops, added trips), or,
+  for the networks without GTFS-RT, from SIRI / SIRI Lite StopMonitoring, asked stop by stop;
   otherwise the timetable, marked "≈".
 - **Dashboard widget** "Next departures".
 - **Scene trigger** "Disruption on a followed line" (a line of your stops, or the whole network),
-  from GTFS-RT ServiceAlerts — including the SNCF alerts, which name trips rather than lines.
+  from GTFS-RT ServiceAlerts — including the SNCF alerts, which name trips rather than lines — or
+  SIRI GeneralMessage / SituationExchange.
 - **Scene action** "Read the next departures", with a sentence ready to send ("Tram 1 towards
   François Mitterrand at Commerce: in 3 and 7 min").
 - Texts in English, French, German and Spanish.
@@ -53,6 +56,13 @@ The full guide, in four languages, is in [`docs/`](docs/en.md).
 - The GTFS-RT feeds of the networks with a watched stop are read at each refresh (1 minute by
   default, conditional requests), every 15 minutes when nothing runs within 90 minutes at the
   watched stops. The status action shows the volume per hour (SNCF: ~90 MB/h at 1 minute).
+- A network without GTFS-RT but with SIRI (SOAP) or SIRI Lite (REST, JSON) in the catalog is
+  asked **stop by stop**: one StopMonitoring request per stop point and refresh while a departure
+  is due within 90 minutes, disruptions every 5 minutes, a 429 honoured. Stops are linked to the
+  server's references by StopPointsDiscovery (same code, else same name within 100 m), else by
+  `stop_code` / `stop_id`; the visits replace the timetable of their line and direction on the same
+  devices. The key (`RequestorRef`, HTTP Basic, `AccountKey`…) is a secret configuration field,
+  never logged. `scripts/probe-siri.mjs` asks a real server read-only.
 - Devices are published with `should_poll: false`: the integration runs its own timer and only
   publishes the states that changed (with a 6-hour heartbeat).
 
@@ -87,6 +97,9 @@ src/feed.js           one network: GTFS download and parse, GTFS-RT reads
 src/gtfs.js           streaming parse of the static GTFS
 src/zip.js, csv.js    ZIP and CSV readers (streams)
 src/gtfsrt.js         GTFS-Realtime decoder (protobuf)
+src/siri.js           SIRI / SIRI Lite: requests, key placement, reading the answers
+src/siri-feed.js      SIRI of one network: stop references, pace, matching to the timetable
+src/xml.js            minimal XML reader (SIRI answers)
 src/departures.js     departure board: timetable + realtime corrections
 src/alerts.js         service alerts: plain text, followed lines
 src/devices.js        Gladys devices and states
@@ -105,11 +118,15 @@ src/config.js         configuration defaults and normalization
 - Data: the transport networks, published on [transport.data.gouv.fr](https://transport.data.gouv.fr)
   under the [Licence Ouverte](https://www.etalab.gouv.fr/licence-ouverte-open-licence/) or the
   [Open Database License](https://opendatacommons.org/licenses/odbl/) depending on the dataset. The
-  test fixtures are reduced extracts of the catalog and of the Tisséo and SNCF feeds (ODbL), see
+  test fixtures are reduced extracts of the catalog and of the Tisséo and SNCF feeds (ODbL), plus
+  SIRI answers written for the tests in the formats of the French profile, see
   [`test/fixtures/README.md`](test/fixtures/README.md).
 - The code started from [gladys-tisseo](https://github.com/guim31/gladys-tisseo) (same author).
 - The [TCL integration](https://github.com/prohand/gladys-transport-commun-lyonnais) of prohand
   (Apache-2.0) for the shape of a transit integration in Gladys.
+- transport.data.gouv.fr's SIRI querier ([etalab/transport-site](https://github.com/etalab/transport-site))
+  as the reference of the SOAP requests French servers accept (no code taken: the envelope follows
+  the SIRI WSDL); the SIRI France profile for the rest.
 - [Home Assistant](https://www.home-assistant.io)'s GTFS integrations and
   [gtfs-realtime-bindings](https://github.com/MobilityData/gtfs-realtime-bindings) (Apache-2.0) for
   the GTFS-Realtime semantics.

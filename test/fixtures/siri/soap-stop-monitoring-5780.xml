@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<S:Envelope xmlns:S="http://schemas.xmlsoap.org/soap/envelope/">
+  <S:Body>
+    <sw:GetStopMonitoringResponse xmlns:sw="http://wsdl.siri.org.uk" xmlns:siri="http://www.siri.org.uk/siri">
+      <ServiceDeliveryInfo>
+        <siri:ResponseTimestamp>2026-10-13T17:19:02.000+02:00</siri:ResponseTimestamp>
+        <siri:ProducerRef>TEST</siri:ProducerRef>
+        <siri:ResponseMessageIdentifier>TEST:ResponseMessage::42:LOC</siri:ResponseMessageIdentifier>
+        <siri:RequestMessageRef>gladys-gtfs:test</siri:RequestMessageRef>
+      </ServiceDeliveryInfo>
+      <Answer>
+        <siri:StopMonitoringDelivery version="2.0:FR-IDF-2.4">
+          <siri:ResponseTimestamp>2026-10-13T17:19:02.000+02:00</siri:ResponseTimestamp>
+          <siri:Status>true</siri:Status>
+          <siri:MonitoredStopVisit>
+            <siri:RecordedAtTime>2026-10-13T17:18:55.000+02:00</siri:RecordedAtTime>
+            <siri:ItemIdentifier>TEST:Item::5780-1:LOC</siri:ItemIdentifier>
+            <siri:MonitoringRef>TEST:StopPoint:BP:5780:LOC</siri:MonitoringRef>
+            <siri:MonitoredVehicleJourney>
+              <siri:LineRef>TEST:Line::209:LOC</siri:LineRef>
+              <siri:FramedVehicleJourneyRef>
+                <siri:DataFrameRef>TEST:DataFrame::2026-10-13:LOC</siri:DataFrameRef>
+                <siri:DatedVehicleJourneyRef>TEST:VehicleJourney::2290694:LOC</siri:DatedVehicleJourneyRef>
+              </siri:FramedVehicleJourneyRef>
+              <siri:JourneyPatternRef>TEST:JourneyPattern::L10-A:LOC</siri:JourneyPatternRef>
+              <siri:PublishedLineName xml:lang="fr">Linéo 10</siri:PublishedLineName>
+              <siri:DirectionName xml:lang="fr">Aller</siri:DirectionName>
+              <siri:DestinationRef>TEST:StopPoint:BP:FENOUILLET:LOC</siri:DestinationRef>
+              <siri:DestinationName xml:lang="fr">Fenouillet Ctre Cial - Entrée Nord</siri:DestinationName>
+              <siri:Monitored>true</siri:Monitored>
+              <siri:MonitoredCall>
+                <siri:StopPointRef>TEST:StopPoint:BP:5780:LOC</siri:StopPointRef>
+                <siri:Order>9</siri:Order>
+                <siri:StopPointName xml:lang="fr">Pader</siri:StopPointName>
+                <siri:VehicleAtStop>false</siri:VehicleAtStop>
+                <siri:AimedArrivalTime>2026-10-13T17:22:00.000+02:00</siri:AimedArrivalTime>
+                <siri:ExpectedArrivalTime>2026-10-13T17:25:10.000+02:00</siri:ExpectedArrivalTime>
+                <siri:AimedDepartureTime>2026-10-13T17:22:00.000+02:00</siri:AimedDepartureTime>
+                <siri:ExpectedDepartureTime>2026-10-13T17:25:10.000+02:00</siri:ExpectedDepartureTime>
+                <siri:DepartureStatus>delayed</siri:DepartureStatus>
+              </siri:MonitoredCall>
+            </siri:MonitoredVehicleJourney>
+          </siri:MonitoredStopVisit>
+          <siri:MonitoredStopVisit>
+            <siri:RecordedAtTime>2026-10-13T17:18:55.000+02:00</siri:RecordedAtTime>
+            <siri:MonitoringRef>TEST:StopPoint:BP:5780:LOC</siri:MonitoringRef>
+            <siri:MonitoredVehicleJourney>
+              <siri:LineRef>TEST:Line::84:LOC</siri:LineRef>
+              <siri:DirectionRef>Aller</siri:DirectionRef>
+              <siri:DestinationName xml:lang="fr">Fonbeauzard &amp; Mermoz</siri:DestinationName>
+              <siri:Monitored>false</siri:Monitored>
+              <siri:MonitoredCall>
+                <siri:StopPointRef>TEST:StopPoint:BP:5780:LOC</siri:StopPointRef>
+                <siri:AimedDepartureTime>2026-10-13T17:21:00.000+02:00</siri:AimedDepartureTime>
+                <siri:ExpectedDepartureTime>2026-10-13T17:21:00.000+02:00</siri:ExpectedDepartureTime>
+              </siri:MonitoredCall>
+            </siri:MonitoredVehicleJourney>
+          </siri:MonitoredStopVisit>
+        </siri:StopMonitoringDelivery>
+      </Answer>
+      <AnswerExtension/>
+    </sw:GetStopMonitoringResponse>
+  </S:Body>
+</S:Envelope>

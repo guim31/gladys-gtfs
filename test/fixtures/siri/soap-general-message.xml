@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<S:Envelope xmlns:S="http://schemas.xmlsoap.org/soap/envelope/">
+  <S:Body>
+    <sw:GetGeneralMessageResponse xmlns:sw="http://wsdl.siri.org.uk" xmlns:siri="http://www.siri.org.uk/siri">
+      <ServiceDeliveryInfo>
+        <siri:ResponseTimestamp>2026-10-13T17:19:03.000+02:00</siri:ResponseTimestamp>
+        <siri:ProducerRef>TEST</siri:ProducerRef>
+      </ServiceDeliveryInfo>
+      <Answer>
+        <siri:GeneralMessageDelivery version="2.0:FR-IDF-2.4">
+          <siri:ResponseTimestamp>2026-10-13T17:19:03.000+02:00</siri:ResponseTimestamp>
+          <siri:Status>true</siri:Status>
+          <siri:GeneralMessage formatRef="FRANCE">
+            <siri:RecordedAtTime>2026-10-13T08:00:00.000+02:00</siri:RecordedAtTime>
+            <siri:ItemIdentifier>TEST:Item::gm-84:LOC</siri:ItemIdentifier>
+            <siri:InfoMessageIdentifier>TEST:InfoMessage::84-deviation:LOC</siri:InfoMessageIdentifier>
+            <siri:InfoMessageVersion>1</siri:InfoMessageVersion>
+            <siri:InfoChannelRef>Perturbation</siri:InfoChannelRef>
+            <siri:ValidUntilTime>2026-10-14T23:59:00.000+02:00</siri:ValidUntilTime>
+            <siri:Content>
+              <siri:LineRef>TEST:Line::84:LOC</siri:LineRef>
+              <siri:Message>
+                <siri:MessageType>shortMessage</siri:MessageType>
+                <siri:MessageText xml:lang="fr">Ligne 29 : déviation rue de l'Industrie</siri:MessageText>
+              </siri:Message>
+              <siri:Message>
+                <siri:MessageType>longMessage</siri:MessageType>
+                <siri:MessageText xml:lang="fr"><![CDATA[Manifestation : la ligne 29 est <b>déviée</b> entre Pader et Borderouge.]]></siri:MessageText>
+              </siri:Message>
+            </siri:Content>
+          </siri:GeneralMessage>
+        </siri:GeneralMessageDelivery>
+      </Answer>
+      <AnswerExtension/>
+    </sw:GetGeneralMessageResponse>
+  </S:Body>
+</S:Envelope>

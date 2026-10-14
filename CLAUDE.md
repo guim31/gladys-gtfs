@@ -39,6 +39,9 @@ src/feed.js                       one network: GTFS download + parse (serialized
 src/gtfs.js                       static GTFS: one streaming pass, watched stops kept
 src/zip.js, src/csv.js            ZIP and CSV stream readers (no dependency)
 src/gtfsrt.js                     GTFS-Realtime decoder (minimal protobuf reader)
+src/siri.js                       SIRI / SIRI Lite: requests, key placement, tolerant answer readers
+src/siri-feed.js                  SIRI of one network: stop references, pace, visits → line groups
+src/xml.js                        minimal XML reader (SIRI answers), JSON-like output
 src/departures.js                 departure board: timetable + realtime corrections
 src/alerts.js                     service alerts: plain text, followed lines, trip-only alerts
 src/devices.js                    the Gladys device of a stop, its states
@@ -55,6 +58,7 @@ docs/{en,fr,de,es}.md             user documentation, re-hosted by Gladys (en an
 test/                             node --test, against the SDK's fake Gladys (integration-sdk/testing)
 test/helpers/world.js             fake Gladys + fake fetch on the fixtures + manual clock + /data
 test/helpers/protobuf.js          GTFS-RT encoder for the edge cases
+scripts/probe-siri.mjs            read-only probe of a real SIRI server (key from an env var)
 test/fixtures/catalog, gtfs       reduced real catalog and feeds (see test/fixtures/README.md)
 .github/scripts/release.mjs       release helpers (manifest bump, changelog), tested in test/
 ```
@@ -322,3 +326,67 @@ départs, alertes, widget, déclencheur, action : mêmes pièges, voir son CLAUD
   trajets suivis, 5 alertes).
 - Réel, depuis la session et dans le conteneur verrouillé : recherche dans le catalogue, ajout de
   Naolib, SNCF, Aix-Marseille, refus d'IDFM, arrêts Commerce et Nantes, états, phrase de scène.
+
+## Temps réel SIRI (14/10/2026, retour de StephaneB, Ginko)
+
+Une vingtaine de réseaux du catalogue publient du SIRI ou du SIRI Lite **sans GTFS-RT** : on les lit
+arrêt par arrêt (`src/siri.js`, `src/siri-feed.js`), **seulement si le réseau n'a aucun GTFS-RT
+utile** (`Feed.usesSiri`). Constaté, d'où, et ce qui reste à vérifier :
+
+- **Session sans réseau** : le proxy de la session n'a laissé passer que GitHub (git) et PyPI ;
+  transport.data.gouv.fr, data.gouv.fr et tous les serveurs SIRI répondaient 403. Aucune réponse
+  réelle n'a pu être enregistrée : les fixtures `test/fixtures/siri/` sont **écrites** d'après les
+  formats documentés (voir leur README). `scripts/probe-siri.mjs --catalog --probe` liste les jeux
+  SIRI sans GTFS-RT et interroge chacun (sans clé) : **à lancer d'une machine qui a le réseau**
+  avant de croire la liste de couverture, puis enregistrer de vraies réponses en fixtures.
+- **Catalogue** (`/api/datasets`, lu dans le code d'etalab/transport-site,
+  `datasets_controller.ex`) : formats exacts `"SIRI"` et `"SIRI Lite"` ; une ressource `SIRI` porte
+  `requestor_ref` quand il est public (tag du jeu de données, le même pour toutes ses ressources
+  SIRI). `is_available` ne vaut rien pour SIRI : la sonde du catalogue compte 401/405 comme
+  disponible. Les ressources SIRI sont gardées sans regarder `is_available`.
+- **SOAP** (« SIRI ») : une URL, un POST par opération, l'enveloppe du requêteur de
+  transport.data.gouv.fr (`lib/siri_queries.ex`, AGPL : rien copié, l'enveloppe suit le WSDL) :
+  `sw:` = `http://wsdl.siri.org.uk`, `siri:` = `http://www.siri.org.uk/siri`, `ServiceRequestInfo`
+  puis `Request`, `RequestExtension` vide ; `StopPointsDiscovery` n'a que `Request`. Pas de
+  `SOAPAction` (le requêteur n'en envoie pas). Le **RequestorRef est la clé** (Profil SIRI France :
+  « à considérer comme des clés d'accès »).
+- **SIRI Lite** : `<base>/stop-monitoring?MonitoringRef=…`, `general-message`,
+  `situation-exchange`, `stoppoints-discovery` ; une URL de catalogue qui nomme un service est
+  ramenée à sa base (suffixe `.json` gardé). **La clé n'a pas d'emplacement standard** : CTS = HTTP
+  Basic (clé en utilisateur, mot de passe vide, vérifié dans le client `siri-lite` de PyPI) ;
+  Mecatran = `AccountKey` ; PRIM = en-tête `apikey`. Hôte inconnu : Basic + `X-Siri-RequestorRef`
+  (en-tête recommandé par le profil), ou le paramètre de l'URL du catalogue qui ressemble à une
+  clé. L'utilisateur peut forcer `nom=clé` (paramètre) ou `En-Tête: clé`.
+- **Clé** : champ de config `siri_keys` **secret** (un `secret` dans une action est impossible à
+  remplir, #3154) : `réseau = clé` par ligne ou « ; », une clé seule vaut pour tous. Jamais dans
+  `/data`, les paramètres d'appareil ni les journaux ; `redact()` retire la clé des `ErrorText`
+  qui la recopient. Une URL Lite porte parfois la clé : ne journaliser que `hostOf`.
+- **Formats de réponse** : enveloppe SOAP ou `<Siri>` nu, préfixes variables, `{ "value": … }`
+  (PRIM), chaînes simples (CTS), tableau ou objet seul. `src/xml.js` rend le XML dans la forme du
+  JSON Lite, puis lecture **par nom, insensible à la casse, à toute profondeur** (`findAll`). CTS
+  n'envoie pas d'`AimedDepartureTime` et dit le temps réel dans `Extension.IsRealTime` ; ailleurs
+  `Monitored=false` = horaire théorique. Erreurs dans le corps (`ErrorCondition`, `Status=false`,
+  SOAP `Fault`, parfois en HTTP 500) : `AccessNotAllowedError` = clé.
+- **Arrêts** : références du profil `XXX:StopPoint:BP:<local>:LOC` (Hanover), `STIF:StopPoint:Q:…:`,
+  codes CTS `43A`/`399A`. Ordre : identifiant tapé (`siri_ref` d'« Ajouter un arrêt ») ;
+  `StopPointsDiscovery` (une fois par jour) relié par code/partie locale, sinon même nom à 100 m ;
+  sinon `stop_code` (désormais lu dans `stops.txt`, `network.codes`), `stop_id`, sa partie locale.
+  Un `InvalidDataReferences`/400/404 passe au candidat suivant (une requête par cycle) ; tout épuisé
+  → « arrêt inconnu » dans l'état, nouvel essai 6 h plus tard. **On interroge les quais** (points
+  GTFS), au plus 4 par arrêt, les plus desservis d'abord.
+- **Rapprochement** : pas par trajet (les `DatedVehicleJourneyRef` ne sont pas les `trip_id`), mais
+  par **groupe ligne + direction** (`lineGroups`, clé `COURT|dir`) : les passages du serveur
+  remplacent l'horaire du groupe jusqu'au dernier d'entre eux, puis l'horaire reprend
+  (`mergeVisits`). Ligne : **un code simple (« 59 ») se compare d'abord au nom court**, une
+  référence structurée (`X:Line::59:LOC`) d'abord à l'id de route — piège réel du fixture Tisséo, où
+  `line:59` (nom court 82) volait la ligne 59. Direction : seule desservie, puis quai, puis
+  destination, puis `Aller`/`Retour`.
+- **Sobriété** : `busy` par arrêt (passage à moins de 90 min) sinon toutes les 15 min ;
+  perturbations toutes les 5 min ; 429 → plus rien pendant `Retry-After` (5 min par défaut) ; proxy
+  transport.data.gouv.fr : 30 s par URL (une URL SOAP sert tous les arrêts : un arrêt par 30 s).
+  Aucun quota réseau par réseau n'a pu être lu (pages inaccessibles) : à compléter.
+- **Pas de migration** : les appareils gardent leurs `external_id` et fonctionnalités ; aucun
+  paramètre d'appareil n'est ajouté pour un réseau du catalogue (seulement `siri_url` d'un réseau
+  ajouté par URL, `siri_ref` d'un arrêt qui en a un). Un réseau du catalogue ajouté avant (pas de
+  champ `siri` dans `watch.json`) reçoit ses ressources SIRI du catalogue au démarrage suivant
+  (`fillSiriEndpoints`).
