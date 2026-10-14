@@ -1,8 +1,8 @@
 {
-  "name": "gladys-integration-template-js",
+  "name": "gladys-gtfs",
   "version": "1.0.0",
   "private": true,
-  "description": "Official starter template to build an external integration for Gladys Assistant with the JavaScript SDK.",
+  "description": "Gladys Assistant integration: next departures and traffic alerts for any French public transport network (GTFS, GTFS-RT, transport.data.gouv.fr).",
   "type": "module",
   "main": "index.js",
   "scripts": {

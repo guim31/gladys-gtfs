@@ -1,77 +1,60 @@
+// -----------------------------------------------------------------------------
+// Dashboard widgets: every content passes the SDK validation (vocabulary,
+// budget of the core) as sent, in the four languages, and the tiles point at
+// features the devices really have.
+// -----------------------------------------------------------------------------
+
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { validateWidgetContent } from '@gladysassistant/integration-sdk';
-import { createFakeGladys } from '@gladysassistant/integration-sdk/testing';
-import { buildDiscoveredDevices } from '../src/devices/index.js';
-import { simulateLanSession } from '../src/devices/plug.js';
-import { DEMO_STATUS_WIDGET, WIDGETS, refreshWidgets } from '../src/widgets.js';
-import { normalizeConfig } from '../src/config.js';
+import { LANGUAGES } from '../src/config.js';
+import { departureValue } from '../src/widgets.js';
+import { action, create, createWorld } from './helpers/world.js';
 
-const gladys = createFakeGladys();
-const config = normalizeConfig();
-const demoStatus = WIDGETS[DEMO_STATUS_WIDGET];
+const content = async (world, key, settings, language = 'fr') => {
+  const ack = await world.fake.widgetGet(key, { settings, language, units: 'metric' });
+  assert.equal(ack.success, true, ack.error);
+  assert.deepEqual(validateWidgetContent(ack.data.content), [], JSON.stringify(ack.data.content));
+  return ack.data.content;
+};
 
-// What the SDK passes to onWidgetGet, plus the config index.js adds.
-const getContent = (cfg = config) =>
-  demoStatus.get(gladys, { settings: {}, language: 'en', units: 'metric', config: cfg });
-
-test('the demo_status content is rendered exactly as sent', async () => {
-  // [] = nothing the core would drop, truncate or trim to the content budget.
-  assert.deepEqual(validateWidgetContent(await getContent()), []);
-});
-
-test('the degraded plug connection content is valid too', async () => {
-  simulateLanSession(false);
-  try {
-    const content = await getContent();
-    assert.deepEqual(validateWidgetContent(content), []);
-    const status = content.components.find((component) => component.type === 'status');
-    assert.ok(
-      status.items.some((item) => item.color === 'warning'),
-      'degraded shows a warning',
-    );
-  } finally {
-    simulateLanSession(true);
+test('departures: the board of a stop, real time in green, timetable flagged ≈', async (t) => {
+  const world = await createWorld();
+  t.after(() => world.app.stop());
+  await action(world, 'add_stop', { stop: 'SA_1707' });
+  await action(world, 'add_stop', { stop: 'Pader' });
+  const jj = await create(world, 'Jean Jaurès');
+  const pader = await create(world, 'Pader');
+  for (const language of LANGUAGES) {
+    const board = await content(world, 'departures', { stop: jj.external_id }, language);
+    const [heading, caption, status] = board.components;
+    assert.equal(heading.text, 'Jean Jaurès');
+    assert.equal(caption.variant, 'caption');
+    assert.equal(status.type, 'status');
+    assert.equal(status.items.length, 10, 'ten rows at most');
+    const metro = status.items.find((item) => /A → /.test(item.label));
+    assert.match(metro.value, /^≈ \d+ · \d+ min$/);
+    assert.equal(metro.color, 'info');
   }
+  const board = await content(world, 'departures', { stop: pader.external_id });
+  assert.ok(board.components[2].items.some((item) => item.color === 'success'));
+  // The L9 disruption of the real feed shows in the caption of Jean Jaurès.
+  const jjBoard = await content(world, 'departures', { stop: jj.external_id });
+  assert.match(jjBoard.components[1].text, /^⚠ L9 : /);
 });
 
-test('the live tiles reference features the integration publishes', async () => {
-  const featureIds = new Set(
-    buildDiscoveredDevices(gladys, config).flatMap((device) =>
-      device.features.map((feature) => feature.external_id),
-    ),
+test('departures: no stop chosen, a stop no longer watched', async (t) => {
+  const world = await createWorld();
+  t.after(() => world.app.stop());
+  assert.match((await content(world, 'departures', {})).components[0].text, /Choisissez un arrêt/);
+  const gone = await content(world, 'departures', { stop: 'ext:test-integration:stop:SA_9' });
+  assert.match(gone.components[0].text, /n'est plus surveillé/);
+});
+
+test('the values fit their row (40 characters)', () => {
+  assert.equal(departureValue({ departures: [] }), '—');
+  assert.equal(
+    departureValue({ departures: [{ minutes: 3, realtime: true }, { minutes: 12 }] }),
+    '3 · 12 min',
   );
-  const liveTiles = (await getContent()).components.filter((c) => c.device_feature);
-  assert.ok(liveTiles.length > 0, 'the template demonstrates a device-bound tile');
-  for (const tile of liveTiles) {
-    assert.ok(featureIds.has(tile.device_feature), `unknown feature ${tile.device_feature}`);
-  }
-});
-
-test('every button action of the content is handled and answers a short toast', async () => {
-  const buttons = (await getContent()).components.filter((c) => c.type === 'button' && c.action);
-  assert.ok(buttons.length > 0, 'the template demonstrates a widget action');
-  for (const { action } of buttons) {
-    const message = await demoStatus.action(gladys, {
-      actionKey: action.key,
-      params: action.params ?? {},
-      settings: {},
-      config,
-    });
-    assert.ok(message.en, 'the toast carries at least the mandatory `en` text');
-    assert.ok(message.en.length <= 200, 'toasts are capped at 200 characters');
-  }
-});
-
-test('an unknown widget action fails, so the user sees the error', async () => {
-  await assert.rejects(
-    demoStatus.action(gladys, { actionKey: 'unknown', params: {}, settings: {}, config }),
-    /Unknown widget action/,
-  );
-});
-
-test('refreshWidgets nudges every widget', () => {
-  const fresh = createFakeGladys();
-  refreshWidgets(fresh);
-  assert.deepEqual(fresh.fake.widgetRefreshes, Object.keys(WIDGETS));
 });

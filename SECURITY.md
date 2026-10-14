@@ -30,6 +30,25 @@ Gladys before reporting a problem.
 
 In scope: the code of this repository and the Docker image it publishes.
 
+The integration needs no account and no password. It stores under `/data`:
+
+- `watch.json`: the networks (name and feed addresses) and stops you watch,
+  and the identifiers of the traffic alerts already announced;
+- `gtfs-<network>.zip`: the public timetable of each network, downloaded once
+  a day.
+
+A GTFS or GTFS-RT address you type for a network outside the catalog may hold
+a key in its query string: it is kept in `watch.json` and in the parameters of
+the Gladys devices (to rebuild the watch list if `/data` is lost), and never
+written to the logs, which only name the host.
+
+It reads the position of your Gladys houses (`location`) only to sort the
+stops by distance; the position is never stored nor sent anywhere. Its only
+network traffic is outbound HTTPS: `transport.data.gouv.fr` (the catalog and
+its realtime proxy), `www.data.gouv.fr` (redirecting to the publishers of the
+timetables), and the realtime feeds of your networks. Every download has a
+timeout and a size limit.
+
 Out of scope: Gladys Assistant itself (see its
 [security policy](https://github.com/GladysAssistant/Gladys/security/policy)),
-and the third-party services and devices the integration talks to.
+and the open data services the integration reads.

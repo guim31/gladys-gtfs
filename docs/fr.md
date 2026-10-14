@@ -1,67 +1,250 @@
-# Template de démonstration
+# Transports en commun (GTFS)
 
-Ceci est la documentation utilisateur de l'intégration. Gladys ré-héberge ce
-fichier et affiche un lien **Documentation** permanent vers lui dans l'écran
-de configuration (dans la langue de l'utilisateur, avec l'anglais en repli) —
-c'est au moment de configurer que l'utilisateur en a le plus besoin. Gardez
-les courtes indications d'accueil dans les blocs `section` du `config_schema`
-du manifest ; mettez ici le pas-à-pas détaillé (captures d'écran, dépannage…).
+Les **prochains passages à vos arrêts** et les **perturbations** de leurs
+lignes, pour **n'importe quel réseau de transport français** qui publie ses
+horaires en GTFS sur [transport.data.gouv.fr](https://transport.data.gouv.fr) :
+TER et TGV (SNCF), Naolib (Nantes), STAR (Rennes), TaM (Montpellier), M
+(Grenoble), Ilévia (Lille), Stan (Nancy), et des centaines d'autres. Le temps
+réel (GTFS-RT) est utilisé quand le réseau le publie, soit environ 220 jeux de
+données. Tout vient de l'open data : **ni compte, ni clé d'API**.
+
+Pour **Toulouse, Lyon, l'Île-de-France ou Bordeaux**, préférez les
+intégrations dédiées (Tisséo, TCL, IDFM, TBM) : elles vont plus loin (vélos,
+métro en temps réel…). L'Île-de-France est de toute façon trop grosse pour
+cette intégration.
+
+Cette intégration est un projet communautaire, sans lien avec
+transport.data.gouv.fr, la SNCF ni aucun réseau de transport.
 
 ## Ce que vous obtenez
 
-Six appareils de démonstration apparaissent après l'installation : une
-station météo (vraies données Open-Meteo), un interrupteur, une lampe
-variable, une prise connectée avec mesure de puissance, un détecteur de
-mouvement et une caméra.
+- **Un appareil par arrêt surveillé** : pour chaque ligne et direction, les
+  minutes avant le **prochain passage** et avant le **suivant** ; les trois
+  passages les plus proches en texte ; l'**info trafic** de ses lignes.
+- **Widget « Prochains passages »** : le tableau d'un arrêt, les horaires
+  suivis en temps réel en vert, les horaires théoriques marqués « ≈ ».
+- **Déclencheur de scène « Perturbation sur une ligne suivie »** : une
+  nouvelle alerte trafic sur une ligne de vos arrêts, ou sur tout le réseau.
+- **Action de scène « Lire les prochains passages »**, avec une phrase prête
+  à envoyer (« Tram 1 vers François Mitterrand à Commerce : dans 3 et
+  7 min »).
+- Jusqu'à **3 réseaux** et **20 arrêts** (par exemple le réseau urbain de
+  votre ville et la SNCF pour la gare).
+
+**Temps réel ou théorique ?** Quand le réseau publie un flux GTFS-RT
+« TripUpdates », les passages sont corrigés (retards, suppressions, arrêts non
+desservis) et affichés sans « ≈ ». Sinon, ou pour les véhicules non suivis,
+ce sont les horaires du plan de transport, marqués « ≈ » ou « théorique ». La
+recherche de réseau indique ce que chacun publie.
+
+## Prérequis
+
+- Gladys 5.1 ou plus récent, avec un accès à Internet.
+- Pour lister les arrêts **autour de chez vous** : la position de votre
+  maison dans Gladys (**Paramètres → Maisons**). L'intégration la demande à
+  l'installation (`location`) : elle lit les coordonnées de vos maisons, rien
+  d'autre, et seulement pour trier les arrêts par distance. Sans elle,
+  cherchez par nom.
+- De **1 à 80 Mo** de disque sous `/data` par réseau (l'archive des horaires,
+  mise à jour une fois par jour) : 6 Mo pour la SNCF, 26 Mo pour Naolib.
+
+## Installation
+
+1. Dans Gladys, allez dans **Intégrations → Installer depuis GitHub** et
+   saisissez `https://github.com/guim31/gladys-gtfs`.
+2. Ouvrez l'onglet **Configuration** de l'intégration et choisissez la langue
+   des textes (français par défaut).
+3. Ajoutez votre réseau, puis vos arrêts, avec les actions du même écran
+   (ci-dessous), et créez leurs appareils dans l'onglet **Découverte**.
 
 ## Configuration
 
-1. Ouvrez l'onglet **Configuration** de l'intégration.
-2. Renseignez la **latitude** et la **longitude** que la station météo de
-   démonstration doit observer (Paris par défaut), et choisissez votre unité
-   de température. L'**intervalle de rafraîchissement** règle la fréquence
-   de lecture de la station météo et de la puissance de la prise : toutes
-   les 5 minutes par défaut, toutes les minutes au plus.
-3. Enregistrez : les appareils apparaissent dans l'onglet **Découverte**,
-   prêts à être ajoutés.
+### Réglages
 
-Le réglage **Préférer la connexion locale** pilote la prise de
-démonstration : elle affiche en badge le canal réellement utilisé (local ou
-cloud), avec un point orange quand elle fonctionne en mode dégradé (local
-refusé, bascule cloud).
+- **Langue des textes** : noms des fonctionnalités, noms des lignes, phrases
+  des scènes. Les noms sont fixés à la création de l'appareil : changez la
+  langue d'abord, créez les appareils ensuite.
+- **Fréquence de mise à jour** : 30 secondes, 1 minute (par défaut), 2 ou
+  5 minutes.
+- **Temps réel** : activé par défaut. Désactivé, l'intégration n'utilise que
+  les horaires théoriques et ne télécharge plus les flux temps réel.
 
-## Actions
+### Ajouter un réseau
 
-- **Tester le fournisseur météo** — effectue une requête en direct vers
-  Open-Meteo et affiche la température et l'humidité actuelles sous le
-  bouton.
-- **Identifier un appareil** — choisissez un de vos appareils dans la liste
-  et il se signale (la lampe de démonstration « clignote » dans les logs).
+1. **Chercher un réseau** : un nom de réseau, une ville ou une région
+   (« Naolib », « Rennes », « TER »…). Chaque résultat donne son nom, son
+   identifiant et le temps réel publié, par exemple
+   `• Naolib [tdg84101] — … — temps réel : passages`. Certains réseaux
+   publient deux fichiers (horaires en cours et à venir) : prenez celui « en
+   cours ».
+2. **Ajouter un réseau** : son identifiant (`tdg…`), ou son nom s'il est
+   unique. L'intégration télécharge ses horaires et les lit : jusqu'à une
+   minute pour un gros réseau.
 
-## Scènes
+**Réseau hors catalogue** : donnez l'adresse de son fichier GTFS (`https://…
+.zip`) dans **Identifiant, nom ou URL GTFS**, et, si vous les connaissez, les
+adresses de ses flux GTFS-RT dans **URL GTFS-RT**. **Nom affiché** remplace le
+nom placé devant celui des arrêts.
 
-L'intégration ajoute ses propres cartes à l'éditeur de scènes (Gladys 5.1
-ou plus récent), dans la catégorie **Intégrations** :
+### Ajouter un arrêt
 
-- **Mouvement détecté** (déclencheur) — lance la scène quand un détecteur
-  de démonstration voit bouger quelque chose. Choisissez éventuellement le
-  détecteur et ce qui a bougé (personne, animal) ; laissés vides, toute
-  détection correspond. Les actions suivantes peuvent lire ce qui a bougé
-  avec `{{triggerEvent.data.target}}`.
-- **Identifier un appareil** (action) — fait se signaler l'appareil choisi.
-  Elle indique si l'appareil a pu se signaler, pour que les actions
-  suivantes puissent en dépendre.
+1. **Chercher un arrêt** : saisissez un nom (« hotel dieu » trouve « Hôtel
+   Dieu », accents et majuscules n'importent pas), ou laissez vide pour lister
+   les 10 arrêts les plus proches de votre maison. Chaque résultat donne ses
+   lignes, sa distance et son identifiant entre crochets, par exemple
+   `• Commerce [20] — 1, 2, 3, C2, C3 — 90 m`. Avec plusieurs réseaux, le
+   champ **Réseau** restreint la recherche.
+2. **Ajouter un arrêt** : son nom, ou son identifiant si plusieurs arrêts
+   portent le même nom. **Lignes** est facultatif : « 1, C2 » ne garde que ces
+   deux lignes ; vide, toutes les lignes. Une grande gare a des dizaines de lignes : choisissez les vôtres (un appareil garde au plus 12 lignes et directions).
+3. Ouvrez l'onglet **Découverte** et créez l'appareil.
 
-## Tableau de bord
+Ajouter un arrêt déjà surveillé change ses lignes : Gladys propose alors de
+**mettre à jour** l'appareil dans l'onglet Découverte.
 
-Ajoutez le widget **État de la démo** à un tableau de bord : il affiche en
-direct la température de la station météo et la puissance de la prise du
-bureau, la connexion utilisée par la prise (en orange si dégradée) et la
-position observée. Son bouton **Identifier la lampe** fait se signaler la
-lampe de démonstration.
+### Retirer, vérifier les flux
+
+- **Retirer un arrêt ou un réseau** : son nom ou son identifiant. Retirer un
+  réseau retire aussi ses arrêts et efface ses horaires. Les appareils restent
+  dans Gladys jusqu'à ce que vous les supprimiez.
+- **Afficher la surveillance** : pour chaque réseau, la date des horaires, l'âge des données
+  temps réel, le nombre de trajets suivis, le **volume téléchargé par heure**,
+  les arrêts surveillés, et la dernière erreur s'il y en a une.
+
+## Appareils
+
+### Arrêt
+
+Pour chaque ligne et direction desservie (ou les lignes choisies) :
+
+| Fonctionnalité                         | Type        | Valeur                            |
+| -------------------------------------- | ----------- | --------------------------------- |
+| Tram 1 → François Mitterrand           | durée (min) | minutes avant le prochain passage |
+| Tram 1 → François Mitterrand (suivant) | durée (min) | minutes avant le suivant          |
+
+Et deux textes pour tout l'arrêt :
+
+- **Prochains passages** : les trois plus proches, par ex.
+  `1 → Jamet 2 min · C2 → Gare Sud ≈4 min` (« ≈ » = théorique).
+- **Info trafic** : les titres des perturbations en cours sur ses lignes, ou
+  « Aucune perturbation ».
+
+`0` signifie que le véhicule est à l'arrêt ou à l'approche (moins d'une
+minute) ; **1440** signifie aucun passage dans les 24 heures (nuit, ligne qui
+ne circule pas ce jour-là). Ces valeurs ne gardent pas d'historique : un
+compte à rebours relu chaque minute remplirait la base pour rien.
+
+Le nom de l'appareil commence par le nom du réseau (« Naolib · Commerce »).
+La direction d'un train est sa gare terminus : la SNCF met le numéro du train
+à la place, l'intégration le remplace.
+
+## Widget du tableau de bord
+
+**Prochains passages** : choisissez un arrêt. Une ligne par ligne et direction
+(dix au plus, celles qui ont un passage d'abord) : « 3 · 7 min » en vert
+quand c'est du temps réel, « ≈ 3 · 7 min » en bleu pour le théorique. La
+légende liste les perturbations de ses lignes (⚠), ou rappelle la
+signification de « ≈ ».
+
+## Déclencheur de scène
+
+**Perturbation sur une ligne suivie** : une nouvelle alerte trafic apparaît
+sur une ligne de vos arrêts surveillés (le filtre de lignes d'un arrêt la
+restreint), ou sur tout le réseau (grève, fermetures). Filtres : **portée**
+(une ligne suivie, tout le réseau, ou vide pour les deux) et **ligne** (telle
+qu'écrite par le réseau : A, C1, 15). Variables : portée, réseau, ligne,
+titre, détails (texte brut), lien. Une alerte est annoncée une fois ; celles
+déjà présentes quand vous ajoutez un arrêt ne le sont pas. Il faut un réseau
+qui publie ses alertes en GTFS-RT (« alertes » dans la recherche de réseau).
+
+Pour « le prochain bus est dans moins de 5 minutes », utilisez le déclencheur
+« Changement d'état de l'appareil » de Gladys sur le compte à rebours de
+l'arrêt : il sait déjà comparer des valeurs.
+
+## Action de scène
+
+**Lire les prochains passages** : un arrêt surveillé et, facultativement, une
+ligne. Sorties : **phrase** (jusqu'à quatre lignes et directions, les plus
+proches d'abord), arrêt, ligne et direction du prochain passage, minutes
+d'attente, minutes jusqu'au suivant, temps réel (1) ou théorique (0), nombre
+de lignes avec un passage. Les phrases suivent la langue de la configuration.
+
+## Exemples de scènes
+
+- **C'est l'heure** : à 7 h 45 en semaine, « Lire les prochains passages » à
+  votre arrêt pour la ligne C2, puis envoyez `{{sentence}}` par Telegram ou
+  annoncez-la sur une enceinte.
+- **Mon TER est perturbé** : déclencheur « Perturbation sur une ligne
+  suivie », portée « une ligne suivie », sur la gare ajoutée avec votre ligne
+  TER : envoyez le titre et les détails sur votre téléphone.
+- **Partir quand le bus arrive** : déclencheur « Changement d'état de
+  l'appareil », compte à rebours de votre bus inférieur à 4, condition
+  « quelqu'un à la maison » et avant 8 h 30 : faites clignoter la lampe de
+  l'entrée.
+
+## Données, rafraîchissement et bande passante
+
+| Données               | Source                                | Quand                                                       |
+| --------------------- | ------------------------------------- | ----------------------------------------------------------- |
+| Catalogue des réseaux | transport.data.gouv.fr (API publique) | à la recherche ou à l'ajout d'un réseau, gardé un jour      |
+| Horaires (GTFS)       | le réseau, via transport.data.gouv.fr | une fois par jour au plus, gardés dans `/data`              |
+| Temps réel (GTFS-RT)  | le réseau, ou le proxy du catalogue   | à chaque mise à jour, toutes les 15 min quand rien ne roule |
+
+Le temps réel est le plus lourd : de quelques Ko à 2 Mo par flux et par
+lecture. À une lecture par minute, Tisséo représente environ 100 Mo par heure
+et la SNCF environ 90 Mo par heure, pendant les heures de service ; l'action
+**Afficher la surveillance** affiche le volume de vos réseaux. La nuit, sans passage dans les
+90 minutes à vos arrêts, les flux ne sont lus que toutes les 15 minutes, et
+un réseau sans arrêt surveillé n'est jamais lu. Choisissez 2 ou 5 minutes, ou
+désactivez le temps réel, sur une connexion limitée. Le catalogue et les flux
+ouverts n'imposent pas de quota ; le proxy de transport.data.gouv.fr n'accepte qu'une lecture par flux toutes les 30 secondes, et l'intégration s'y tient.
+
+**Licences** : les horaires sont publiés sous Licence Ouverte (Etalab) ou
+ODbL selon le réseau ; l'ajout d'un réseau affiche la sienne, et
+transport.data.gouv.fr la précise sur la page de chaque jeu de données.
 
 ## Dépannage
 
-L'intégration journalise tout ce qu'elle fait : consultez les logs de
-l'intégration depuis l'interface Gladys (ou `docker logs` sur l'hôte) avec
-`LOG_LEVEL=debug` pour le détail complet.
+- **« … sont trop gros pour les 256 Mo de l'intégration »** : le réseau
+  dépasse ce que le conteneur de Gladys peut lire (Île-de-France, plus de
+  400 000 trajets par semaine, archive de plus de 80 Mo). Utilisez
+  l'intégration dédiée, ou un jeu de données plus petit du même réseau.
+- **« Plusieurs résultats »** : ajoutez l'arrêt par son identifiant, donné par
+  « Chercher un arrêt », ou précisez le **Réseau**.
+- **Tous les horaires d'un arrêt sont marqués ≈** : le réseau ne publie pas
+  de temps réel, ou pas pour ces véhicules, ou le flux est en panne (l'action
+  « Afficher la surveillance » donne la dernière erreur). Les horaires théoriques continuent de
+  fonctionner.
+- **Une ligne affiche 1440** : aucun passage dans les 24 heures (service de
+  nuit, ligne qui ne circule pas ce jour-là, déviation).
+- **Aucun appareil dans l'onglet Découverte** : ajoutez d'abord un réseau,
+  puis un arrêt.
+- **Le réseau a changé d'adresse** (erreur HTTP 404 dans « Afficher la surveillance ») : retirez
+  le réseau et ajoutez-le de nouveau depuis la recherche.
+- **Logs** : dans Gladys, les logs de l'intégration disent quel flux a échoué
+  et pourquoi (jamais l'adresse complète, qui peut contenir une clé).
+
+## Limites
+
+- Réseaux publiant un GTFS : la plupart des réseaux français, mais pas tous ;
+  trois réseaux et vingt arrêts au plus.
+- **Trop gros** : l'Île-de-France (IDFM) ; les agrégats régionaux les plus
+  lourds peuvent aussi être refusés.
+- Le temps réel dépend du réseau : certains ne publient que des alertes, ou
+  ne suivent qu'une partie de leurs véhicules.
+- Les noms de lignes et de directions sont ceux du fichier du réseau (codes
+  de ligne SNCF comme « P2 » ou « C30 », par exemple).
+- Un compte à rebours est précis à la fréquence de mise à jour près.
+- Développée et testée avec les vraies données (SNCF, Naolib, Tisséo,
+  Aix-Marseille) et le faux Gladys du SDK, sans instance Gladys réelle : vos
+  retours sont bienvenus sur le forum.
+
+## Crédits
+
+- Données : les réseaux de transport, via
+  [transport.data.gouv.fr](https://transport.data.gouv.fr) (Licence Ouverte
+  ou ODbL selon le jeu de données).
+- Reprend le code de l'intégration **Tisséo** du même auteur ; inspirée de
+  l'intégration **TCL** de prohand et des intégrations GTFS de Home
+  Assistant.
+- Code sous licence Apache 2.0.

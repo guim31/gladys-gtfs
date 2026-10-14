@@ -29,6 +29,11 @@ COPY gladys-assistant-integration.json ./
 # VOLUME: changes made to /data after it are discarded. Without this, /data is
 # root-owned and the integration cannot write to it.
 ENV NODE_ENV=production
+# The sandbox caps the container at 256 MB, but Node sizes its heap from the
+# host (271 MB measured): without a cap, a heap growing while the timetable is
+# parsed would get the container killed before the garbage collector runs.
+# The integration retains ~15-40 MB; 128 MB leaves room for the parse.
+ENV NODE_OPTIONS=--max-old-space-size=128
 RUN mkdir -p /data && chown node:node /data
 VOLUME ["/data"]
 

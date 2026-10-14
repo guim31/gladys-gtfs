@@ -1,41 +1,71 @@
 // -----------------------------------------------------------------------------
-// Scene actions (SDK v0.14+, Gladys 5.1+).
+// Scene actions (manifest `scene_actions`, Gladys 5.1+).
 //
-// A scene action is an OPERATION a scene author places in a scene, with
-// parameters and a result: "identify this device", "take a snapshot", "clean
-// these rooms". Each one is declared in the manifest `scene_actions` field
-// (key, label, `fields` in the config_schema grammar, scalar `outputs`) and
-// handled here, keyed by that same `key`; index.js registers every entry with
-// `gladys.onSceneAction(key, ...)`.
+// - get_next_departures: the next departures of a watched stop, as numbers
+//   for a "Continue only if" step and as a sentence ready for a message or a
+//   speaker ("Métro A vers Basso Cambo à Jean Jaurès : dans 3 et 7 min").
 //
-// Scene TRIGGERS are the other direction ("this happened"): they are fired by
-// the device that observes the event, see src/devices/motionSensor.js.
-//
-// The rules that matter:
-//   - `fields` arrive RESOLVED: scene variables substituted, defaults applied,
-//     validated by the core; a `"source": "devices"` field is the chosen
-//     device external_id;
-//   - resolve an object of the declared `outputs` (scalars only), readable by
-//     the following actions of the scene, or `undefined` for none. Keys not
-//     declared in the manifest are dropped by the core;
-//   - throwing fails THIS action only: the scene logs it and continues. A
-//     scene action is never a condition: return an output and let the scene
-//     author gate on it;
-//   - never fire a scene event as a consequence of a received action: a scene
-//     bound to that event would loop through the integration.
+// A scene action does not receive the user's language: the sentences follow
+// the `language` of the configuration. Outputs are numbers, never booleans:
+// the core's "Continue only if" compares with ===, and its value field only
+// produces numbers and strings (Gladys 5.2.0).
 // -----------------------------------------------------------------------------
 
-import { createLogger } from '@gladysassistant/integration-sdk';
-import { signalDevice } from './devices/index.js';
+import { NO_DEPARTURE_MINUTES, lineLabel } from './devices.js';
+import { TEXT, say } from './messages.js';
 
-const logger = createLogger({ name: 'scenes' });
+// Groups in the sentence of a stop without line filter.
+export const MAX_SENTENCE_GROUPS = 4;
+
+export class SceneError extends Error {}
+
+function notReady(service) {
+  return new SceneError(say(TEXT, service.config.language, 'unavailable'));
+}
 
 export const SCENE_ACTIONS = {
-  // The ack is awaited under the action's `timeout_seconds` (15 s in the
-  // manifest), counted from the moment the scene reaches the action.
-  async identify_device(gladys, { fields, config }) {
-    logger.info(`Scene action identify_device <- ${fields.device}`);
-    const signalled = await signalDevice(gladys, fields.device, config);
-    return { signalled };
+  async get_next_departures(service, { fields }) {
+    const language = service.config.language;
+    const found = service.boardOf(fields.stop);
+    if (!found) {
+      throw service.stopOfDevice(fields.stop)
+        ? notReady(service)
+        : new SceneError(say(TEXT, language, 'gone'));
+    }
+    const { stop, board } = found;
+    const line = String(fields.line ?? '')
+      .trim()
+      .toUpperCase();
+    const groups = board
+      .filter((group) => !line || group.route.short.toUpperCase() === line)
+      .filter((group) => group.departures.length > 0)
+      .sort((a, b) => a.departures[0].at - b.departures[0].at);
+    const first = groups[0];
+    if (!first) {
+      return {
+        sentence: say(TEXT, language, 'nothingAt', { stop: stop.name }),
+        stop_name: stop.name,
+        line: line || '',
+        direction: '',
+        minutes: NO_DEPARTURE_MINUTES,
+        following_minutes: NO_DEPARTURE_MINUTES,
+        realtime: 0,
+        count: 0,
+      };
+    }
+    const [next, following] = first.departures;
+    return {
+      sentence: groups
+        .slice(0, MAX_SENTENCE_GROUPS)
+        .map((group) => service.sentence(stop, group, language))
+        .join('. '),
+      stop_name: stop.name,
+      line: lineLabel(first.route, language),
+      direction: next.headsign,
+      minutes: next.minutes,
+      following_minutes: following ? following.minutes : NO_DEPARTURE_MINUTES,
+      realtime: next.realtime ? 1 : 0,
+      count: groups.length,
+    };
   },
 };

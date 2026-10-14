@@ -1,61 +1,238 @@
-# Demo Devices Template
+# Public transport (GTFS)
 
-This is the user documentation of the integration. Gladys re-hosts this file
-and shows a permanent **Documentation** link to it in the Configuration screen
-(in the user's language, with English as the fallback) — it is when
-configuring that the user needs it most. Keep the short onboarding hints in
-the `section` blocks of the manifest `config_schema`; put the long
-step-by-step (screenshots, troubleshooting…) here.
+The **next departures at your stops** and the **disruptions** of their lines,
+for **any French public transport network** that publishes its timetable as
+GTFS on [transport.data.gouv.fr](https://transport.data.gouv.fr): TER and TGV
+(SNCF), Naolib (Nantes), STAR (Rennes), TaM (Montpellier), M (Grenoble),
+Ilévia (Lille), Stan (Nancy), and hundreds more. Real time (GTFS-RT) is used
+when the network publishes it, about 220 datasets. Everything comes from open
+data: **no account, no API key**.
+
+For **Toulouse, Lyon, Île-de-France or Bordeaux**, prefer the dedicated
+integrations (Tisséo, TCL, IDFM, TBM): they go further (bikes, metro in real
+time…). Île-de-France is too big for this integration anyway.
+
+This integration is a community project, not affiliated with
+transport.data.gouv.fr, SNCF or any transport network.
 
 ## What you get
 
-Six demo devices show up after installation: a weather station (real data
-from Open-Meteo), a switch, a dimmable light, a smart plug with power
-metering, a motion sensor and a camera.
+- **One device per watched stop**: for each line and direction, the minutes
+  before the **next departure** and before the **following one**; the three
+  soonest departures as text; the **traffic info** of its lines.
+- **"Next departures" widget**: the board of a stop, departures tracked in
+  real time in green, timetable times marked "≈".
+- **"Disruption on a followed line" scene trigger**: a new traffic alert on a
+  line of your stops, or on the whole network.
+- **"Read the next departures" scene action**, with a sentence ready to send
+  ("Tram 1 towards François Mitterrand at Commerce: in 3 and 7 min").
+- Up to **3 networks** and **20 stops** (for example the urban network of your
+  city and SNCF for the station).
+
+**Real time or timetable?** When the network publishes a GTFS-RT
+"TripUpdates" feed, departures are corrected (delays, cancellations, skipped
+stops) and shown without "≈". Otherwise, or for the vehicles not tracked,
+they are the planned times, marked "≈" or "scheduled". The network search
+tells what each one publishes.
+
+## Requirements
+
+- Gladys 5.1 or later, with Internet access.
+- To list the stops **around your home**: the position of your house in
+  Gladys (**Settings → Houses**). The integration asks for it at installation
+  (`location`): it reads the coordinates of your houses, nothing else, and
+  only to sort the stops by distance. Without it, search by name.
+- From **1 to 80 MB** of disk under `/data` per network (the timetable
+  archive, updated once a day): 6 MB for SNCF, 26 MB for Naolib.
+
+## Installation
+
+1. In Gladys, go to **Integrations → Install from GitHub** and enter
+   `https://github.com/guim31/gladys-gtfs`.
+2. Open the **Configuration** tab of the integration and choose the language
+   of the texts (French by default).
+3. Add your network, then your stops, with the actions of the same screen
+   (below), and create their devices in the **Discover** tab.
 
 ## Configuration
 
-1. Open the **Configuration** tab of the integration.
-2. Set the **latitude** and **longitude** the demo weather station should
-   observe (they default to Paris), and pick your temperature unit.
-   The **refresh interval** sets how often the weather station and the
-   plug's power are read: every 5 minutes by default, every minute at most.
-3. Save: the devices appear in the **Discovery** tab, ready to be added.
+### Settings
 
-The **Prefer the local connection** toggle drives the demo plug: it reports
-the channel it actually uses as a badge (local or cloud), with an orange dot
-when it runs degraded (local refused, cloud fallback).
+- **Language of the texts**: feature names, line names, scene sentences.
+  Names are set when a device is created: change the language first, create
+  the devices next.
+- **Refresh interval**: 30 seconds, 1 minute (default), 2 or 5 minutes.
+- **Real time**: on by default. Off, the integration only uses the timetable
+  and no longer downloads the realtime feeds.
 
-## Actions
+### Add a network
 
-- **Test the weather provider** — performs a live request to Open-Meteo and
-  shows the current temperature and humidity under the button.
-- **Identify a device** — pick one of your devices in the list and it will
-  signal itself (the demo light "blinks" in the logs).
+1. **Find a network**: a network name, a city or a region ("Naolib",
+   "Rennes", "TER"…). Each result gives its name, its identifier and the real
+   time it publishes, for example
+   `• Naolib [tdg84101] — … — real time : departures`. Some networks publish
+   two files (current and upcoming timetable): take the current one.
+2. **Add a network**: its identifier (`tdg…`), or its name when it is unique.
+   The integration downloads its timetable and reads it: up to a minute for a
+   big network.
 
-## Scenes
+**A network outside the catalog**: give the address of its GTFS file
+(`https://….zip`) in **Identifier, name or GTFS URL** and, if you know them,
+the addresses of its GTFS-RT feeds in **GTFS-RT URLs**. **Name shown**
+replaces the name put before the stop names.
 
-The integration adds its own cards to the scene editor (Gladys 5.1 or
-later), under the **Integrations** category:
+### Add a stop
 
-- **Motion detected** (trigger) — starts the scene when a demo motion sensor
-  sees something move. Optionally pick the sensor and what moved (person,
-  animal); left empty, any detection matches. The following actions can
-  read what moved with `{{triggerEvent.data.target}}`.
-- **Identify a device** (action) — makes the chosen device signal itself.
-  It returns whether the device could signal itself, so the following
-  actions can depend on it.
+1. **Find a stop**: type a name ("hotel dieu" finds "Hôtel Dieu", accents and
+   case do not matter), or leave it empty to list the 10 stops closest to
+   your home. Each result gives its lines, its distance and its identifier in
+   brackets, for example `• Commerce [20] — 1, 2, 3, C2, C3 — 90 m`. With
+   several networks, the **Network** field narrows the search.
+2. **Add a stop**: its name, or its identifier when several stops share a
+   name. **Lines** is optional: "1, C2" keeps these two lines only; empty,
+   every line. A big station has dozens of lines: pick yours (a device keeps 12 lines and directions at most).
+3. Open the **Discover** tab and create the device.
 
-## Dashboard
+Adding a stop already watched changes its lines: Gladys then offers to
+**update** the device in the Discover tab.
 
-Add the **Demo status** widget to a dashboard: it shows the live
-temperature of the weather station and the power of the office plug, the
-connection the plug currently uses (orange when degraded) and the observed
-location. Its **Identify the light** button makes the demo light signal
-itself.
+### Remove, check the feeds
+
+- **Remove a stop or a network**: its name or identifier. Removing a network
+  also removes its stops and deletes its timetable. Devices stay in Gladys
+  until you delete them.
+- **Show what is watched**: for each network, the date of the timetable, the
+  age of the realtime data, the number of trips tracked, the **volume
+  downloaded per hour**, the watched stops, and the last error if any.
+
+## Devices
+
+### Stop
+
+For each line and direction served (or the chosen lines):
+
+| Feature                             | Type           | Value                             |
+| ----------------------------------- | -------------- | --------------------------------- |
+| Tram 1 → François Mitterrand        | duration (min) | minutes before the next departure |
+| Tram 1 → François Mitterrand (next) | duration (min) | minutes before the following one  |
+
+And two texts for the whole stop:
+
+- **Next departures**: the three soonest, e.g.
+  `1 → Jamet 2 min · C2 → Gare Sud ≈4 min` ("≈" = timetable).
+- **Traffic info**: the titles of the current disruptions on its lines, or
+  "No disruption".
+
+`0` means the vehicle is at the stop or arriving (less than a minute);
+**1440** means no departure in the next 24 hours (night, a line not running
+that day). These values keep no history: a countdown re-read every minute
+would fill the database for nothing.
+
+The device name starts with the network name ("Naolib · Commerce"). The
+direction of a train is its terminus: SNCF puts the train number there, the
+integration replaces it.
+
+## Dashboard widget
+
+**Next departures**: choose a stop. One row per line and direction (ten at
+most, those with a departure first): "3 · 7 min" in green when it is real
+time, "≈ 3 · 7 min" in blue for the timetable. The caption lists the
+disruptions of its lines (⚠), or recalls what "≈" means.
+
+## Scene trigger
+
+**Disruption on a followed line**: a new traffic alert appears on a line of
+your watched stops (the line filter of a stop narrows it), or on the whole
+network (strike, closures). Filters: **scope** (a followed line, the whole
+network, or empty for both) and **line** (as written by the network: A, C1,
+15). Variables: scope, network, line, title, details (plain text), link. An
+alert is announced once; those already there when you add a stop are not. It
+needs a network publishing its alerts as GTFS-RT ("alerts" in the network
+search).
+
+For "the next bus is less than 5 minutes away", use the Gladys "Device state
+change" trigger on the countdown of the stop: it already compares values.
+
+## Scene action
+
+**Read the next departures**: a watched stop and, optionally, a line.
+Outputs: **sentence** (up to four lines and directions, soonest first), stop,
+line and direction of the next departure, minutes to wait, minutes to the
+following one, real time (1) or timetable (0), number of lines with a
+departure. The sentences follow the language of the configuration.
+
+## Scene examples
+
+- **Time to go**: at 7:45 on weekdays, "Read the next departures" at your
+  stop for line C2, then send `{{sentence}}` by Telegram or announce it on a
+  speaker.
+- **My TER is disrupted**: trigger "Disruption on a followed line", scope "a
+  followed line", on the station added with your TER line: send the title and
+  the details to your phone.
+- **Leave when the bus comes**: trigger "Device state change", countdown of
+  your bus below 4, condition "someone at home" and before 8:30: blink the
+  hall light.
+
+## Data, refresh and bandwidth
+
+| Data                | Source                                  | When                                            |
+| ------------------- | --------------------------------------- | ----------------------------------------------- |
+| Catalog of networks | transport.data.gouv.fr (public API)     | when a network is searched or added, kept a day |
+| Timetable (GTFS)    | the network, via transport.data.gouv.fr | once a day at most, kept in `/data`             |
+| Real time (GTFS-RT) | the network, or the catalog's proxy     | at each refresh, every 15 min when nothing runs |
+
+Real time is the heaviest: from a few kB to 2 MB per feed and per read. At
+one read a minute, Tisséo is about 100 MB per hour and SNCF about 90 MB per
+hour, during service hours; the **Show what is watched** action gives the
+volume of your networks. At night, with no departure within 90 minutes at
+your stops, the feeds are read every 15 minutes only, and a network without a
+watched stop is never read. Choose 2 or 5 minutes, or turn real time off, on
+a metered connection. The catalog and the open feeds set no quota; the transport.data.gouv.fr proxy accepts one read per feed every 30 seconds, and the integration keeps to it.
+
+**Licences**: timetables are published under the Licence Ouverte (Etalab) or
+the ODbL depending on the network; adding a network shows its own, and
+transport.data.gouv.fr states it on the page of each dataset.
 
 ## Troubleshooting
 
-The integration logs everything it does: check the integration logs from the
-Gladys UI (or `docker logs` on the host) with `LOG_LEVEL=debug` for the full
-detail.
+- **"… is too big for the 256 MB of the integration"**: the network exceeds
+  what the Gladys container can read (Île-de-France, more than 400,000 trips a
+  week, archive above 80 MB). Use the dedicated integration, or a smaller
+  dataset of the same network.
+- **"Several matches"**: add the stop by its identifier, given by "Find a
+  stop", or fill in the **Network**.
+- **Every time of a stop is marked ≈**: the network publishes no real time,
+  or not for these vehicles, or the feed is down (the "Show what is watched"
+  action gives the last error). The timetable keeps working.
+- **A line reads 1440**: no departure in the next 24 hours (night service, a
+  line not running that day, a diversion).
+- **No device in the Discover tab**: add a network first, then a stop.
+- **The network moved** (HTTP 404 error in "Show what is watched"): remove the network
+  and add it again from the search.
+- **Logs**: in Gladys, the integration logs tell which feed failed and why
+  (never the full address, which may hold a key).
+
+## Limitations
+
+- Networks publishing a GTFS: most French networks, but not all; three
+  networks and twenty stops at most.
+- **Too big**: Île-de-France (IDFM); the heaviest regional aggregates may be
+  refused too.
+- Real time depends on the network: some only publish alerts, or only track
+  part of their vehicles.
+- Line and direction names are those of the network's file (SNCF line codes
+  such as "P2" or "C30", for example).
+- A countdown is as precise as the refresh interval.
+- Developed and tested with the real data (SNCF, Naolib, Tisséo,
+  Aix-Marseille) and the SDK's fake Gladys, without a real Gladys instance:
+  feedback welcome on the forum.
+
+## Credits
+
+- Data: the transport networks, via
+  [transport.data.gouv.fr](https://transport.data.gouv.fr) (Licence Ouverte or
+  ODbL depending on the dataset).
+- Reuses the code of the **Tisséo** integration by the same author; inspired
+  by the **TCL** integration by prohand and the GTFS integrations of Home
+  Assistant.
+- Code under the Apache 2.0 licence.
