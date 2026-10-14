@@ -116,10 +116,14 @@ export function routesFromTrips(alerts, trips) {
     return alerts;
   }
   const byId = new Map();
-  const byStem = new Map();
+  const byStem = new Map(); // stem → route, null when several routes share it
   for (const trip of trips) {
     byId.set(trip.id, trip.route);
-    byStem.set(tripStem(trip.id), trip.route);
+    const stem = tripStem(trip.id);
+    if (stem.length >= 6 && stem !== trip.id) {
+      const known = byStem.get(stem);
+      byStem.set(stem, known === undefined || known === trip.route ? trip.route : null);
+    }
   }
   return alerts.map((alert) => {
     if (alert.routes.length > 0 || alert.trips.length === 0) {
@@ -127,7 +131,8 @@ export function routesFromTrips(alerts, trips) {
     }
     const routes = new Set();
     for (const id of alert.trips) {
-      const route = byId.get(id) ?? byStem.get(tripStem(id));
+      // A stem only stands for a trip id that is a stem itself (SNCF's).
+      const route = byId.get(id) ?? (tripStem(id) === id ? byStem.get(id) : null);
       if (route) {
         routes.add(route);
       }

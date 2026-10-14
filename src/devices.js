@@ -53,21 +53,11 @@ export function lineSlug(short) {
 
 /**
  * The feature key of a line and direction: its short name ("l1-0"), which
- * survives the yearly renumbering of route ids better than the id itself.
- * Two routes sharing a short name at a stop (a regional dataset aggregates
- * several operators) are told apart by their route id.
+ * survives the yearly renumbering of route ids better than the id itself
+ * (lineGroups merges the routes sharing a short name).
  */
-export function groupKey(group, groups) {
-  const slug = lineSlug(group.route.short).slice(0, 40) || lineSlug(group.route.id).slice(0, 40);
-  const shared = groups.some(
-    (other) =>
-      other.route.id !== group.route.id &&
-      other.dir === group.dir &&
-      lineSlug(other.route.short) === lineSlug(group.route.short),
-  );
-  return shared
-    ? `${slug}-${lineSlug(group.route.id).slice(0, 40)}-${group.dir}`
-    : `${slug}-${group.dir}`;
+export function groupKey(group) {
+  return `${lineSlug(group.route.short).slice(0, 40) || lineSlug(group.route.id).slice(0, 40)}-${group.dir}`;
 }
 
 export const BOARD_KEY = 'board';
@@ -153,10 +143,10 @@ export function buildStopDevice(gladys, stop, groups, language, networkName) {
   };
   for (const group of groups) {
     features.push(
-      countdown(unique(groupName(group, language)), ids.feature(`${groupKey(group, groups)}-next`)),
+      countdown(unique(groupName(group, language)), ids.feature(`${groupKey(group)}-next`)),
       countdown(
         unique(groupName(group, language, names.following)),
-        ids.feature(`${groupKey(group, groups)}-following`),
+        ids.feature(`${groupKey(group)}-following`),
       ),
     );
   }
@@ -229,11 +219,11 @@ export function stopStates(gladys, stop, board, traffic, language) {
     const [next, following] = group.departures;
     states.push(
       {
-        device_feature_external_id: ids.feature(`${groupKey(group, board)}-next`),
+        device_feature_external_id: ids.feature(`${groupKey(group)}-next`),
         state: next ? Math.min(next.minutes, NO_DEPARTURE_MINUTES) : NO_DEPARTURE_MINUTES,
       },
       {
-        device_feature_external_id: ids.feature(`${groupKey(group, board)}-following`),
+        device_feature_external_id: ids.feature(`${groupKey(group)}-following`),
         state: following ? Math.min(following.minutes, NO_DEPARTURE_MINUTES) : NO_DEPARTURE_MINUTES,
       },
     );

@@ -349,6 +349,17 @@ test('remove a stop, and restore the watch list from the devices after a /data l
   assert.match(fr(await action(world, 'remove', { name: 'Nowhere' })), /Rien de surveillé/);
   assert.equal(world.fake.discoveredDevices.length, 1);
 
+  // A restart keeps the removal: the device of Pader still in Gladys does not bring it back.
+  const restarted = await createWorld({
+    devices: [pader, jj],
+    networks: [],
+    dataDir: world.dataDir,
+  });
+  t.after(() => restarted.app.stop());
+  assert.deepEqual(
+    restarted.service.watch.stops.map((s) => s.id),
+    [JEAN_JAURES],
+  );
   // /data lost: the networks and stops come back from the device params.
   const again = await createWorld({ devices: [pader, jj], networks: [] });
   t.after(() => again.app.stop());
@@ -360,7 +371,7 @@ test('remove a stop, and restore the watch list from the devices after a /data l
     again.service.watch.stops.map((s) => [s.network, s.id, s.name, s.lines]),
     [
       [TISSEO, PADER, 'Pader', []],
-      [TISSEO, JEAN_JAURES, 'Jean Jaurès (B)', ['B']],
+      [TISSEO, JEAN_JAURES, 'Jean Jaurès', ['B']],
     ],
   );
   // The removal of a network takes its stops and its archive along.
@@ -511,7 +522,12 @@ test('SNCF at Nantes: two networks, trains named after their destination, trip a
     fr(await action(world, 'add_stop', { stop: 'Nantes', network: 'Pau' })),
     /Aucun réseau ajouté ne s'appelle « Pau »\. Réseaux : Tisséo \[tdg81678\], SNCF/,
   );
-  await action(world, 'add_stop', { stop: 'OCE87481002', network: SNCF });
+  const added = await action(world, 'add_stop', { stop: 'OCE87481002', network: SNCF });
+  // A big station: the device keeps 12 lines and directions, the message says how to choose.
+  assert.match(
+    fr(added),
+    /\d+ lignes et directions passent ici : l'appareil garde les 12 premières/,
+  );
   const device = await create(world, 'Nantes');
   assert.equal(device.name, 'SNCF TGV, Intercités et TER · Nantes');
   assert.ok(device.external_id.endsWith(':stop:tdg83582-StopArea-OCE87481002'));
@@ -529,11 +545,23 @@ test('SNCF at Nantes: two networks, trains named after their destination, trip a
   assert.equal(tracked, 74);
   assert.ok(world.network.calls.some((c) => c.url === SNCF_TRIP_UPDATES_URL));
   assert.ok(world.network.calls.some((c) => c.url === SNCF_ALERTS_URL));
+  // The proxy of transport.data.gouv.fr allows one read per 30 s and per feed.
+  const reads = () => world.network.calls.filter((c) => c.url === SNCF_TRIP_UPDATES_URL).length;
+  const before = reads();
+  world.clock.advance(20_000);
+  await world.service.refresh();
+  assert.equal(reads(), before);
+  world.clock.advance(10_000);
+  await world.service.refresh();
+  assert.equal(reads(), before + 1);
   // Tisséo has no watched stop: its realtime feed is never read.
   assert.ok(!world.network.calls.some((c) => c.url === GTFS_RT_URL));
   const status = fr(await action(world, 'status'));
   assert.match(status, /■ SNCF TGV, Intercités et TER \[tdg83582\]\n/);
-  assert.match(status, /Temps réel : mis à jour il y a 0 s, 74 trajet\(s\) suivi\(s\), environ \d/);
+  assert.match(
+    status,
+    /Temps réel : mis à jour il y a 0 s, 74 trajet\(s\) suivi\(s\), environ \d+(,\d)? Mo par heure/,
+  );
   assert.equal(world.service.watch.stops[0].id, NANTES);
 });
 
@@ -548,4 +576,23 @@ test('calm logs: a normal refresh writes nothing at info level', async (t) => {
     await world.service.refresh();
   }
   assert.deepEqual(logs, []);
+});
+
+test('an alerts feed down for hours does not announce its old alerts again', async (t) => {
+  const network = createFetch();
+  const world = await createWorld({ network, networks: [SNCF], clock: createClock(SNCF_TIME) });
+  t.after(() => world.app.stop());
+  await action(world, 'add_stop', { stop: 'OCE87481002' });
+  await create(world, 'Nantes');
+  // The alerts proxy fails, the trip updates keep coming.
+  const alerts = network.routes[SNCF_ALERTS_URL];
+  network.routes[SNCF_ALERTS_URL] = new TypeError('fetch failed');
+  for (let hour = 0; hour < 8; hour += 1) {
+    world.clock.advance(3600_000);
+    await world.service.refresh();
+  }
+  network.routes[SNCF_ALERTS_URL] = alerts;
+  world.clock.advance(60_000);
+  await world.service.refresh();
+  assert.deepEqual(world.fake.sceneEvents, []);
 });

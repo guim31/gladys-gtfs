@@ -180,6 +180,8 @@ export const REPORTS = {
     ambiguous: ({ query }) => `Several matches for "${query}": add it by its identifier.`,
     stopAdded: ({ name, lines }) => `${name} added (${lines}).`,
     stopUpdated: ({ name, lines }) => `${name} updated (${lines}).`,
+    tooManyLines: ({ count, max }) =>
+      `${count} lines and directions stop here: the device keeps the first ${max}. Add the stop again with your lines to choose them.`,
     allLines: 'all lines',
     unknownLines: ({ lines, available }) =>
       `No such line at this stop: ${lines}. Lines here: ${available}.`,
@@ -238,6 +240,8 @@ export const REPORTS = {
       `Plusieurs résultats pour « ${query} » : ajoutez-le par son identifiant.`,
     stopAdded: ({ name, lines }) => `${name} ajouté (${lines}).`,
     stopUpdated: ({ name, lines }) => `${name} mis à jour (${lines}).`,
+    tooManyLines: ({ count, max }) =>
+      `${count} lignes et directions passent ici : l'appareil garde les ${max} premières. Ajoutez de nouveau l'arrêt avec vos lignes pour les choisir.`,
     allLines: 'toutes les lignes',
     unknownLines: ({ lines, available }) =>
       `Ligne(s) absente(s) de cet arrêt : ${lines}. Lignes desservies : ${available}.`,
@@ -298,6 +302,8 @@ export const REPORTS = {
     ambiguous: ({ query }) => `Mehrere Treffer für „${query}“: Füge sie über ihre Kennung hinzu.`,
     stopAdded: ({ name, lines }) => `${name} hinzugefügt (${lines}).`,
     stopUpdated: ({ name, lines }) => `${name} aktualisiert (${lines}).`,
+    tooManyLines: ({ count, max }) =>
+      `Hier halten ${count} Linien und Richtungen: Das Gerät behält die ersten ${max}. Füge die Haltestelle mit deinen Linien erneut hinzu, um sie auszuwählen.`,
     allLines: 'alle Linien',
     unknownLines: ({ lines, available }) =>
       `Diese Linie(n) halten hier nicht: ${lines}. Linien an dieser Haltestelle: ${available}.`,
@@ -357,6 +363,8 @@ export const REPORTS = {
     ambiguous: ({ query }) => `Varios resultados para «${query}»: añádala por su identificador.`,
     stopAdded: ({ name, lines }) => `${name} añadida (${lines}).`,
     stopUpdated: ({ name, lines }) => `${name} actualizada (${lines}).`,
+    tooManyLines: ({ count, max }) =>
+      `Aquí paran ${count} líneas y direcciones: el dispositivo conserva las ${max} primeras. Vuelva a añadir la parada con sus líneas para elegirlas.`,
     allLines: 'todas las líneas',
     unknownLines: ({ lines, available }) =>
       `Línea(s) que no pasan por esta parada: ${lines}. Líneas de esta parada: ${available}.`,

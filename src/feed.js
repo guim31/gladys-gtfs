@@ -17,7 +17,7 @@ import { createLogger } from '@gladysassistant/integration-sdk';
 import { indexRealtime, resolveLines, upcomingDepartures } from './departures.js';
 import { decodeFeed } from './gtfsrt.js';
 import { parseGtfs } from './gtfs.js';
-import { downloadFile, getBuffer } from './http.js';
+import { downloadFile, getBuffer, hostOf } from './http.js';
 import { localDate } from './time.js';
 
 const logger = createLogger({ name: 'gtfs-feed' });
@@ -34,6 +34,11 @@ export const QUIET_HORIZON_MS = 90 * 60 * 1000;
 export const NIGHT_REALTIME_MS = 15 * 60 * 1000;
 // A realtime feed older than this is worse than the timetable.
 export const REALTIME_STALE_MS = 10 * 60 * 1000;
+// The realtime proxy of transport.data.gouv.fr answers 429 ("1 requests per
+// 30 seconds") to a feed read again sooner: its feeds are read that seldom at
+// most, whatever the refresh interval and the actions in between.
+export const PROXY_MIN_INTERVAL_MS = 30 * 1000;
+const PROXY_HOST = 'proxy.transport.data.gouv.fr';
 const FIRST_DOWNLOAD_RETRY_MS = 2 * 60 * 1000;
 const DOWNLOAD_RETRY_MS = 30 * 60 * 1000;
 
@@ -73,7 +78,8 @@ export class Feed {
     this.downloadFailedAt = undefined;
 
     this.realtime = null;
-    this.parts = new Map(); // url → { etag, feed }
+    this.parts = new Map(); // url → { etag, feed, at }
+    this.tried = new Map(); // url → last read attempt
     this.realtimeAt = null;
     this.realtimeError = null;
     this.realtimeBytes = 0;
@@ -99,6 +105,7 @@ export class Feed {
 
   /** Forgets everything, the archive included (network removed). */
   async drop() {
+    this.dropped = true;
     this.network = null;
     this.realtime = null;
     this.parts.clear();
@@ -154,6 +161,11 @@ export class Feed {
             downloaded = await parseGtfs(path, { watched: this.watchedIds(), now: this.now() });
           },
         });
+        if (this.dropped) {
+          // Removed while it downloaded: no orphan archive left in /data.
+          await rm(this.path, { force: true }).catch(() => {});
+          throw new Error('network removed');
+        }
         this.gtfsError = null;
         this.gtfsErrorCode = undefined;
         this.downloadFailedAt = undefined;
@@ -237,6 +249,15 @@ export class Feed {
     let bytes = 0;
     for (const url of urls) {
       const part = this.parts.get(url);
+      const tried = this.tried.get(url);
+      if (
+        tried !== undefined &&
+        now - tried < PROXY_MIN_INTERVAL_MS &&
+        hostOf(url) === PROXY_HOST
+      ) {
+        continue;
+      }
+      this.tried.set(url, now);
       try {
         const { body, etag, notModified } = await getBuffer(this.fetch, url, {
           etag: part?.feed ? part.etag : null,
@@ -268,6 +289,8 @@ export class Feed {
     if (errors.length < urls.length) {
       this.realtimeAt = now;
     }
+    // Every feed read: what is missing from them has really left.
+    this.realtimeComplete = errors.length === 0;
     if (errors.length > 0) {
       if (!this.realtimeError) {
         logger.warn(`${this.info.name}: realtime feed unavailable: ${errors.join(' / ')}`);

@@ -1,250 +1,245 @@
-# Tisséo
+# Transporte público (GTFS)
 
-El transporte público de Toulouse en Gladys: las **próximas salidas en sus
-paradas** (metro, tranvía, Téléo, Linéo, autobuses), las **incidencias** de
-sus líneas y las **bicis VélôToulouse** de sus estaciones. Todo procede de
-datos abiertos: **sin cuenta ni clave de API**.
+Las **próximas salidas en sus paradas** y las **incidencias** de sus líneas,
+para **cualquier red de transporte francesa** que publique sus horarios en
+GTFS en [transport.data.gouv.fr](https://transport.data.gouv.fr): TER y TGV
+(SNCF), Naolib (Nantes), STAR (Rennes), TaM (Montpellier), M (Grenoble),
+Ilévia (Lille), Stan (Nancy) y cientos más. El tiempo real (GTFS-RT) se usa
+cuando la red lo publica, unos 220 conjuntos de datos. Todo procede de datos
+abiertos: **sin cuenta ni clave de API**.
 
-Datos: Tisséo y Toulouse Métropole, bajo la
-[Open Database License (ODbL)](https://opendatacommons.org/licenses/odbl/),
-publicados en [transport.data.gouv.fr](https://transport.data.gouv.fr/datasets/tisseo-reseau-transport-urbain-toulousain).
-Esta integración es un proyecto comunitario, sin relación con Tisséo,
-Toulouse Métropole ni JCDecaux.
+Para **Toulouse, Lyon, Île-de-France o Burdeos**, es preferible usar las
+integraciones específicas (Tisséo, TCL, IDFM, TBM): llegan más lejos
+(bicicletas, metro en tiempo real…). De todos modos, Île-de-France es
+demasiado grande para esta integración.
 
-## Qué obtiene
+Esta integración es un proyecto comunitario, sin relación con
+transport.data.gouv.fr, la SNCF ni ninguna red de transporte.
+
+## Lo que obtiene
 
 - **Un dispositivo por parada vigilada**: para cada línea y dirección, los
   minutos hasta la **próxima salida** y hasta la **siguiente**; las tres
   salidas más próximas en texto; la **info de tráfico** de sus líneas.
-- **Un dispositivo por estación VélôToulouse vigilada**: bicis disponibles,
-  bicis mecánicas, bicis eléctricas, anclajes libres.
-- **Widget «Próximas salidas»**: el panel de una parada, los horarios seguidos
+- **Widget «Próximas salidas»**: el panel de una parada, las salidas seguidas
   en tiempo real en verde, los horarios teóricos marcados con «≈».
-- **Widget «VélôToulouse»**: sus estaciones de un vistazo.
-- **Disparadores de escena**: «Incidencia de Tisséo», «Bicis que se agotan en
-  una estación», «Bicis de vuelta en una estación».
-- **Acciones de escena**: «Leer las próximas salidas de Tisséo» y «Leer una
-  estación VélôToulouse», con una frase lista para enviar («Metro A hacia
-  Basso Cambo en Jean Jaurès: dentro de 3 y 7 min»).
+- **Disparador de escena «Incidencia en una línea seguida»**: un nuevo aviso
+  de tráfico en una línea de sus paradas, o en toda la red.
+- **Acción de escena «Leer las próximas salidas»**, con una frase lista para
+  enviar («Tranvía 1 hacia François Mitterrand en Commerce: dentro de 3 y
+  7 min»).
+- Hasta **3 redes** y **20 paradas** (por ejemplo, la red urbana de su ciudad
+  y la SNCF para la estación).
 
-**¿Tiempo real o teórico?** Tisséo publica la posición en directo de sus
-autobuses, del tranvía y de las cabinas de Téléo: sus salidas se corrigen
-(retrasos, supresiones, paradas no atendidas). El metro no está en el flujo en
-tiempo real: sus horarios son los del plan de transporte (un tren cada 1 a
-4 minutos en hora punta), marcados con «≈» o «horario teórico».
+**¿Tiempo real o teórico?** Cuando la red publica un flujo GTFS-RT
+«TripUpdates», las salidas se corrigen (retrasos, supresiones, paradas no
+servidas) y se muestran sin «≈». Si no, o para los vehículos no seguidos, son
+los horarios previstos, marcados con «≈» o «horario teórico». La búsqueda de
+red indica lo que publica cada una.
 
 ## Requisitos
 
 - Gladys 5.1 o posterior, con acceso a Internet.
 - Para listar las paradas **alrededor de su casa**: la posición de su casa en
-  Gladys (**Configuración → Viviendas**). La integración la pide al
-  instalarse (`location`): lee las coordenadas de sus casas, nada más, y solo
-  para ordenar las paradas por distancia. Sin ella, busque por nombre.
-- Unos **20 MB** de disco en `/data` (el archivo de horarios, actualizado una
-  vez al día).
+  Gladys (**Configuración → Viviendas**). La integración la solicita al
+  instalarse (`location`): lee las coordenadas de sus viviendas, nada más, y
+  solo para ordenar las paradas por distancia. Sin ella, busque por nombre.
+- De **1 a 80 MB** de disco en `/data` por red (el archivo de horarios,
+  actualizado una vez al día): 6 MB para la SNCF, 26 MB para Naolib.
 
 ## Instalación
 
 1. En Gladys, vaya a **Integraciones → Instalar desde GitHub** e introduzca
-   `https://github.com/guim31/gladys-tisseo`.
+   `https://github.com/guim31/gladys-gtfs`.
 2. Abra la pestaña **Configuración** de la integración y elija el idioma de
    los textos (francés por defecto).
-3. Añada sus paradas y estaciones con las acciones de la misma pantalla (más
-   abajo) y cree después sus dispositivos en la pestaña **Descubrir**.
+3. Añada su red y luego sus paradas con las acciones de la misma pantalla
+   (abajo), y cree sus dispositivos en la pestaña **Descubrir**.
 
 ## Configuración
 
 ### Ajustes
 
-- **Idioma de los textos**: nombres de las funciones, info de tráfico, frases
-  de las escenas. Los nombres se fijan al crear el dispositivo: cambie primero
-  el idioma y cree después los dispositivos.
-- **Intervalo de actualización**: 30 segundos, 1 minuto (por defecto), 2 o
-  5 minutos. Las salidas y las estaciones de bicis lo siguen.
+- **Idioma de los textos**: nombres de las funciones, nombres de las líneas,
+  frases de las escenas. Los nombres se fijan al crear el dispositivo: cambie
+  primero el idioma y cree después los dispositivos.
+- **Frecuencia de actualización**: 30 segundos, 1 minuto (por defecto), 2 o
+  5 minutos.
 - **Tiempo real**: activado por defecto. Desactivado, la integración solo usa
-  los horarios teóricos y ya no descarga el flujo en tiempo real.
+  los horarios teóricos y deja de descargar los flujos en tiempo real.
+
+### Añadir una red
+
+1. **Buscar una red**: un nombre de red, una ciudad o una región («Naolib»,
+   «Rennes», «TER»…). Cada resultado da su nombre, su identificador y el
+   tiempo real publicado, por ejemplo
+   `• Naolib [tdg84101] — … — tiempo real : salidas`. Algunas redes publican
+   dos archivos (horarios en vigor y futuros): elija el que está en vigor.
+2. **Añadir una red**: su identificador (`tdg…`), o su nombre si es único. La
+   integración descarga sus horarios y los lee: hasta un minuto para una red
+   grande.
+
+**Una red fuera del catálogo**: indique la dirección de su archivo GTFS
+(`https://….zip`) en **Identificador, nombre o URL GTFS** y, si las conoce,
+las direcciones de sus flujos GTFS-RT en **URL GTFS-RT**. **Nombre mostrado**
+sustituye el nombre que se pone delante del de las paradas.
 
 ### Añadir una parada
 
-1. **Buscar una parada**: escriba un nombre («jean jaures» encuentra «Jean
-   Jaurès», los acentos y las mayúsculas no importan), o déjelo vacío para
-   listar las 10 paradas más cercanas a su casa. Cada resultado muestra sus
-   líneas, su distancia y su identificador, por ejemplo
-   `• Jean Jaurès [SA_1707] — A, B, L1, L9, L14, 15, 23 — 550 m`.
+1. **Buscar una parada**: escriba un nombre («hotel dieu» encuentra «Hôtel
+   Dieu», los acentos y las mayúsculas no importan), o déjelo vacío para
+   listar las 10 paradas más cercanas a su casa. Cada resultado da sus líneas,
+   su distancia y su identificador entre corchetes, por ejemplo
+   `• Commerce [20] — 1, 2, 3, C2, C3 — 90 m`. Con varias redes, el campo
+   **Red** restringe la búsqueda.
 2. **Añadir una parada**: su nombre, o su identificador si varias paradas
-   tienen el mismo nombre (hay tres «Jean Jaurès» en la metrópoli).
-   **Líneas** es opcional: «A, L1» solo conserva esas dos líneas; vacío,
-   todas las líneas.
+   tienen el mismo nombre. **Líneas** es opcional: «1, C2» conserva solo esas
+   dos líneas; vacío, todas las líneas. Una gran estación tiene decenas de líneas: elija las suyas (un dispositivo conserva como máximo 12 líneas y direcciones).
 3. Abra la pestaña **Descubrir** y cree el dispositivo.
 
 Añadir una parada ya vigilada cambia sus líneas: Gladys propone entonces
 **actualizar** el dispositivo en la pestaña Descubrir.
 
-La primera búsqueda descarga los horarios de Tisséo (15 MB) y los lee: hasta
-un minuto en una máquina pequeña. Las acciones lo esperan.
+### Eliminar, comprobar los flujos
 
-### Añadir una estación de bicis
-
-1. **Buscar una estación de bicis**: un nombre, o vacío para las 10 estaciones
-   más cercanas a su casa. Cada resultado muestra su número, por ejemplo
-   `• Poids de l'Huile [1] — 570 m`.
-2. **Añadir una estación de bicis**: su número o su nombre.
-3. Cree su dispositivo en la pestaña **Descubrir**.
-
-### Quitar una parada o una estación, comprobar los flujos
-
-- **Quitar una parada o una estación**: su nombre o su identificador. El
-  dispositivo permanece en Gladys hasta que usted lo elimine.
-- **Mostrar lo vigilado**: las paradas y estaciones, la fecha de los
-  horarios, la antigüedad de los datos en tiempo real y de bicis, y el último
-  error si lo hay.
-
-Como máximo 20 paradas y 20 estaciones.
+- **Eliminar una parada o una red**: su nombre o su identificador. Eliminar
+  una red elimina también sus paradas y borra sus horarios. Los dispositivos
+  permanecen en Gladys hasta que los elimine.
+- **Mostrar lo vigilado**: para cada red, la fecha de los horarios, la antigüedad de los
+  datos en tiempo real, el número de trayectos seguidos, el **volumen
+  descargado por hora**, las paradas vigiladas y el último error, si lo hay.
 
 ## Dispositivos
 
 ### Parada
 
-Para cada línea y dirección atendida (o las líneas elegidas):
+Para cada línea y dirección servida (o las líneas elegidas):
 
-| Función                           | Tipo           | Valor                           |
-| --------------------------------- | -------------- | ------------------------------- |
-| Metro A → Basso Cambo             | duración (min) | minutos hasta la próxima salida |
-| Metro A → Basso Cambo (siguiente) | duración (min) | minutos hasta la siguiente      |
+| Función                                     | Tipo           | Valor                           |
+| ------------------------------------------- | -------------- | ------------------------------- |
+| Tranvía 1 → François Mitterrand             | duración (min) | minutos hasta la próxima salida |
+| Tranvía 1 → François Mitterrand (siguiente) | duración (min) | minutos hasta la siguiente      |
 
 Y dos textos para toda la parada:
 
 - **Próximas salidas**: las tres más próximas, p. ej.
-  `L1 → Gare Matabiau 2 min · A → Basso Cambo ≈4 min` («≈» = teórico).
+  `1 → Jamet 2 min · C2 → Gare Sud ≈4 min` («≈» = teórico).
 - **Info de tráfico**: los títulos de las incidencias en curso en sus líneas,
   o «Sin incidencias».
 
 `0` significa que el vehículo está en la parada o llegando (menos de un
 minuto); **1440** significa ninguna salida en las próximas 24 horas (noche,
-una línea que no circula ese día). Estos valores no guardan historial: una
-cuenta atrás leída cada minuto llenaría la base de datos para nada.
+línea que no circula ese día). Estos valores no guardan historial: una cuenta
+atrás releída cada minuto llenaría la base de datos para nada.
 
-### Estación de bicis
+El nombre del dispositivo empieza por el nombre de la red («Naolib ·
+Commerce»). La dirección de un tren es su estación terminal: la SNCF pone ahí
+el número del tren, la integración lo sustituye.
 
-| Función                | Tipo     |
-| ---------------------- | -------- |
-| Bicicletas disponibles | contador |
-| Bicicletas mecánicas   | contador |
-| Bicicletas eléctricas  | contador |
-| Anclajes libres        | contador |
+## Widget del panel
 
-Estas sí guardan su historial: el gráfico muestra cuándo se vacía su
-estación.
+**Próximas salidas**: elija una parada. Una fila por línea y dirección (diez
+como máximo, primero las que tienen una salida): «3 · 7 min» en verde cuando
+es tiempo real, «≈ 3 · 7 min» en azul para el horario teórico. La leyenda
+enumera las incidencias de sus líneas (⚠), o recuerda el significado de «≈».
 
-## Widgets del panel
+## Disparador de escena
 
-- **Próximas salidas**: elija una parada. Una fila por línea y dirección (diez
-  como máximo, primero las que tienen una salida): «3 · 7 min» en verde cuando
-  es tiempo real, «≈ 3 · 7 min» en azul para el horario teórico. La leyenda
-  lista las incidencias de sus líneas (⚠), o recuerda qué significa «≈».
-- **VélôToulouse**: elija sus estaciones (vacío: todas, diez como máximo). Una
-  sola estación muestra cuatro mosaicos en directo; varias, una fila cada una
-  («3 mec. · 2 eléc. · 12 libres»), en rojo cuando no queda ninguna bici, en
-  naranja con dos o menos.
-
-## Disparadores de escena
-
-- **Incidencia de Tisséo**: aparece una nueva incidencia en una línea de sus
-  paradas vigiladas (el filtro de líneas de una parada la restringe), o en
-  toda la red (huelga, cierres). Filtros: **alcance** (una línea seguida, toda
-  la red, o vacío para ambos) y **línea** (tal como la escribe Tisséo: A, T1,
-  L9, 15). Variables: línea, título, detalles (texto plano), enlace a
-  tisseo.fr. Una incidencia se anuncia una vez; las que ya existían cuando
-  usted añade una parada, no.
-- **Bicis que se agotan en una estación**: las bicis de un tipo (todas,
-  mecánicas, eléctricas) en una estación vigilada bajan **al** número elegido
-  **o por debajo** (0, 1, 2, 3 o 5). Se dispara una vez al cruzar el umbral,
-  no en cada actualización.
-- **Bicis de vuelta en una estación**: esas mismas bicis vuelven a superar el
-  número elegido.
+**Incidencia en una línea seguida**: aparece un nuevo aviso de tráfico en una
+línea de sus paradas vigiladas (el filtro de líneas de una parada lo
+restringe), o en toda la red (huelga, cierres). Filtros: **alcance** (una
+línea seguida, toda la red, o vacío para ambos) y **línea** (tal como la
+escribe la red: A, C1, 15). Variables: alcance, red, línea, título, detalles
+(texto plano), enlace. Un aviso se anuncia una vez; los que ya existen cuando
+añade una parada no se anuncian. Requiere una red que publique sus avisos en
+GTFS-RT («avisos» en la búsqueda de red).
 
 Para «el próximo autobús llega en menos de 5 minutos», use el disparador
 «Cambio de estado del dispositivo» de Gladys sobre la cuenta atrás de la
 parada: ya sabe comparar valores.
 
-## Acciones de escena
+## Acción de escena
 
-- **Leer las próximas salidas de Tisséo**: una parada vigilada y,
-  opcionalmente, una línea. Salidas: **frase** (hasta cuatro líneas y
-  direcciones, las más próximas primero), parada, línea y dirección de la
-  próxima salida, minutos de espera, minutos hasta la siguiente, tiempo real
-  (1) o teórico (0), número de líneas con salida.
-- **Leer una estación VélôToulouse**: salidas frase, bicis disponibles,
-  mecánicas, eléctricas, anclajes libres, en servicio (1 o 0).
-
-Las frases siguen el idioma de la configuración.
+**Leer las próximas salidas**: una parada vigilada y, opcionalmente, una
+línea. Salidas: **frase** (hasta cuatro líneas y direcciones, primero las más
+próximas), parada, línea y dirección de la próxima salida, minutos de espera,
+minutos hasta la siguiente, tiempo real (1) o teórico (0), número de líneas
+con una salida. Las frases siguen el idioma de la configuración.
 
 ## Ejemplos de escenas
 
-- **Hora de salir**: a las 7:45 entre semana, «Leer las próximas salidas de
-  Tisséo» en su parada para la línea L1 y envíe después `{{sentence}}` por
+- **Es la hora**: a las 7:45 los días laborables, «Leer las próximas
+  salidas» en su parada para la línea C2, y luego envíe `{{sentence}}` por
   Telegram o anúnciela en un altavoz.
-- **Mañana de huelga**: disparador «Incidencia de Tisséo» con el alcance
-  «toda la red» y envíe después el título y el enlace a su móvil.
-- **La última bici eléctrica**: disparador «Bicis que se agotan en una
-  estación», su estación, bicis eléctricas, como máximo 0: envíe «No quedan
-  bicis eléctricas en la estación, tome el metro».
+- **Mi TER tiene una incidencia**: disparador «Incidencia en una línea
+  seguida», alcance «una línea seguida», en la estación añadida con su línea
+  TER: envíe el título y los detalles a su teléfono.
 - **Salir cuando llega el autobús**: disparador «Cambio de estado del
-  dispositivo», cuenta atrás de su autobús menor que 4, condición «alguien en
+  dispositivo», cuenta atrás de su autobús inferior a 4, condición «alguien en
   casa» y antes de las 8:30: haga parpadear la luz de la entrada.
 
 ## Datos, actualización y ancho de banda
 
-| Datos                         | Fuente                                    | Cuándo                                                           |
-| ----------------------------- | ----------------------------------------- | ---------------------------------------------------------------- |
-| Horarios (GTFS, 15 MB)        | Tisséo, vía data.gouv.fr                  | una vez al día como máximo, guardados en `/data`                 |
-| Tiempo real (GTFS-RT, 1,7 MB) | Tisséo (api.tisseo.fr)                    | en cada actualización, cada 15 min cuando nada circula           |
-| Estaciones de bicis (GBFS)    | VélôToulouse (JCDecaux), vía data.gouv.fr | lista de estaciones una vez al día, estado en cada actualización |
+| Datos                 | Fuente                                     | Cuándo                                                 |
+| --------------------- | ------------------------------------------ | ------------------------------------------------------ |
+| Catálogo de redes     | transport.data.gouv.fr (API pública)       | al buscar o añadir una red, guardado un día            |
+| Horarios (GTFS)       | la red, a través de transport.data.gouv.fr | una vez al día como máximo, guardados en `/data`       |
+| Tiempo real (GTFS-RT) | la red, o el proxy del catálogo            | en cada actualización, cada 15 min cuando nada circula |
 
-El flujo en tiempo real es el más pesado: unos **100 MB por hora** con una
-actualización por minuto en horas de servicio. De noche, sin salidas en los
-próximos 90 minutos en sus paradas, solo se lee cada 15 minutos. Elija 2 o
-5 minutos, o desactive el tiempo real, en una conexión limitada. Los datos
-abiertos no tienen cuota; Tisséo regenera el flujo en tiempo real cada
-20 segundos aproximadamente.
+El tiempo real es lo más pesado: de unos kB a 2 MB por flujo y por lectura. A
+una lectura por minuto, Tisséo supone unos 100 MB por hora y la SNCF unos
+90 MB por hora, durante las horas de servicio; la acción **Mostrar lo vigilado** muestra
+el volumen de sus redes. De noche, sin salidas en los próximos 90 minutos en
+sus paradas, los flujos solo se leen cada 15 minutos, y una red sin parada
+vigilada nunca se lee. Elija 2 o 5 minutos, o desactive el tiempo real, con
+una conexión limitada. El catálogo y los flujos abiertos no imponen cuota; el proxy de transport.data.gouv.fr solo acepta una lectura por flujo cada 30 segundos, y la integración lo respeta.
+
+**Licencias**: los horarios se publican bajo la Licence Ouverte (Etalab) o la
+ODbL según la red; al añadir una red se muestra la suya, y
+transport.data.gouv.fr la indica en la página de cada conjunto de datos.
 
 ## Solución de problemas
 
-- **«Los horarios de Tisséo aún se están cargando»**: la primera descarga
-  tarda un minuto; vuelva a intentarlo.
-- **«Varios resultados»**: añada la parada por su identificador (`SA_…`), que
-  muestra «Buscar una parada».
-- **Todos los horarios de una parada están marcados con ≈**: siempre es así
-  para el metro; para un autobús, el vehículo no está seguido en este momento
-  o el flujo en tiempo real falla («Mostrar lo vigilado» indica el último
-  error). Los horarios teóricos siguen funcionando.
+- **«… son demasiado grandes para los 256 MB de la integración»**: la red
+  supera lo que el contenedor de Gladys puede leer (Île-de-France, más de
+  400 000 trayectos por semana, archivo de más de 80 MB). Use la integración
+  específica, o un conjunto de datos más pequeño de la misma red.
+- **«Varios resultados»**: añada la parada por su identificador, que da
+  «Buscar una parada», o indique la **Red**.
+- **Todos los horarios de una parada aparecen con ≈**: la red no publica
+  tiempo real, o no para esos vehículos, o el flujo está caído (la acción
+  «Mostrar lo vigilado» da el último error). Los horarios teóricos siguen funcionando.
 - **Una línea muestra 1440**: ninguna salida en las próximas 24 horas
-  (servicio nocturno, una línea que no circula ese día, un desvío).
-- **Ningún dispositivo en la pestaña Descubrir**: añada primero una parada o
-  una estación; para las paradas, los horarios deben estar descargados.
-- **Una línea nueva en mi parada**: Gladys propone actualizar el dispositivo
-  en la pestaña Descubrir.
+  (servicio nocturno, línea que no circula ese día, desvío).
+- **Ningún dispositivo en la pestaña Descubrir**: añada primero una red y
+  luego una parada.
+- **La red ha cambiado de dirección** (error HTTP 404 en «Mostrar lo vigilado»): elimine
+  la red y vuelva a añadirla desde la búsqueda.
 - **Registros**: en Gladys, los registros de la integración indican qué flujo
-  ha fallado y por qué.
+  ha fallado y por qué (nunca la dirección completa, que puede contener una
+  clave).
 
 ## Limitaciones
 
-- Solo Toulouse (la red Tisséo y VélôToulouse).
-- **El metro solo tiene horarios teóricos**: Tisséo no lo publica en tiempo
-  real.
-- **Sin plazas libres en los aparcamientos disuasorios**: los datos abiertos
-  de Toulouse Métropole solo dan su capacidad, no su ocupación.
-- Las incidencias son las que Tisséo publica en su flujo en tiempo real; su
-  texto está en francés.
-- La API oficial de Tisséo (api.tisseo.fr, con clave) no se usa: los flujos
-  abiertos dan las mismas salidas sin ninguna cuenta.
-- Una cuenta atrás es precisa al intervalo de actualización.
-- Desarrollada y probada con los datos reales de Tisséo y VélôToulouse, sin
-  instancia de Gladys: sus comentarios son bienvenidos en el foro.
+- Redes que publican un GTFS: la mayoría de las redes francesas, pero no
+  todas; tres redes y veinte paradas como máximo.
+- **Demasiado grandes**: Île-de-France (IDFM); los agregados regionales más
+  pesados también pueden rechazarse.
+- El tiempo real depende de la red: algunas solo publican avisos, o solo
+  siguen una parte de sus vehículos.
+- Los nombres de líneas y direcciones son los del archivo de la red (códigos
+  de línea SNCF como «P2» o «C30», por ejemplo).
+- Una cuenta atrás es tan precisa como la frecuencia de actualización.
+- Desarrollada y probada con los datos reales (SNCF, Naolib, Tisséo,
+  Aix-Marseille) y el Gladys simulado del SDK, sin una instancia real de
+  Gladys: sus comentarios son bienvenidos en el foro.
 
 ## Créditos
 
-- Datos: Tisséo, Toulouse Métropole, VélôToulouse (JCDecaux), bajo la ODbL.
-- Inspirada en la integración **TCL** de prohand (Lyon) y en las
-  integraciones GTFS de Home Assistant.
-- Código bajo la licencia Apache 2.0.
+- Datos: las redes de transporte, a través de
+  [transport.data.gouv.fr](https://transport.data.gouv.fr) (Licence Ouverte u
+  ODbL según el conjunto de datos).
+- Retoma el código de la integración **Tisséo** del mismo autor; inspirada en
+  la integración **TCL** de prohand y en las integraciones GTFS de Home
+  Assistant.
+- Código bajo licencia Apache 2.0.

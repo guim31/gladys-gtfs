@@ -17,7 +17,14 @@ import { createLogger } from '@gladysassistant/integration-sdk';
 import { alertKey, readAlerts, routesFromTrips } from './alerts.js';
 import { Catalog, catalogNetworkId, searchCatalog } from './catalog.js';
 import { DEFAULT_CONFIG, normalizeConfig } from './config.js';
-import { buildBoard, compareRoutes, lineGroups, resolveLines } from './departures.js';
+import {
+  MAX_GROUPS,
+  buildBoard,
+  compareRoutes,
+  lineGroups,
+  resolveLines,
+  stopGroups,
+} from './departures.js';
 import {
   STOP_TYPE,
   buildStopDevice,
@@ -151,7 +158,11 @@ export class Transit {
         followed: Array.isArray(saved.alerts?.followed) ? saved.alerts.followed : null,
       },
     };
-    await this.restoreFromDevices();
+    // Only when /data lost its list: a stop removed by the user keeps its
+    // device in Gladys, and must not come back at the next start.
+    if (!Array.isArray(saved.networks)) {
+      await this.restoreFromDevices();
+    }
     for (const network of this.watch.networks) {
       this.addFeed(network);
     }
@@ -232,6 +243,19 @@ export class Transit {
   async loadData() {
     for (const feed of this.activeFeeds()) {
       await feed.ensure().catch(() => {});
+    }
+    // Names restored from the devices carry the network and the line filter:
+    // the timetable has the real ones.
+    let renamed = false;
+    for (const stop of this.watch.stops) {
+      const area = this.feeds.get(stop.network)?.network?.areas.get(stop.id);
+      if (area && area.name !== stop.name) {
+        stop.name = area.name;
+        renamed = true;
+      }
+    }
+    if (renamed) {
+      await this.save();
     }
     await this.publishDiscovered();
     await this.refresh();
@@ -330,7 +354,7 @@ export class Transit {
     if (!network?.areas.has(stop.id)) {
       return null;
     }
-    const groups = lineGroups(network, stop.id, resolveLines(network, stop.lines));
+    const groups = stopGroups(network, stop.id, resolveLines(network, stop.lines));
     const device = buildStopDevice(this.gladys, stop, groups, this.config.language, feed.info.name);
     device.params.push(
       { name: 'network_name', value: feed.info.name },
@@ -443,6 +467,10 @@ export class Transit {
   async refreshFeed(feed) {
     const now = this.now();
     await feed.refreshRealtime(now, this.config.realtime);
+    // The network may have been removed while its feeds were read.
+    if (this.feeds.get(feed.id) !== feed || !feed.network) {
+      return;
+    }
     const alerts = feed.realtime
       ? readAlerts(feed.realtime.alerts, { now, language: this.config.language })
       : [];
@@ -565,7 +593,15 @@ export class Transit {
         changed = true;
       }
     }
+    // Only the alerts of networks read just now can have left their feed: a
+    // feed down for hours must not make its alerts new again when it is back.
+    const read = [...this.feeds.values()]
+      .filter((feed) => feed.realtime && feed.realtimeComplete && feed.realtimeAt === now)
+      .map((feed) => `|${feed.id}|`);
     for (const [key, seenAt] of Object.entries(memory.seen)) {
+      if (!read.some((marker) => key.includes(marker))) {
+        continue;
+      }
       if (!present.has(key) && now - seenAt > ALERT_MEMORY_MS) {
         delete memory.seen[key];
         changed = true;
@@ -875,7 +911,11 @@ export class Transit {
   async addStop({ stop: query, lines: lineField, network: networkQuery } = {}) {
     const { feed, area } = await this.resolveStop(query, networkQuery);
     const served = this.routeNames(feed.network, area.routes);
-    const wanted = parseLineList(lineField);
+    // "Nantes - Angers" typed without a comma is one line, not three.
+    const whole = String(lineField ?? '').trim();
+    const wanted = served.some((short) => short.toUpperCase() === whole.toUpperCase())
+      ? [whole]
+      : parseLineList(lineField);
     const unknown = wanted.filter(
       (line) => !served.some((short) => short.toUpperCase() === line.toUpperCase()),
     );
@@ -908,6 +948,7 @@ export class Transit {
     }
     await this.publishDiscovered();
     await this.refresh();
+    const groups = lineGroups(feed.network, area.id, resolveLines(feed.network, chosen)).length;
     const label = (language) =>
       chosen.length > 0 ? chosen.join(', ') : say(REPORTS, language, 'allLines');
     return Object.fromEntries(
@@ -918,8 +959,13 @@ export class Transit {
             name: area.name,
             lines: label(language),
           }),
+          groups > MAX_GROUPS
+            ? say(REPORTS, language, 'tooManyLines', { count: groups, max: MAX_GROUPS })
+            : null,
           say(REPORTS, language, 'toDiscovery'),
-        ].join('\n'),
+        ]
+          .filter(Boolean)
+          .join('\n'),
       ]),
     );
   }
@@ -1009,7 +1055,7 @@ export class Transit {
                         ...feed.realtime.added.map((u) => u.id),
                       ]).size
                     : 0,
-                  volume: String(megabytesPerHour),
+                  volume: megabytesPerHour.toLocaleString(language),
                 })
               : render(REPORTS, 'realtimeWaiting'),
         render(REPORTS, 'watchedStops', { count: stops.length }),

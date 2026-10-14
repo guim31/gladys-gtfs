@@ -72,10 +72,18 @@ export function compareRoutes(a, b) {
   );
 }
 
+// Lines and directions kept per stop: each is two countdowns changing every
+// minute, and the core takes 300 states a minute (a big station without a
+// line filter serves 40).
+export const MAX_GROUPS = 12;
+
 /**
  * The lines and directions served at a stop area (in the timetable window),
- * each named after its most frequent destination.
- * @returns {{ key: string, route: object, dir: number, headsign: string }[]}
+ * each named after its most frequent destination. Routes sharing a short
+ * name are one line, as the traveller sees it (a regional dataset declares
+ * the same train line under several route ids): its key never depends on the
+ * other routes of the window.
+ * @returns {{ key: string, route: object, routes: Set<string>, dir: number, headsign: string }[]}
  */
 export function lineGroups(network, areaId, routeFilter = null) {
   const counts = new Map();
@@ -84,25 +92,32 @@ export function lineGroups(network, areaId, routeFilter = null) {
     if (routeFilter && !routeFilter.has(trip.route)) {
       continue;
     }
-    const key = `${trip.route}|${trip.dir}`;
+    const route = network.routes.get(trip.route);
+    const key = `${route.short.toUpperCase()}|${trip.dir}`;
     let group = counts.get(key);
     if (!group) {
-      group = { key, route: network.routes.get(trip.route), dir: trip.dir, headsigns: new Map() };
+      group = { key, dir: trip.dir, routes: new Map(), headsigns: new Map() };
       counts.set(key, group);
     }
+    group.routes.set(route.id, (group.routes.get(route.id) ?? 0) + 1);
     group.headsigns.set(trip.headsign, (group.headsigns.get(trip.headsign) ?? 0) + 1);
   }
+  const most = (map) =>
+    [...map.entries()].sort((a, b) => b[1] - a[1] || (a[0] < b[0] ? -1 : 1))[0][0];
   return [...counts.values()]
-    .map(({ key, route, dir, headsigns }) => ({
+    .map(({ key, routes, dir, headsigns }) => ({
       key,
-      route,
+      route: network.routes.get(most(routes)),
+      routes: new Set(routes.keys()),
       dir,
-      headsign: [...headsigns.entries()].sort(
-        (a, b) => b[1] - a[1] || (a[0] < b[0] ? -1 : 1),
-      )[0][0],
+      headsign: most(headsigns),
     }))
     .sort((a, b) => compareRoutes(a.route, b.route) || a.dir - b.dir);
 }
+
+/** The groups shown for a stop: the first MAX_GROUPS of lineGroups. */
+export const stopGroups = (network, areaId, routeFilter = null) =>
+  lineGroups(network, areaId, routeFilter).slice(0, MAX_GROUPS);
 
 function eventTime(update) {
   return update.departure ?? update.arrival;
@@ -301,11 +316,11 @@ export function minutesUntil(at, now) {
  */
 export function buildBoard(network, realtime, stop, now) {
   const routes = resolveLines(network, stop.lines);
-  const groups = lineGroups(network, stop.id, routes);
+  const groups = stopGroups(network, stop.id, routes);
   const departures = upcomingDepartures(network, realtime, stop.id, { now, routes });
   return groups.map((group) => {
     const next = departures
-      .filter((departure) => departure.route === group.route.id && departure.dir === group.dir)
+      .filter((departure) => group.routes.has(departure.route) && departure.dir === group.dir)
       .slice(0, 2)
       .map((departure) => ({
         at: departure.at,

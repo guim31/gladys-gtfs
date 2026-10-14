@@ -17,12 +17,13 @@ test('stop identifiers: the network, then the stop id made safe for Gladys', () 
   assert.equal(stopCode('1707'), '1707');
 });
 
-test('two routes with the same short name at a stop keep distinct feature keys', () => {
+test('feature keys: the short name of the line and the direction', () => {
   const group = (id, short, dir = 0) => ({ route: { id, short }, dir });
-  const groups = [group('r1', 'C1'), group('r2', 'C1'), group('r1', 'C1', 1), group('r3', '15')];
   assert.deepEqual(
-    groups.map((g) => groupKey(g, groups)),
-    ['c1-r1-0', 'c1-r2-0', 'c1-1', '15-0'],
+    [group('r1', 'C1'), group('r1', 'C1', 1), group('r3', 'Nantes - Angers'), group('x:9', '')].map(
+      groupKey,
+    ),
+    ['c1-0', 'c1-1', 'nantes-angers-0', 'x-9-0'],
   );
 });
 

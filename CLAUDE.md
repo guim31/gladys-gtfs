@@ -16,7 +16,7 @@ its only runtime dependency. It started from the official JavaScript template.
 ```bash
 npm install
 npm test                                  # node --test, the built-in runner
-node --test test/devices.test.js          # one file
+node --test test/service.test.js          # one file
 node --test --test-name-pattern "plug"    # tests whose name matches
 npm run lint                              # ESLint
 npm run format:check                      # Prettier, as the CI runs it
@@ -31,16 +31,31 @@ pushing.
 ## Architecture
 
 ```
-index.js                          SDK wiring only: handlers registered before connect()
-src/devices/index.js              registry of the device blueprints + dispatch helpers
-src/devices/<type>.js             one device type per file (buildDevice, onPoll, onSetValue...)
+index.js                          SDK wiring only: registerHandlers() then connect()
+src/app.js                        every SDK handler -> service; configuration actions
+src/service.js                    networks and stops, timers, devices/states, trigger, actions
+src/catalog.js                    transport.data.gouv.fr catalog: one entry per GTFS resource, search
+src/feed.js                       one network: GTFS download + parse (serialized), GTFS-RT reads
+src/gtfs.js                       static GTFS: one streaming pass, watched stops kept
+src/zip.js, src/csv.js            ZIP and CSV stream readers (no dependency)
+src/gtfsrt.js                     GTFS-Realtime decoder (minimal protobuf reader)
+src/departures.js                 departure board: timetable + realtime corrections
+src/alerts.js                     service alerts: plain text, followed lines, trip-only alerts
+src/devices.js                    the Gladys device of a stop, its states
 src/scenes.js                     scene action handlers (manifest `scene_actions`)
 src/widgets.js                    dashboard widget handlers (manifest `widgets`)
+src/search.js                     search by name, distances
+src/http.js                       downloads: timeouts, size caps, ETag, file download
+src/time.js                       GTFS service days in the agency's time zone
+src/messages.js                   texts sent from the container (en, fr, de, es)
+src/store.js                      /data/watch.json (atomic, coalesced writes)
 src/config.js                     DEFAULT_CONFIG (mirrors the manifest defaults) + normalization
-src/weather.js                    example driver (Open-Meteo)
-gladys-assistant-integration.json manifest: name, config_schema, actions, image...
-docs/en.md, docs/fr.md            user documentation, re-hosted by Gladys (mandatory)
+gladys-assistant-integration.json manifest: config, actions, widget, scene trigger and action
+docs/{en,fr,de,es}.md             user documentation, re-hosted by Gladys (en and fr mandatory)
 test/                             node --test, against the SDK's fake Gladys (integration-sdk/testing)
+test/helpers/world.js             fake Gladys + fake fetch on the fixtures + manual clock + /data
+test/helpers/protobuf.js          GTFS-RT encoder for the edge cases
+test/fixtures/catalog, gtfs       reduced real catalog and feeds (see test/fixtures/README.md)
 .github/scripts/release.mjs       release helpers (manifest bump, changelog), tested in test/
 ```
 
@@ -70,8 +85,10 @@ test/                             node --test, against the SDK's fake Gladys (in
   `type: "provider"`: 5.1.0). `test/manifest.test.js` ties the manifest to the
   code (defaults, action, scene and widget handlers): change both sides
   together.
-- **User-facing text** is bilingual (English and French): action messages,
-  manifest texts, and `docs/en.md` / `docs/fr.md`, kept in sync.
+- **User-facing text** is in four languages (English, French, German with
+  "du", Spanish with "usted"): action messages, manifest texts, widget and
+  scene texts, and `docs/{en,fr,de,es}.md` with the same sections, kept in
+  sync. `test/i18n.test.js` checks them.
 - **Style.** Prettier formats, ESLint catches mistakes. Comments explain why,
   in English. Tests never touch the network.
 
@@ -167,6 +184,15 @@ code de ce dépôt. Compléter ce fichier quand un nouveau piège est découvert
   l'utilisateur. Le reste passe en debug (`LOG_LEVEL=debug`). Une erreur qui se répète écrit une ligne
   au premier échec et une au rétablissement, pas une par tentative. Jamais de secret ni d'adresse
   avec identifiants. Un test vérifie qu'un cycle normal n'écrit rien en info.
+- **Plafond de 12 lignes et directions par arrêt** (`MAX_GROUPS`) : une gare sans filtre en compte
+  40 (SNCF Nantes), soit 80 comptes à rebours changeant chaque minute, contre 300 états/minute au
+  cœur. Les routes de même nom court sont fusionnées (`lineGroups`) : la clé d'une ligne ne dépend
+  jamais des autres routes de la fenêtre.
+- **Restauration** seulement si `watch.json` n'a pas de liste de réseaux (perdu) : un arrêt retiré
+  dont l'appareil reste dans Gladys ne revient pas au redémarrage.
+- **Alertes** : une alerte disparue n'est oubliée (puis annonçable à nouveau) que si tous les flux
+  temps réel de son réseau ont été lus à ce tour (`realtimeComplete`) : une panne du proxy des
+  alertes SNCF ne fait pas ressortir les anciennes au retour.
 - **Heartbeat** : republier au moins toutes les 12 h une valeur qui ne change pas, sinon le front
   affiche « Pas de valeur récente » au-delà de 48 h.
 
@@ -233,3 +259,66 @@ long, et sur un « Sie »/« Ihr… » de politesse en allemand. Le store exige 
 - Docs `en`, `fr`, `de`, `es` avec les mêmes sections.
 - Chauffe, ouverture, sécurité : ne rien rendre pilotable « comme un thermostat » ou par un assistant
   vocal quand une erreur serait dangereuse (leçon d'OctoPrint).
+
+# Intégration GTFS (notes de développement, 14/10/2026)
+
+Reprise généralisée de `gladys-tisseo` (lecteurs ZIP/CSV en flux, décodeur GTFS-RT, tableau des
+départs, alertes, widget, déclencheur, action : mêmes pièges, voir son CLAUDE.md). Ce qui change :
+
+## Sources
+
+- **Catalogue** : `GET https://transport.data.gouv.fr/api/datasets` (public, sans clé, ~800 jeux,
+  2,5 Mo, tout d'un coup). Un réseau = **une ressource GTFS** (`tdg<id de ressource>`) : un jeu peut
+  en publier plusieurs (STAR : horaires « en cours » et « à venir » ; Aix-Marseille : un par
+  réseau, plus l'agrégat). Ressources GTFS-RT gardées si `features` contient `trip_updates` ou
+  `service_alerts` (ou est vide) ; `vehicle_positions` seul ne sert à rien. Nom : le réseau unique
+  déclaré dans `metadata.networks`, sinon la marque unique de `offers`, sinon le titre raccourci.
+- Les URL `www.data.gouv.fr/api/1/datasets/r/<uuid>` sont des redirections stables ; les flux
+  temps réel passent souvent par `proxy.transport.data.gouv.fr`, qui répond **429** « Rate limit
+  exceeded ! You reach the limit of 1 requests per 30 seconds » (corps texte, pas du protobuf) à un
+  flux relu avant 30 s : `PROXY_MIN_INTERVAL_MS` de `src/feed.js` espace ses lectures, même quand
+  une action relance un rafraîchissement.
+- Certaines `original_url` contiennent une **clé d'API** (mecatran `?apiKey=`) : on utilise `url`,
+  et les journaux ne montrent que l'hôte (`hostOf`). Une URL saisie à la main peut aussi en
+  contenir : elle va dans `/data` et dans les paramètres de l'appareil, jamais dans les logs.
+
+## Pièges découverts
+
+- **SNCF** : `trip_headsign` = **numéro du train** (« 105241 ») : un en-tête purement numérique
+  est remplacé par le nom du dernier arrêt. Les TripUpdates ont `route_id` vide et
+  `stop_sequence` absent : on retrouve l'arrêt par `stop_id` (déjà géré par le code Tisséo).
+  Les **alertes SNCF ne citent que des trajets**, avec un identifiant court (« OCESN858054F »)
+  préfixe de celui du GTFS (« OCESN858054F1187_F:TER:… ») : `tripStem` + `routesFromTrips`
+  rattachent l'alerte aux lignes des départs connus. Les traductions arrivent en fr/en/de.
+- **Clés de fonctionnalités** : nom court de ligne + direction (`c1-0-next`), comme Tisséo ; si
+  deux routes partagent un nom court au même arrêt et dans la même direction (agrégats
+  régionaux), l'identifiant de route s'ajoute (`c1-r2-0-next`). `stopPlatformId` = id du réseau +
+  id d'arrêt assaini (`tdg83582-StopArea-OCE87481002`) : les `:` casseraient `device:feature`.
+- **Mémoire** (mesurée dans le conteneur verrouillé 256 Mo, Alpine) : SNCF + Naolib (576 Mo de
+  `stop_times.txt` décompressé, 4,6 M lignes, 15 s) + Aix-Marseille (201 000 trajets) : pic cgroup
+  138 Mo. Hors conteneur (glibc) le RSS paraît bien plus haut (tas engagé par V8 non rendu) : ne pas
+  conclure sur une mesure locale. Les lectures de réseaux sont **sérialisées** (`serial()` de
+  `src/feed.js`). Refus propres : archive > 80 Mo (`content-length` ou en flux) ou plus de 400 000
+  trajets sur 9 jours (IDFM : 158 Mo, refusé en 1 s).
+- **Alertes « réseau »** d'un agrégat multi-opérateurs : rattachées seulement si leur `agency_id`
+  exploite une ligne suivie.
+- **Restauration** : les paramètres de l'appareil portent `network`, `network_name`, `gtfs_url`,
+  `realtime_urls` : un `/data` perdu se reconstruit sans le catalogue.
+- **Plafond de 12 lignes et directions par arrêt** (`MAX_GROUPS`) : une gare sans filtre en compte
+  40 (SNCF Nantes), soit 80 comptes à rebours changeant chaque minute, contre 300 états/minute au
+  cœur. Les routes de même nom court sont fusionnées (`lineGroups`) : la clé d'une ligne ne dépend
+  jamais des autres routes de la fenêtre.
+- **Restauration** seulement si `watch.json` n'a pas de liste de réseaux (perdu) : un arrêt retiré
+  dont l'appareil reste dans Gladys ne revient pas au redémarrage.
+- **Alertes** : une alerte disparue n'est oubliée (puis annonçable à nouveau) que si tous les flux
+  temps réel de son réseau ont été lus à ce tour (`realtimeComplete`) : une panne du proxy des
+  alertes SNCF ne fait pas ressortir les anciennes au retour.
+- **Heartbeat** : `publishChangedStates(states, { heartbeat: 6 h })` (« Aucune perturbation » reste
+  identique des jours entiers).
+
+## Vérifié (14/10/2026)
+
+- Tests : fixtures réduites du catalogue, de Tisséo (13/10) et de la SNCF à Nantes (14/10, 74
+  trajets suivis, 5 alertes).
+- Réel, depuis la session et dans le conteneur verrouillé : recherche dans le catalogue, ajout de
+  Naolib, SNCF, Aix-Marseille, refus d'IDFM, arrêts Commerce et Nantes, états, phrase de scène.

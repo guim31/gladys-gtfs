@@ -233,7 +233,7 @@
         "de": "Lädt den Fahrplan eines Netzes herunter (bis zu einer Minute bei einem großen). Höchstens drei Netze.",
         "es": "Descarga los horarios de una red (hasta un minuto para una grande). Tres redes como máximo."
       },
-      "timeout_seconds": 300,
+      "timeout_seconds": 120,
       "fields": [
         {
           "key": "network",
