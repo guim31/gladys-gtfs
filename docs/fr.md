@@ -251,6 +251,14 @@ publient aussi, ont leurs intégrations dédiées.
   ligne et direction, sans « ≈ » quand le véhicule est suivi. Les
   perturbations (GeneralMessage, sinon SituationExchange) alimentent l'info
   trafic et le déclencheur de scène.
+- **Réseaux sur la passerelle Okina** (Pays de la Loire, Tanlib, Calibus,
+  Tréma, R'Bus, Evalys, TuT, Dordogne, CC Sud Gironde) : Okina n'accepte
+  qu'environ une requête toutes les 30 secondes par adresse, pour tous ces
+  réseaux ensemble. L'intégration s'y tient (35 s), et chaque quai suivi
+  n'est donc relu que toutes les 35 s × le nombre de quais : avec un arrêt
+  de deux quais, environ toutes les 70 s ; au-delà de 2 ou 3 arrêts, le temps
+  réel arrive trop tard pour être utile. Suivez un ou deux arrêts, et
+  donnez si besoin l'**Identifiant SIRI** du seul quai de votre direction.
 - **Serveurs particuliers** : un serveur qui répond sans aucun arrêt ni
   passage demande presque toujours une clé (« Afficher la surveillance » le
   dit). Un serveur qui ne propose pas les prochains passages par arrêt (seulement les horaires estimés de

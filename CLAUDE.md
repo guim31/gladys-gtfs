@@ -419,6 +419,15 @@ Invalid Request Structure` — IRYS valide la requête contre son XSD (afimb/iry
   partout → l'URL du catalogue nomme un autre service que stop-monitoring : un 404 sur
   stop-monitoring vaut « pas de StopMonitoring » (état dédié, plus redemandé avant 24 h), pas
   « arrêt inconnu ». Non couvert : estimated-timetable seul.
+- **Seconde sonde (16b5e85)** : Okina pdl renvoie **429 même à 15 s d'écart** (Retry-After 30 s à
+  chaque fois) → plancher de **35 s par requête** pour `api.okina.fr` (`HOST_SPACING_MS`, jamais
+  moins, même après une heure calme) ; StopMonitoring `MOBIITI:Quay:4371`/`4370` et GM : réponses
+  vides (arrêts ruraux, 14 h 50). Un quai suivi n'est relu que toutes les 35 s × nombre de quais :
+  la doc conseille un ou deux arrêts. TUB (IRYS) **accepte `version="2.0"`** : discovery **16 560
+  arrêts, 5,6 Mo, 9 s** (`SBA:StopPoint:BP:1492:LOC`). L'arbre XML complet d'une telle réponse
+  coûte ~30 Mo au pic (mesuré sur 8,3 Mo synthétiques ; il échoue sous une limite de tas de 24 Mo) :
+  `scanStopPoints` lit les `AnnotatedStopPointRef` bloc par bloc (passe sous 24 Mo) et ne garde que
+  ref, nom, position (2,8 Mo pour 16 560 points).
 - **Pas de migration** : les appareils gardent leurs `external_id` et fonctionnalités ; aucun
   paramètre d'appareil n'est ajouté pour un réseau du catalogue (seulement `siri_url` d'un réseau
   ajouté par URL, `siri_ref` d'un arrêt qui en a un). Un réseau du catalogue ajouté avant (pas de

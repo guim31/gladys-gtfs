@@ -11,7 +11,7 @@ import { readAlerts } from '../src/alerts.js';
 import { siriUrl } from '../src/catalog.js';
 import { resolveRedirects } from '../src/http.js';
 import { HostGates, SiriReader } from '../src/siri-feed.js';
-import { NotSiriError, soapEnvelope } from '../src/siri.js';
+import { NotSiriError, scanStopPoints, soapEnvelope } from '../src/siri.js';
 import { siriKeyFor } from '../src/config.js';
 import { parseGtfs } from '../src/gtfs.js';
 import {
@@ -476,8 +476,8 @@ test('an HTML page or an unreadable body is not SIRI, said so', () => {
 
 test('hosts: a 429 holds every network of the host, then spaces its requests', () => {
   const gates = new HostGates();
-  const a = 'https://api.okina.fr/gateway/nam/realtime/anshar/ws/services/?datasetId=A';
-  const b = 'https://api.okina.fr/gateway/nam/realtime/anshar/ws/services/?datasetId=B';
+  const a = 'https://gateway.example.org/realtime/anshar/ws/services/?datasetId=A';
+  const b = 'https://gateway.example.org/realtime/anshar/ws/services/?datasetId=B';
   const other = 'https://api.ginko.voyage/Siri/Siri.do';
   assert.ok(gates.take(a, 0));
   assert.ok(gates.take(b, 0), 'no limit before a 429');
@@ -537,4 +537,47 @@ test('Anshar gives the changes since the last call: situations kept until closed
   // Another server gives all of them each time.
   assert.deepEqual(ids(reader.currentSituations(situation('D'), plain, now)), ['D']);
   assert.deepEqual(ids(reader.currentSituations(situation('D', { closed: true }), plain, now)), []);
+});
+
+test("Okina's gateway: 35 s between two requests from the start, never less", () => {
+  const gates = new HostGates();
+  const pdl = 'https://api.okina.fr/gateway/pdl/realtime/anshar/ws/services';
+  const nam = 'https://api.okina.fr/gateway/nam/realtime/anshar/ws/services/?datasetId=X';
+  assert.ok(gates.take(pdl, 0));
+  assert.equal(gates.take(nam, 34_000), false);
+  assert.ok(gates.take(nam, 35_000));
+  gates.limited(nam, 40_000, 30_000);
+  assert.equal(gates.state(pdl).spacing, 70_000);
+  assert.ok(gates.take(pdl, 40_000 + 3600_000 + 2_000));
+  assert.equal(gates.state(pdl).spacing, 35_000, 'back to its floor, not below');
+});
+
+test('a big stop list (IRYS: 16,560 points, 5.6 MB) read block by block, like the tree', () => {
+  const block = (i) =>
+    `<siri:AnnotatedStopPointRef><siri:StopPointRef>SBA:StopPoint:BP:${i}:LOC</siri:StopPointRef>` +
+    `<siri:StopName>Plaintel &amp; Eglise</siri:StopName><siri:Lines><siri:LineRef>SBA:Line::1:LOC</siri:LineRef></siri:Lines>` +
+    `<siri:Location><siri:Longitude>-2.8</siri:Longitude><siri:Latitude>48.4</siri:Latitude></siri:Location></siri:AnnotatedStopPointRef>`;
+  const body = Buffer.from(
+    `<S:Envelope xmlns:S="x"><S:Body><Answer>${Array.from({ length: 3000 }, (_, i) => block(i)).join('')}</Answer></S:Body></S:Envelope>`,
+  );
+  const scanned = scanStopPoints(body);
+  assert.deepEqual(scanned, readStopPoints(parseSiri(body)));
+  assert.equal(scanned.length, 3000);
+  assert.deepEqual(scanned[7], {
+    ref: 'SBA:StopPoint:BP:7:LOC',
+    name: 'Plaintel & Eglise',
+    lat: 48.4,
+    lon: -2.8,
+  });
+  assert.deepEqual(
+    scanStopPoints(fixture('siri/soap-stop-points-discovery.xml')),
+    readStopPoints(siri('soap-stop-points-discovery.xml')),
+  );
+  assert.equal(
+    scanStopPoints(fixture('siri/irys-invalid-request.xml')),
+    null,
+    'an error: read whole',
+  );
+  assert.equal(scanStopPoints('{"Siri":{}}'), null, 'JSON: read whole');
+  assert.deepEqual(scanStopPoints(fixture('siri/soap-empty-answers.xml')), []);
 });

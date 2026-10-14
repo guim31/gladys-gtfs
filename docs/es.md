@@ -243,6 +243,14 @@ dedicadas.
   dirección, sin «≈» cuando el vehículo está seguido. Las incidencias
   (GeneralMessage, si no SituationExchange) alimentan la info de tráfico y el
   disparador de escena.
+- **Redes en la pasarela Okina** (Pays de la Loire, Tanlib, Calibus, Tréma,
+  R'Bus, Evalys, TuT, Dordogne, CC Sud Gironde): Okina solo acepta una
+  petición cada 30 segundos por dirección, para todas estas redes juntas. La
+  integración lo respeta (35 s), así que cada andén vigilado solo se vuelve a
+  leer cada 35 s × el número de andenes: con una parada de dos andenes, cada
+  70 s aproximadamente; con más de 2 o 3 paradas, el tiempo real llega
+  demasiado tarde para ser útil. Vigile una o dos paradas e indique si hace
+  falta el **Identificador SIRI** del único andén de su dirección.
 - **Servidores particulares**: un servidor que responde sin ninguna parada
   ni salida casi siempre pide una clave («Mostrar lo vigilado» lo indica). Un
   servidor que no ofrece las próximas salidas por parada (solo los horarios

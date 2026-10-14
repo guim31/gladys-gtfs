@@ -43,6 +43,7 @@ import {
   readStopPoints,
   readStopVisits,
   redact,
+  scanStopPoints,
   responseTime,
   siriEndpoint,
   siriError,
@@ -70,6 +71,10 @@ export const RESOLVE_RETRY_MS = 30 * 60 * 1000;
 export const RATE_SPACING_MS = 10 * 1000;
 export const RATE_SPACING_MAX_MS = 2 * 60 * 1000;
 export const BACKOFF_MAX_MS = 60 * 60 * 1000;
+// Hosts known to take one request at a time, whatever happened before:
+// Okina's gateway (eight networks) answered 429 to requests 15 s apart and
+// Retry-After 30 s each time (probe of 14 October 2026).
+export const HOST_SPACING_MS = { 'api.okina.fr': 35 * 1000 };
 const PROXY_HOST = 'proxy.transport.data.gouv.fr';
 const NEAR_METERS = 100;
 
@@ -394,7 +399,8 @@ export class HostGates {
     const host = hostOf(url);
     let state = this.hosts.get(host);
     if (!state) {
-      state = { blockedUntil: 0, spacing: 0, last: null, strikes: 0, limitedAt: null };
+      const base = HOST_SPACING_MS[host] ?? 0;
+      state = { blockedUntil: 0, base, spacing: base, last: null, strikes: 0, limitedAt: null };
       this.hosts.set(host, state);
     }
     return state;
@@ -411,8 +417,13 @@ export class HostGates {
     if (now < state.blockedUntil) {
       return false;
     }
-    if (state.spacing > 0 && state.limitedAt !== null && now - state.limitedAt > 3600 * 1000) {
-      state.spacing = state.spacing / 2 < RATE_SPACING_MS ? 0 : state.spacing / 2;
+    if (
+      state.spacing > state.base &&
+      state.limitedAt !== null &&
+      now - state.limitedAt > 3600 * 1000
+    ) {
+      const half = state.spacing / 2;
+      state.spacing = Math.max(half < RATE_SPACING_MS ? 0 : half, state.base);
       state.strikes = 0;
       state.limitedAt = now;
     }
@@ -437,7 +448,10 @@ export class HostGates {
     state.limitedAt = now;
     state.blockedUntil =
       now + (retryAfterMs ?? Math.min(BACKOFF_MS * 2 ** (state.strikes - 1), BACKOFF_MAX_MS));
-    state.spacing = Math.min(Math.max(state.spacing * 2, RATE_SPACING_MS), RATE_SPACING_MAX_MS);
+    state.spacing = Math.max(
+      Math.min(Math.max(state.spacing * 2, RATE_SPACING_MS), RATE_SPACING_MAX_MS),
+      state.base,
+    );
   }
 }
 
@@ -518,7 +532,11 @@ export class SiriReader {
   }
 
   /** One SIRI request, its answer as a tree; failures thrown as SiriFailure. */
-  async ask(endpoint, service, { key, now, monitoringRef = null, maxBytes = SIRI_MAX_BYTES }) {
+  async ask(
+    endpoint,
+    service,
+    { key, now, monitoringRef = null, maxBytes = SIRI_MAX_BYTES, scan = null },
+  ) {
     const { url, init } = siriRequest(endpoint, service, { key, now, monitoringRef });
     const host = hostOf(endpoint.url);
     let tree;
@@ -530,6 +548,12 @@ export class SiriReader {
         maxBytes,
         errorBody: true,
       });
+      // A big answer read piece by piece when it allows it (`scan`).
+      const scanned = scan ? scan(body) : null;
+      if (scanned) {
+        this.timestamp = now;
+        return { scanned };
+      }
       tree = parseSiri(body);
     } catch (err) {
       if (err instanceof NotSiriError) {
@@ -665,12 +689,13 @@ export class SiriReader {
     let points = null;
     let empty = false;
     try {
-      const tree = await this.ask(endpoint, 'stopPoints', {
+      const answer = await this.ask(endpoint, 'stopPoints', {
         key,
         now,
         maxBytes: DISCOVERY_MAX_BYTES,
+        scan: scanStopPoints,
       });
-      points = readStopPoints(tree);
+      points = answer.scanned ?? readStopPoints(answer);
       empty = points.length === 0;
       logger.debug(`${this.info.name}: ${points.length} SIRI stop points discovered`);
     } catch (err) {

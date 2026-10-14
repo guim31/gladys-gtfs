@@ -253,6 +253,14 @@ eigene Integrationen.
   Richtung, ohne „≈“, wenn das Fahrzeug verfolgt wird. Die Störungen
   (GeneralMessage, sonst SituationExchange) speisen die Verkehrsinfo und den
   Szenen-Auslöser.
+- **Netze am Okina-Gateway** (Pays de la Loire, Tanlib, Calibus, Tréma,
+  R'Bus, Evalys, TuT, Dordogne, CC Sud Gironde): Okina nimmt nur etwa eine
+  Anfrage alle 30 Sekunden pro Adresse an, für alle diese Netze zusammen. Die
+  Integration hält sich daran (35 s), daher wird jeder Steig nur alle 35 s ×
+  Anzahl der Steige neu gelesen: bei einer Haltestelle mit zwei Steigen etwa
+  alle 70 s; bei mehr als 2 oder 3 Haltestellen kommt die Echtzeit zu spät,
+  um nützlich zu sein. Überwache eine oder zwei Haltestellen und gib bei
+  Bedarf die **SIRI-Kennung** des einen Steigs deiner Richtung an.
 - **Besondere Server**: Ein Server, der ohne Haltestellen und Abfahrten
   antwortet, verlangt fast immer einen Schlüssel („Überwachung anzeigen“ sagt
   es). Ein Server ohne nächste Abfahrten je Haltestelle (nur der geschätzte

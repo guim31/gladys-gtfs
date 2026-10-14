@@ -236,6 +236,14 @@ TCL and IDFM, which publish it too, have their dedicated integrations.
   direction, without "≈" when the vehicle is tracked. The disruptions
   (GeneralMessage, else SituationExchange) feed the traffic info and the
   scene trigger.
+- **Networks on the Okina gateway** (Pays de la Loire, Tanlib, Calibus,
+  Tréma, R'Bus, Evalys, TuT, Dordogne, CC Sud Gironde): Okina takes about one
+  request every 30 seconds per address, for all these networks together. The
+  integration keeps to it (35 s), so each watched stop point is read again
+  every 35 s × the number of stop points: with one stop of two stop points,
+  about every 70 s; beyond 2 or 3 stops, the real time comes too late to be
+  useful. Watch one or two stops, and give if needed the **SIRI identifier**
+  of the one stop point of your direction.
 - **Particular servers**: a server answering without any stop nor departure
   almost always wants a key ("Show what is watched" says so). A server that
   offers no next departures by stop (only the estimated timetable of whole

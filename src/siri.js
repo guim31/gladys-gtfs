@@ -528,6 +528,52 @@ export function readSituations(tree, { keepClosed = false } = {}) {
   );
 }
 
+/**
+ * The stop points of a StopPointsDiscovery answer read block by block,
+ * without the tree of the whole answer: IRYS (TUB) sends 5.6 MB for 16,560
+ * points, Okina 2.2 MB; the sandbox has 256 MB. JSON (SIRI Lite) and
+ * answers carrying an error are read whole.
+ * @param {Buffer|string} body
+ * @returns {{ ref: string, name: string, lat: number, lon: number }[] | null} null: read it whole
+ */
+export function scanStopPoints(body) {
+  const text = Buffer.isBuffer(body) ? body.toString('utf8') : String(body);
+  const start = text.trimStart();
+  if (
+    !start.startsWith('<') ||
+    /ErrorCondition|Fault>/.test(text) ||
+    /^<(!doctype\s+html|html[\s>])/i.test(start)
+  ) {
+    return null;
+  }
+  const points = [];
+  const open = /<([\w.-]+:)?AnnotatedStopPointRef[\s>]/g;
+  let match;
+  while ((match = open.exec(text)) !== null) {
+    const closing = `</${match[1] ?? ''}AnnotatedStopPointRef>`;
+    const end = text.indexOf(closing, match.index);
+    if (end < 0) {
+      throw new NotSiriError('unreadable answer (unclosed AnnotatedStopPointRef)');
+    }
+    const block = text.slice(match.index, end + closing.length);
+    open.lastIndex = end + closing.length;
+    let tree;
+    try {
+      tree = parseXml(block);
+    } catch (err) {
+      throw new NotSiriError(`unreadable answer (${err.message})`);
+    }
+    points.push(...readStopPoints(tree));
+  }
+  // Copies: the values must not keep the whole answer alive.
+  return points.map((point) => ({
+    ref: `${point.ref}`.split('').join(''),
+    name: `${point.name}`.split('').join(''),
+    lat: point.lat,
+    lon: point.lon,
+  }));
+}
+
 /** The stop points of a StopPointsDiscovery answer: `[{ ref, name, lat, lon }]`. */
 export function readStopPoints(tree) {
   return findAll(tree, 'AnnotatedStopPointRef')
