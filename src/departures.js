@@ -23,6 +23,7 @@ const REALTIME_AFTER_MS = 6 * 3600 * 1000;
 // A departure stays on the board this long after its time (a bus at the stop).
 export const GRACE_MS = 30 * 1000;
 export const HORIZON_MS = 24 * 3600 * 1000;
+const VISITS_STALE_MS = 10 * 60 * 1000;
 
 /** The realtime feed, indexed for the board: trip updates by trip id, added trips apart. */
 export function indexRealtime(feed) {
@@ -307,6 +308,29 @@ export function minutesUntil(at, now) {
 }
 
 /**
+ * The departures of a line group with the SIRI visits of the stop (a network
+ * without GTFS-RT, src/siri-feed.js): the visits of the group replace the
+ * timetable up to the last of them; later, the timetable again. A group the
+ * server said nothing about keeps the timetable.
+ * @param {{ at: number }[]} scheduled from upcomingDepartures, of the group
+ * @param {{ at: number, aimed: number|null, realtime: boolean, cancelled: boolean, headsign: string|null }[]} visits
+ */
+export function mergeVisits(scheduled, visits, now) {
+  if (visits.length === 0) {
+    return scheduled;
+  }
+  const horizon = Math.max(...visits.map((visit) => Math.max(visit.at, visit.aimed ?? visit.at)));
+  const live = visits
+    .filter(
+      (visit) => !visit.cancelled && visit.at >= now - GRACE_MS && visit.at <= now + HORIZON_MS,
+    )
+    .map((visit) => ({ at: visit.at, realtime: visit.realtime, headsign: visit.headsign }));
+  // One minute of margin: a vehicle on time is the departure it stands for.
+  const later = scheduled.filter((departure) => departure.at > horizon + 60 * 1000);
+  return [...live, ...later].sort((a, b) => a.at - b.at);
+}
+
+/**
  * The board of a watched stop: each of its line groups with its next two
  * departures.
  * @param {object} network
@@ -318,9 +342,20 @@ export function buildBoard(network, realtime, stop, now) {
   const routes = resolveLines(network, stop.lines);
   const groups = stopGroups(network, stop.id, routes);
   const departures = upcomingDepartures(network, realtime, stop.id, { now, routes });
+  // SIRI visits of the stop (the timetable's key of their line group), read
+  // less than 10 minutes ago.
+  const visits = (realtime?.visits?.get(stop.id) ?? []).filter(
+    (visit) => visit.readAt === undefined || now - visit.readAt <= VISITS_STALE_MS,
+  );
   return groups.map((group) => {
-    const next = departures
-      .filter((departure) => group.routes.has(departure.route) && departure.dir === group.dir)
+    const scheduled = departures.filter(
+      (departure) => group.routes.has(departure.route) && departure.dir === group.dir,
+    );
+    const next = mergeVisits(
+      scheduled,
+      visits.filter((visit) => visit.key === group.key),
+      now,
+    )
       .slice(0, 2)
       .map((departure) => ({
         at: departure.at,

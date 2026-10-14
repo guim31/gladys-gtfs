@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Siri xmlns="http://www.siri.org.uk/siri" version="2.0">
+  <ServiceDelivery>
+    <ResponseTimestamp>2026-10-13T15:19:04Z</ResponseTimestamp>
+    <SituationExchangeDelivery version="2.0">
+      <ResponseTimestamp>2026-10-13T15:19:04Z</ResponseTimestamp>
+      <Situations>
+        <PtSituationElement>
+          <CreationTime>2026-10-13T05:00:00Z</CreationTime>
+          <ParticipantRef>TEST</ParticipantRef>
+          <SituationNumber>TEST:Situation::sx-59:LOC</SituationNumber>
+          <Progress>open</Progress>
+          <ValidityPeriod>
+            <StartTime>2026-10-13T05:00:00Z</StartTime>
+            <EndTime>2026-10-13T20:00:00Z</EndTime>
+          </ValidityPeriod>
+          <Summary xml:lang="fr">59 : arrêt Pader non desservi</Summary>
+          <Summary xml:lang="en">59: Pader stop not served</Summary>
+          <Description xml:lang="fr">Report à l'arrêt provisoire, 30 m plus loin.</Description>
+          <Affects>
+            <Networks>
+              <AffectedNetwork>
+                <AffectedLine>
+                  <LineRef>59</LineRef>
+                </AffectedLine>
+              </AffectedNetwork>
+            </Networks>
+          </Affects>
+          <InfoLinks>
+            <InfoLink>
+              <Uri>https://example.org/info/59</Uri>
+            </InfoLink>
+          </InfoLinks>
+        </PtSituationElement>
+        <PtSituationElement>
+          <SituationNumber>TEST:Situation::closed:LOC</SituationNumber>
+          <Progress>closed</Progress>
+          <Summary xml:lang="fr">Terminé</Summary>
+        </PtSituationElement>
+      </Situations>
+    </SituationExchangeDelivery>
+  </ServiceDelivery>
+</Siri>

@@ -30,3 +30,20 @@ them.
   only. Re-encoded with `test/helpers/protobuf.js`.
 - `gladys-feature-table.json`: the category/type couples, units and poll
   frequencies the Gladys core knows (extracted from its code).
+- `siri/`: answers of SIRI servers **written for the tests**, not captured: the
+  session that added SIRI had no network access to any SIRI server nor to
+  transport.data.gouv.fr. They follow the formats as documented: the SIRI
+  France profile (SOAP envelopes with `siri:` prefixes, `XXX:StopPoint:BP:…:LOC`
+  references, GeneralMessage with short and long messages), the JSON layout of
+  the CTS SIRI Lite API (plain strings, `Extension.IsRealTime`, as read by the
+  `siri-lite` Python client) and PRIM's `{ "value": … }` wrappers. Their times
+  match the Tisséo fixture at Pader (13 October 2026, 17:19); stop codes and
+  line names are those of that fixture, the producer is "TEST". The official
+  examples of SIRI-CEN were not copied (no licence stated for them).
+  `scripts/probe-siri.mjs` asks a real server, to check these shapes against.
+  Three reproduce what the probe of 14 October 2026 met on real servers (no
+  body was recorded, the answers were described): `irys-invalid-request.xml`
+  (the refusal of an IRYS server, TUB, built from IRYS's own code),
+  `soap-empty-answers.xml` (an answer with nothing in it, as Ginko gives
+  without a key) and `html-home-page.html` (a home page where SIRI was
+  expected, évolitY).

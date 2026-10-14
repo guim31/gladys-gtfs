@@ -140,6 +140,10 @@ const SAMPLE = {
   volume: '42.5',
   licence: 'ODbL',
   networks: 'Naolib [tdg84101], SNCF [tdg83582]',
+  format: 'SIRI Lite',
+  requests: 12,
+  stops: 'Hôpital Rangueil - Louis Lareng, Jean Jaurès',
+  refs: 'GINKO:StopPoint:Q:1234:LOC, GINKO:StopPoint:Q:1235:LOC',
 };
 const renderSample = (value) => (typeof value === 'function' ? value(SAMPLE) : value);
 

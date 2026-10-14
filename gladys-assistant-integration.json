@@ -26,10 +26,10 @@
         "es": "Funcionamiento"
       },
       "description": {
-        "en": "Add your network with the actions below (search the national catalog of transport.data.gouv.fr, or give the URL of a GTFS file), then your stops (by name, or around your home), and create their devices in the Discover tab. Open data: no account, no key.",
-        "fr": "Ajoutez votre réseau avec les actions ci-dessous (recherche dans le catalogue national transport.data.gouv.fr, ou adresse d'un fichier GTFS), puis vos arrêts (par nom, ou autour de la maison), et créez leurs appareils dans l'onglet Découverte. Données ouvertes : ni compte, ni clé.",
-        "de": "Füge mit den Aktionen unten dein Netz hinzu (Suche im nationalen Katalog transport.data.gouv.fr oder Adresse einer GTFS-Datei), dann deine Haltestellen (nach Name oder rund um dein Zuhause), und lege ihre Geräte im Tab „Entdecken“ an. Offene Daten: kein Konto, kein Schlüssel.",
-        "es": "Añada su red con las acciones de abajo (búsqueda en el catálogo nacional transport.data.gouv.fr, o dirección de un archivo GTFS), luego sus paradas (por nombre, o alrededor de su casa), y cree sus dispositivos en la pestaña Descubrir. Datos abiertos: sin cuenta ni clave."
+        "en": "Add your network with the actions below (search the national catalog of transport.data.gouv.fr, or give the URL of a GTFS file), then your stops (by name, or around your home), and create their devices in the Discover tab. No account; a key only for some SIRI feeds.",
+        "fr": "Ajoutez votre réseau avec les actions ci-dessous (recherche dans le catalogue national transport.data.gouv.fr, ou adresse d'un fichier GTFS), puis vos arrêts (par nom, ou autour de la maison), et créez leurs appareils dans l'onglet Découverte. Sans compte ; une clé pour certains flux SIRI.",
+        "de": "Füge mit den Aktionen unten dein Netz hinzu (Suche im nationalen Katalog transport.data.gouv.fr oder Adresse einer GTFS-Datei), dann deine Haltestellen (nach Name oder rund um dein Zuhause), und lege ihre Geräte im Tab „Entdecken“ an. Kein Konto; Schlüssel nur für manche SIRI-Feeds.",
+        "es": "Añada su red con las acciones de abajo (búsqueda en el catálogo nacional transport.data.gouv.fr, o dirección de un archivo GTFS), luego sus paradas (por nombre, o alrededor de su casa), y cree sus dispositivos en la pestaña Descubrir. Sin cuenta; clave solo para algunos flujos SIRI."
       },
       "links": [
         {
@@ -174,13 +174,36 @@
         "es": "Tiempo real"
       },
       "description": {
-        "en": "Correct the timetable with the vehicles tracked live and read the traffic alerts, when your network publishes them (GTFS-RT). Off: timetable only, no download at each refresh.",
-        "fr": "Corriger les horaires avec les véhicules suivis en direct et lire les perturbations, quand votre réseau les publie (GTFS-RT). Désactivé : horaires théoriques seuls, aucun téléchargement à chaque rafraîchissement.",
-        "de": "Den Fahrplan mit den live verfolgten Fahrzeugen korrigieren und die Störungen lesen, wenn dein Netz sie veröffentlicht (GTFS-RT). Aus: nur Fahrplan, kein Download bei jeder Aktualisierung.",
-        "es": "Corregir los horarios con los vehículos seguidos en directo y leer las incidencias, cuando su red los publica (GTFS-RT). Desactivado: solo horarios teóricos, sin descarga en cada actualización."
+        "en": "Correct the timetable with the vehicles tracked live and read the traffic alerts, when your network publishes them (GTFS-RT, else SIRI). Off: timetable only, no download at each refresh.",
+        "fr": "Corriger les horaires avec les véhicules suivis en direct et lire les perturbations, quand votre réseau les publie (GTFS-RT, sinon SIRI). Désactivé : horaires théoriques seuls, aucun téléchargement à chaque rafraîchissement.",
+        "de": "Den Fahrplan mit den live verfolgten Fahrzeugen korrigieren und die Störungen lesen, wenn dein Netz sie veröffentlicht (GTFS-RT, sonst SIRI). Aus: nur Fahrplan, kein Download bei jeder Aktualisierung.",
+        "es": "Corregir los horarios con los vehículos seguidos en directo y leer las incidencias, cuando su red los publica (GTFS-RT, si no SIRI). Desactivado: solo horarios teóricos, sin descarga en cada actualización."
       },
       "required": false,
       "default": true
+    },
+    {
+      "key": "siri_keys",
+      "type": "secret",
+      "label": {
+        "en": "SIRI API keys",
+        "fr": "Clés d'API SIRI",
+        "de": "SIRI-API-Schlüssel",
+        "es": "Claves de API SIRI"
+      },
+      "description": {
+        "en": "Only for a network whose realtime is SIRI and needs a key (e.g. Ginko, CTS): one per line or separated by \";\", as network = key (name or identifier). A single key alone serves every SIRI network. Never shown in the logs.",
+        "fr": "Seulement pour un réseau dont le temps réel est en SIRI avec clé (ex. Ginko, CTS) : une par ligne ou séparées par « ; », sous la forme réseau = clé (nom ou identifiant). Une clé seule vaut pour tous. Jamais dans les journaux.",
+        "de": "Nur für ein Netz, dessen Echtzeit SIRI mit Schlüssel ist (z. B. Ginko, CTS): einer pro Zeile oder durch „;“ getrennt, als Netz = Schlüssel (Name oder Kennung). Ein einzelner Schlüssel gilt für alle. Nie in den Protokollen.",
+        "es": "Solo para una red cuyo tiempo real es SIRI con clave (p. ej. Ginko, CTS): una por línea o separadas por «;», como red = clave (nombre o identificador). Una clave sola vale para todas. Nunca en los registros."
+      },
+      "required": false,
+      "placeholder": {
+        "en": "e.g. Ginko = your-key",
+        "fr": "ex. Ginko = votre-clé",
+        "de": "z. B. Ginko = dein-Schlüssel",
+        "es": "p. ej. Ginko = su-clave"
+      }
     }
   ],
   "actions": [
@@ -279,6 +302,29 @@
             "fr": "ex. https://example.org/trip-updates.pb",
             "de": "z. B. https://example.org/trip-updates.pb",
             "es": "p. ej. https://example.org/trip-updates.pb"
+          }
+        },
+        {
+          "key": "siri",
+          "type": "string",
+          "required": false,
+          "label": {
+            "en": "SIRI or SIRI Lite URL (optional)",
+            "fr": "URL SIRI ou SIRI Lite (facultatif)",
+            "de": "SIRI- oder SIRI-Lite-URL (optional)",
+            "es": "URL SIRI o SIRI Lite (opcional)"
+          },
+          "description": {
+            "en": "Realtime asked stop by stop, used when the network has no GTFS-RT. Catalog networks already get theirs. Its key goes in the configuration, not here.",
+            "fr": "Temps réel interrogé arrêt par arrêt, utilisé si le réseau n'a pas de GTFS-RT. Les réseaux du catalogue ont déjà le leur. Sa clé va dans la configuration, pas ici.",
+            "de": "Echtzeit je Haltestelle, genutzt, wenn das Netz kein GTFS-RT hat. Netze aus dem Katalog haben ihre schon. Der Schlüssel gehört in die Konfiguration, nicht hierher.",
+            "es": "Tiempo real consultado parada por parada, usado si la red no tiene GTFS-RT. Las redes del catálogo ya tienen el suyo. Su clave va en la configuración, no aquí."
+          },
+          "placeholder": {
+            "en": "e.g. https://example.org/siri/2.0/",
+            "fr": "ex. https://example.org/siri/2.0/",
+            "de": "z. B. https://example.org/siri/2.0/",
+            "es": "p. ej. https://example.org/siri/2.0/"
           }
         },
         {
@@ -453,6 +499,29 @@
             "fr": "ex. Naolib",
             "de": "z. B. Naolib",
             "es": "p. ej. Naolib"
+          }
+        },
+        {
+          "key": "siri_ref",
+          "type": "string",
+          "required": false,
+          "label": {
+            "en": "SIRI identifier (optional)",
+            "fr": "Identifiant SIRI (facultatif)",
+            "de": "SIRI-Kennung (optional)",
+            "es": "Identificador SIRI (opcional)"
+          },
+          "description": {
+            "en": "Only for a SIRI network, when the status says the server does not know the stop: its MonitoringRef (one per stop point, separated by commas).",
+            "fr": "Seulement pour un réseau en SIRI, quand l'état dit que le serveur ne connaît pas l'arrêt : son MonitoringRef (un par quai, séparés par des virgules).",
+            "de": "Nur für ein SIRI-Netz, wenn der Status sagt, dass der Server die Haltestelle nicht kennt: ihre MonitoringRef (eine pro Steig, durch Kommas getrennt).",
+            "es": "Solo para una red SIRI, cuando el estado dice que el servidor no conoce la parada: su MonitoringRef (uno por andén, separados por comas)."
+          },
+          "placeholder": {
+            "en": "e.g. GINKO:StopPoint:Q:1234:LOC",
+            "fr": "ex. GINKO:StopPoint:Q:1234:LOC",
+            "de": "z. B. GINKO:StopPoint:Q:1234:LOC",
+            "es": "p. ej. GINKO:StopPoint:Q:1234:LOC"
           }
         }
       ]

@@ -6,10 +6,15 @@
 // 2.5 MB of JSON). It is read on demand (search, add a network) and kept in
 // memory for a day, reduced to one entry per GTFS resource: a dataset may
 // publish several (the current and the next timetable, one per operator).
+//
+// A dataset without GTFS-RT may publish SIRI or SIRI Lite resources instead
+// (src/siri.js): kept with the RequestorRef the catalog gives for SIRI (the
+// key, when it is public).
 // -----------------------------------------------------------------------------
 
-import { getJson } from './http.js';
+import { getJson, isRedirectHost } from './http.js';
 import { normalize } from './search.js';
+import { siriFormat } from './siri.js';
 
 export const CATALOG_URL = 'https://transport.data.gouv.fr/api/datasets';
 export const CATALOG_MAX_AGE_MS = 24 * 3600 * 1000;
@@ -17,6 +22,7 @@ export const CATALOG_MAX_AGE_MS = 24 * 3600 * 1000;
 // departure time. A resource without features declared is tried.
 const USEFUL_FEATURES = new Set(['trip_updates', 'service_alerts']);
 export const MAX_REALTIME_FEEDS = 3;
+export const MAX_SIRI_ENDPOINTS = 3;
 
 const LICENCES = {
   'odc-odbl': 'ODbL',
@@ -32,6 +38,16 @@ export function licenceName(code) {
 
 /** The id of a catalog network, "tdg82386": the transport.data.gouv.fr resource id. */
 export const catalogNetworkId = (resourceId) => `tdg${resourceId}`;
+
+const isHttp = (url) => /^https?:\/\//.test(url ?? '');
+
+/** The address of a SIRI resource: the producer's, else the catalog link. */
+export function siriUrl(resource) {
+  if (isHttp(resource.original_url) && !isRedirectHost(resource.original_url)) {
+    return resource.original_url;
+  }
+  return isHttp(resource.url) ? resource.url : null;
+}
 
 /** A short name for a network: the one its GTFS declares, its brand, else the dataset title. */
 function networkName(dataset, resource) {
@@ -57,7 +73,8 @@ function networkName(dataset, resource) {
 /**
  * The catalog, one entry per GTFS resource of a public transit dataset.
  * @returns {{ id: string, dataset: string, name: string, title: string, resource: string,
- *   gtfs: string, realtime: { url: string, features: string[] }[], modes: string[],
+ *   gtfs: string, realtime: { url: string, features: string[] }[],
+ *   siri: { url: string, format: string, requestorRef: string|null }[], modes: string[],
  *   licence: string, page: string, endDate: string|null, haystack: string }[]}
  */
 export function reduceCatalog(datasets) {
@@ -78,6 +95,19 @@ export function reduceCatalog(datasets) {
       .map((r) => ({
         url: r.url,
         features: (r.features ?? []).filter((f) => USEFUL_FEATURES.has(f)),
+      }));
+    // Availability is not checked: a SIRI server often answers 401 to the
+    // catalog's probe, and the resource stays useful with a key. The address
+    // is the producer's (`original_url`): `url` is often a data.gouv.fr link
+    // that only redirects to it, and a SOAP request POSTed there gets a 405.
+    const siri = dataset.resources
+      .map((r) => ({ r, url: siriUrl(r) }))
+      .filter(({ r, url }) => siriFormat(r.format) && url)
+      .slice(0, MAX_SIRI_ENDPOINTS)
+      .map(({ r, url }) => ({
+        url,
+        format: siriFormat(r.format),
+        requestorRef: r.requestor_ref || null,
       }));
     for (const resource of dataset.resources) {
       if (resource.format !== 'GTFS' || !/^https?:\/\//.test(resource.url ?? '')) {
@@ -101,6 +131,7 @@ export function reduceCatalog(datasets) {
         resource: String(resource.title ?? ''),
         gtfs: resource.url,
         realtime,
+        siri,
         modes: resource.metadata?.modes ?? resource.modes ?? [],
         licence: licenceName(dataset.licence),
         page: dataset.page_url ?? '',
@@ -138,6 +169,7 @@ export function searchCatalog(entries, query) {
       (a, b) =>
         a.rank - b.rank ||
         b.entry.realtime.length - a.entry.realtime.length ||
+        b.entry.siri.length - a.entry.siri.length ||
         Number(b.entry.available) - Number(a.entry.available) ||
         a.entry.name.localeCompare(b.entry.name, 'fr'),
     )

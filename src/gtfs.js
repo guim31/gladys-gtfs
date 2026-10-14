@@ -132,8 +132,12 @@ export async function parseGtfs(
   const areas = new Map();
   const pointArea = new Map();
   const orphanPoints = [];
+  // The public codes of the stops (stop_code): what a SIRI server often
+  // knows them by (src/siri-feed.js).
+  const codes = new Map();
   const stopColumns = [
     'stop_id',
+    'stop_code',
     'stop_name',
     'stop_lat',
     'stop_lon',
@@ -148,6 +152,9 @@ export async function parseGtfs(
       lat: Number(row.stop_lat),
       lon: Number(row.stop_lon),
     };
+    if (row.stop_code && row.stop_code !== row.stop_id && (type === '0' || type === '1')) {
+      codes.set(row.stop_id, row.stop_code);
+    }
     if (type === '1') {
       areas.set(row.stop_id, { ...point, points: [], routes: new Set() });
     } else if (type === '0') {
@@ -359,6 +366,7 @@ export async function parseGtfs(
     routes,
     areas,
     pointArea,
+    codes,
     pointRouteDirs,
     stopOrder,
     services,

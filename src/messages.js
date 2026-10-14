@@ -199,6 +199,23 @@ export const REPORTS = {
       `Real time: updated ${age} s ago, ${tracked} trip(s) tracked, about ${volume} MB per hour while departures are scheduled.`,
     realtimeOff: 'Real time: turned off in the configuration (timetable only).',
     realtimeWaiting: 'Real time: not read yet.',
+    siriShort: 'departures stop by stop (SIRI)',
+    networkSiri: ({ format }) => `Real time: ${format}, asked stop by stop.`,
+    siriKeyHint:
+      'If the network asks for an API key, type it in the integration configuration ("SIRI API keys").',
+    siriRealtime: ({ format, age, tracked, requests }) =>
+      `Real time (${format}): updated ${age} s ago, ${tracked} departure(s) tracked, ${requests} request(s) per refresh while departures are scheduled.`,
+    siriWaiting: ({ format }) => `Real time (${format}): not read yet.`,
+    siriKeyRefused:
+      'Real time (SIRI): access refused by the server. Check the API key in the configuration ("SIRI API keys").',
+    siriUnknownStops: ({ stops }) =>
+      `Stops unknown to the SIRI server: ${stops}. Give their SIRI identifier with "Add a stop".`,
+    siriRef: ({ refs }) => `SIRI identifier: ${refs}.`,
+    siriRefUnused: 'This network is not read by SIRI: the SIRI identifier is not used.',
+    siriNoData:
+      'Real time (SIRI): the server answers, but without any stop nor departure. It most likely needs an API key, or refuses the one given.',
+    siriNoStopMonitoring:
+      'Real time (SIRI): this server offers no next departures by stop (StopMonitoring), only other services. Timetable only.',
     lastError: ({ error }) => `Last error: ${error}`,
   },
   fr: {
@@ -262,6 +279,23 @@ export const REPORTS = {
       `Temps réel : mis à jour il y a ${age} s, ${tracked} trajet(s) suivi(s), environ ${volume} Mo par heure quand des passages sont prévus.`,
     realtimeOff: 'Temps réel : désactivé dans la configuration (horaires théoriques seuls).',
     realtimeWaiting: 'Temps réel : pas encore lu.',
+    siriShort: 'passages arrêt par arrêt (SIRI)',
+    networkSiri: ({ format }) => `Temps réel : ${format}, interrogé arrêt par arrêt.`,
+    siriKeyHint:
+      "Si le réseau demande une clé d'API, saisissez-la dans la configuration de l'intégration (« Clés d'API SIRI »).",
+    siriRealtime: ({ format, age, tracked, requests }) =>
+      `Temps réel (${format}) : mis à jour il y a ${age} s, ${tracked} passage(s) suivi(s), ${requests} requête(s) par rafraîchissement quand des passages sont prévus.`,
+    siriWaiting: ({ format }) => `Temps réel (${format}) : pas encore lu.`,
+    siriKeyRefused:
+      "Temps réel (SIRI) : accès refusé par le serveur. Vérifiez la clé d'API dans la configuration (« Clés d'API SIRI »).",
+    siriUnknownStops: ({ stops }) =>
+      `Arrêts inconnus du serveur SIRI : ${stops}. Donnez leur identifiant SIRI avec « Ajouter un arrêt ».`,
+    siriRef: ({ refs }) => `Identifiant SIRI : ${refs}.`,
+    siriRefUnused: "Ce réseau n'est pas lu en SIRI : l'identifiant SIRI ne sert pas.",
+    siriNoData:
+      "Temps réel (SIRI) : le serveur répond, mais sans aucun arrêt ni passage. Il demande très probablement une clé d'API, ou refuse celle donnée.",
+    siriNoStopMonitoring:
+      'Temps réel (SIRI) : ce serveur ne propose pas les prochains passages par arrêt (StopMonitoring), seulement d’autres services. Horaires théoriques seuls.',
     lastError: ({ error }) => `Dernière erreur : ${error}`,
   },
   de: {
@@ -323,6 +357,24 @@ export const REPORTS = {
       `Echtzeit: vor ${age} s aktualisiert, ${tracked} Fahrt(en) verfolgt, etwa ${volume} MB pro Stunde, solange Abfahrten geplant sind.`,
     realtimeOff: 'Echtzeit: in der Konfiguration ausgeschaltet (nur Fahrplan).',
     realtimeWaiting: 'Echtzeit: noch nicht gelesen.',
+    siriShort: 'Abfahrten je Haltestelle (SIRI)',
+    networkSiri: ({ format }) => `Echtzeit: ${format}, je Haltestelle abgefragt.`,
+    siriKeyHint:
+      'Wenn das Netz einen API-Schlüssel verlangt, gib ihn in der Konfiguration der Integration ein („SIRI-API-Schlüssel“).',
+    siriRealtime: ({ format, age, tracked, requests }) =>
+      `Echtzeit (${format}): vor ${age} s aktualisiert, ${tracked} Abfahrt(en) verfolgt, ${requests} Anfrage(n) pro Aktualisierung, solange Abfahrten anstehen.`,
+    siriWaiting: ({ format }) => `Echtzeit (${format}): noch nicht gelesen.`,
+    siriKeyRefused:
+      'Echtzeit (SIRI): Zugriff vom Server verweigert. Prüfe den API-Schlüssel in der Konfiguration („SIRI-API-Schlüssel“).',
+    siriUnknownStops: ({ stops }) =>
+      `Dem SIRI-Server unbekannte Haltestellen: ${stops}. Gib ihre SIRI-Kennung mit „Haltestelle hinzufügen“ an.`,
+    siriRef: ({ refs }) => `SIRI-Kennung: ${refs}.`,
+    siriRefUnused:
+      'Dieses Netz wird nicht per SIRI gelesen: Die SIRI-Kennung wird nicht verwendet.',
+    siriNoData:
+      'Echtzeit (SIRI): Der Server antwortet, aber ohne Haltestellen und ohne Abfahrten. Er verlangt sehr wahrscheinlich einen API-Schlüssel oder lehnt den angegebenen ab.',
+    siriNoStopMonitoring:
+      'Echtzeit (SIRI): Dieser Server bietet keine nächsten Abfahrten je Haltestelle (StopMonitoring), nur andere Dienste. Nur Fahrplan.',
     lastError: ({ error }) => `Letzter Fehler: ${error}`,
   },
   es: {
@@ -385,6 +437,23 @@ export const REPORTS = {
       `Tiempo real: actualizado hace ${age} s, ${tracked} trayecto(s) seguido(s), unos ${volume} MB por hora mientras haya salidas previstas.`,
     realtimeOff: 'Tiempo real: desactivado en la configuración (solo horarios teóricos).',
     realtimeWaiting: 'Tiempo real: aún sin leer.',
+    siriShort: 'salidas parada por parada (SIRI)',
+    networkSiri: ({ format }) => `Tiempo real: ${format}, consultado parada por parada.`,
+    siriKeyHint:
+      'Si la red pide una clave de API, escríbala en la configuración de la integración («Claves de API SIRI»).',
+    siriRealtime: ({ format, age, tracked, requests }) =>
+      `Tiempo real (${format}): actualizado hace ${age} s, ${tracked} salida(s) seguida(s), ${requests} petición(es) por actualización mientras haya salidas previstas.`,
+    siriWaiting: ({ format }) => `Tiempo real (${format}): aún sin leer.`,
+    siriKeyRefused:
+      'Tiempo real (SIRI): el servidor ha rechazado el acceso. Compruebe la clave de API en la configuración («Claves de API SIRI»).',
+    siriUnknownStops: ({ stops }) =>
+      `Paradas desconocidas para el servidor SIRI: ${stops}. Indique su identificador SIRI con «Añadir una parada».`,
+    siriRef: ({ refs }) => `Identificador SIRI: ${refs}.`,
+    siriRefUnused: 'Esta red no se lee por SIRI: el identificador SIRI no se usa.',
+    siriNoData:
+      'Tiempo real (SIRI): el servidor responde, pero sin ninguna parada ni salida. Lo más probable es que pida una clave de API o rechace la indicada.',
+    siriNoStopMonitoring:
+      'Tiempo real (SIRI): este servidor no ofrece las próximas salidas por parada (StopMonitoring), solo otros servicios. Solo horarios teóricos.',
     lastError: ({ error }) => `Último error: ${error}`,
   },
 };

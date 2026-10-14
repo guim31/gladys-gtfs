@@ -39,6 +39,9 @@ src/feed.js                       one network: GTFS download + parse (serialized
 src/gtfs.js                       static GTFS: one streaming pass, watched stops kept
 src/zip.js, src/csv.js            ZIP and CSV stream readers (no dependency)
 src/gtfsrt.js                     GTFS-Realtime decoder (minimal protobuf reader)
+src/siri.js                       SIRI / SIRI Lite: requests, key placement, tolerant answer readers
+src/siri-feed.js                  SIRI of one network: stop references, pace, visits → line groups
+src/xml.js                        minimal XML reader (SIRI answers), JSON-like output
 src/departures.js                 departure board: timetable + realtime corrections
 src/alerts.js                     service alerts: plain text, followed lines, trip-only alerts
 src/devices.js                    the Gladys device of a stop, its states
@@ -55,6 +58,7 @@ docs/{en,fr,de,es}.md             user documentation, re-hosted by Gladys (en an
 test/                             node --test, against the SDK's fake Gladys (integration-sdk/testing)
 test/helpers/world.js             fake Gladys + fake fetch on the fixtures + manual clock + /data
 test/helpers/protobuf.js          GTFS-RT encoder for the edge cases
+scripts/probe-siri.mjs            read-only probe of a real SIRI server (key from an env var)
 test/fixtures/catalog, gtfs       reduced real catalog and feeds (see test/fixtures/README.md)
 .github/scripts/release.mjs       release helpers (manifest bump, changelog), tested in test/
 ```
@@ -322,3 +326,110 @@ départs, alertes, widget, déclencheur, action : mêmes pièges, voir son CLAUD
   trajets suivis, 5 alertes).
 - Réel, depuis la session et dans le conteneur verrouillé : recherche dans le catalogue, ajout de
   Naolib, SNCF, Aix-Marseille, refus d'IDFM, arrêts Commerce et Nantes, états, phrase de scène.
+
+## Temps réel SIRI (14/10/2026, retour de StephaneB, Ginko)
+
+Une vingtaine de réseaux du catalogue publient du SIRI ou du SIRI Lite **sans GTFS-RT** : on les lit
+arrêt par arrêt (`src/siri.js`, `src/siri-feed.js`), **seulement si le réseau n'a aucun GTFS-RT
+utile** (`Feed.usesSiri`). Constaté, d'où, et ce qui reste à vérifier :
+
+- **Session sans réseau** : le proxy de la session n'a laissé passer que GitHub (git) et PyPI ;
+  transport.data.gouv.fr, data.gouv.fr et tous les serveurs SIRI répondaient 403. Aucune réponse
+  réelle n'a pu être enregistrée : les fixtures `test/fixtures/siri/` sont **écrites** d'après les
+  formats documentés (voir leur README). `scripts/probe-siri.mjs --catalog --probe` liste les jeux
+  SIRI sans GTFS-RT et interroge chacun (sans clé) : **à lancer d'une machine qui a le réseau**
+  avant de croire la liste de couverture, puis enregistrer de vraies réponses en fixtures.
+- **Catalogue** (`/api/datasets`, lu dans le code d'etalab/transport-site,
+  `datasets_controller.ex`) : formats exacts `"SIRI"` et `"SIRI Lite"` ; une ressource `SIRI` porte
+  `requestor_ref` quand il est public (tag du jeu de données, le même pour toutes ses ressources
+  SIRI). `is_available` ne vaut rien pour SIRI : la sonde du catalogue compte 401/405 comme
+  disponible. Les ressources SIRI sont gardées sans regarder `is_available`.
+- **Le `url` d'une ressource SIRI est un lien `www.data.gouv.fr/api/1/datasets/r/<id>`** qui
+  répond 302 vers le serveur du producteur : un POST SOAP dessus donne **405**, certains liens
+  donnent 404 (relevé par l'orchestrateur le 14/10 avec la sonde). On prend `original_url` quand
+  elle n'est pas elle-même sur data.gouv.fr (`siriUrl` de `src/catalog.js`), sinon on lit la
+  redirection par un GET `redirect: 'manual'` (`resolveRedirects` de `src/http.js`), gardée un jour
+  en mémoire, nouvel essai 30 min après un échec ; **jamais de POST vers data.gouv.fr**. Serveurs
+  réels relevés derrière les liens : Ginko `api.ginko.voyage/Siri/Siri.do` ; Tanlib et CC Sud
+  Gironde `api.okina.fr/gateway/nam/realtime/anshar/ws/services/?datasetId=…` (Okina/Anshar, un
+  `datasetId` par réseau dans l'URL) ; ARVI `h16.hanoverdisplays.com/cluses/siri/r1/` (Hanover).
+- **SOAP** (« SIRI ») : une URL, un POST par opération, l'enveloppe du requêteur de
+  transport.data.gouv.fr (`lib/siri_queries.ex`, AGPL : rien copié, l'enveloppe suit le WSDL) :
+  `sw:` = `http://wsdl.siri.org.uk`, `siri:` = `http://www.siri.org.uk/siri`, `ServiceRequestInfo`
+  puis `Request`, `RequestExtension` vide ; `StopPointsDiscovery` n'a que `Request`. Pas de
+  `SOAPAction` (le requêteur n'en envoie pas). Le **RequestorRef est la clé** (Profil SIRI France :
+  « à considérer comme des clés d'accès »).
+- **SIRI Lite** : `<base>/stop-monitoring?MonitoringRef=…`, `general-message`,
+  `situation-exchange`, `stoppoints-discovery` ; une URL de catalogue qui nomme un service est
+  ramenée à sa base (suffixe `.json` gardé). **La clé n'a pas d'emplacement standard** : CTS = HTTP
+  Basic (clé en utilisateur, mot de passe vide, vérifié dans le client `siri-lite` de PyPI) ;
+  Mecatran = `AccountKey` ; PRIM = en-tête `apikey`. Hôte inconnu : Basic + `X-Siri-RequestorRef`
+  (en-tête recommandé par le profil), ou le paramètre de l'URL du catalogue qui ressemble à une
+  clé. L'utilisateur peut forcer `nom=clé` (paramètre) ou `En-Tête: clé`.
+- **Clé** : champ de config `siri_keys` **secret** (un `secret` dans une action est impossible à
+  remplir, #3154) : `réseau = clé` par ligne ou « ; », une clé seule vaut pour tous. Jamais dans
+  `/data`, les paramètres d'appareil ni les journaux ; `redact()` retire la clé des `ErrorText`
+  qui la recopient. Une URL Lite porte parfois la clé : ne journaliser que `hostOf`.
+- **Formats de réponse** : enveloppe SOAP ou `<Siri>` nu, préfixes variables, `{ "value": … }`
+  (PRIM), chaînes simples (CTS), tableau ou objet seul. `src/xml.js` rend le XML dans la forme du
+  JSON Lite, puis lecture **par nom, insensible à la casse, à toute profondeur** (`findAll`). CTS
+  n'envoie pas d'`AimedDepartureTime` et dit le temps réel dans `Extension.IsRealTime` ; ailleurs
+  `Monitored=false` = horaire théorique. Erreurs dans le corps (`ErrorCondition`, `Status=false`,
+  SOAP `Fault`, parfois en HTTP 500) : `AccessNotAllowedError` = clé.
+- **Arrêts** : références du profil `XXX:StopPoint:BP:<local>:LOC` (Hanover), `STIF:StopPoint:Q:…:`,
+  codes CTS `43A`/`399A`. Ordre : identifiant tapé (`siri_ref` d'« Ajouter un arrêt ») ;
+  `StopPointsDiscovery` (une fois par jour) relié par code/partie locale, sinon même nom à 100 m ;
+  sinon `stop_code` (désormais lu dans `stops.txt`, `network.codes`), `stop_id`, sa partie locale.
+  Un `InvalidDataReferences`/400/404 passe au candidat suivant (une requête par cycle) ; tout épuisé
+  → « arrêt inconnu » dans l'état, nouvel essai 6 h plus tard. **On interroge les quais** (points
+  GTFS), au plus 4 par arrêt, les plus desservis d'abord.
+- **Rapprochement** : pas par trajet (les `DatedVehicleJourneyRef` ne sont pas les `trip_id`), mais
+  par **groupe ligne + direction** (`lineGroups`, clé `COURT|dir`) : les passages du serveur
+  remplacent l'horaire du groupe jusqu'au dernier d'entre eux, puis l'horaire reprend
+  (`mergeVisits`). Ligne : **un code simple (« 59 ») se compare d'abord au nom court**, une
+  référence structurée (`X:Line::59:LOC`) d'abord à l'id de route — piège réel du fixture Tisséo, où
+  `line:59` (nom court 82) volait la ligne 59. Direction : seule desservie, puis quai, puis
+  destination, puis `Aller`/`Retour`.
+- **Sobriété** : `busy` par arrêt (passage à moins de 90 min) sinon toutes les 15 min ;
+  perturbations toutes les 5 min ; 429 → plus rien pendant `Retry-After` (5 min par défaut) ; proxy
+  transport.data.gouv.fr : 30 s par URL (une URL SOAP sert tous les arrêts : un arrêt par 30 s).
+  Aucun quota réseau par réseau n'a pu être lu (pages inaccessibles) : à compléter.
+- **Sonde du 14/10 (orchestrateur, réseau réel, sans clé)** : Okina Pays de la Loire
+  (`api.okina.fr/gateway/pdl/realtime/anshar/ws/services`, RequestorRef `opendata`) :
+  StopPointsDiscovery **10 435 arrêts, 2,2 Mo** (`MOBIITI:Quay:4371`), puis **429** sur tout le
+  reste ; Okina Nouvelle-Aquitaine (`…/nam/…?datasetId=…`, huit réseaux sur la même passerelle) :
+  discovery **vide** puis 429 → **429 partagé par hôte** (`HostGates` du service, toutes les
+  lectures du même hôte, `Retry-After` sinon 5 min doublées à chaque 429 jusqu'à 1 h, puis 10 s
+  au moins entre deux requêtes, divisé par deux après une heure sans 429), quais et réseaux **à
+  tour de rôle** ; liste d'arrêts **gardée un jour dans `/data`** (`siri-stops-<réseau>-<n>.json`,
+  effacée avec le réseau). Pourquoi `datasetId` nam rend 0 arrêt : non trouvé (la fourche publique
+  okina-transport/anshar ne sert que SX/VM/ET ; la passerelle fait plus). **Anshar rend à un
+  RequestorRef les situations changées depuis son appel précédent** (`Situations.java` :
+  `changesMap` par requestorId) : en SX on cumule par `SituationNumber`, on retire les closes et
+  les terminées (`currentSituations`). Avec le RequestorRef public partagé `opendata`, d'autres
+  clients consomment ces changements : à vérifier par deux lectures SX successives. Ginko
+  (`api.ginko.voyage/Siri/Siri.do`) sans clé : discovery 116 octets **vide**, GM vide → état
+  « répond sans aucun arrêt ni passage : clé requise ? » (`noData`). Idelis
+  (`api.idelis.fr/siri.svc`), ARVI (Hanover, RequestorRef `open-data`) : 403 ; CTS : 401 sans clé
+  (404 sur situation-exchange). TUB (IRYS, `…:8080/irys_server`) : `OtherError: [BAD_REQUEST] :
+Invalid Request Structure` — IRYS valide la requête contre son XSD (afimb/irys,
+  `DiscoveryService.java`) où l'attribut **`version` de `Request` est obligatoire** : on envoie
+  `<Request version="2.0">` partout. évolitY (`siri.evolity-si.fr/`) : page HTML → `NotSiriError`,
+  « le serveur ne répond pas en SIRI ». BlaBlaCar (`…/api/siri-lite/estimated-timetable`) : 404
+  partout → l'URL du catalogue nomme un autre service que stop-monitoring : un 404 sur
+  stop-monitoring vaut « pas de StopMonitoring » (état dédié, plus redemandé avant 24 h), pas
+  « arrêt inconnu ». Non couvert : estimated-timetable seul.
+- **Seconde sonde (16b5e85)** : Okina pdl renvoie **429 même à 15 s d'écart** (Retry-After 30 s à
+  chaque fois) → plancher de **35 s par requête** pour `api.okina.fr` (`HOST_SPACING_MS`, jamais
+  moins, même après une heure calme) ; StopMonitoring `MOBIITI:Quay:4371`/`4370` et GM : réponses
+  vides (arrêts ruraux, 14 h 50). Un quai suivi n'est relu que toutes les 35 s × nombre de quais :
+  la doc conseille un ou deux arrêts. TUB (IRYS) **accepte `version="2.0"`** : discovery **16 560
+  arrêts, 5,6 Mo, 9 s** (`SBA:StopPoint:BP:1492:LOC`). L'arbre XML complet d'une telle réponse
+  coûte ~30 Mo au pic (mesuré sur 8,3 Mo synthétiques ; il échoue sous une limite de tas de 24 Mo) :
+  `scanStopPoints` lit les `AnnotatedStopPointRef` bloc par bloc (passe sous 24 Mo) et ne garde que
+  ref, nom, position (2,8 Mo pour 16 560 points).
+- **Pas de migration** : les appareils gardent leurs `external_id` et fonctionnalités ; aucun
+  paramètre d'appareil n'est ajouté pour un réseau du catalogue (seulement `siri_url` d'un réseau
+  ajouté par URL, `siri_ref` d'un arrêt qui en a un). Un réseau du catalogue ajouté avant (pas de
+  champ `siri` dans `watch.json`) reçoit ses ressources SIRI du catalogue au démarrage suivant
+  (`fillSiriEndpoints`).
