@@ -12,7 +12,7 @@
 // key, when it is public).
 // -----------------------------------------------------------------------------
 
-import { getJson } from './http.js';
+import { getJson, isRedirectHost } from './http.js';
 import { normalize } from './search.js';
 import { siriFormat } from './siri.js';
 
@@ -38,6 +38,16 @@ export function licenceName(code) {
 
 /** The id of a catalog network, "tdg82386": the transport.data.gouv.fr resource id. */
 export const catalogNetworkId = (resourceId) => `tdg${resourceId}`;
+
+const isHttp = (url) => /^https?:\/\//.test(url ?? '');
+
+/** The address of a SIRI resource: the producer's, else the catalog link. */
+export function siriUrl(resource) {
+  if (isHttp(resource.original_url) && !isRedirectHost(resource.original_url)) {
+    return resource.original_url;
+  }
+  return isHttp(resource.url) ? resource.url : null;
+}
 
 /** A short name for a network: the one its GTFS declares, its brand, else the dataset title. */
 function networkName(dataset, resource) {
@@ -87,12 +97,15 @@ export function reduceCatalog(datasets) {
         features: (r.features ?? []).filter((f) => USEFUL_FEATURES.has(f)),
       }));
     // Availability is not checked: a SIRI server often answers 401 to the
-    // catalog's probe, and the resource stays useful with a key.
+    // catalog's probe, and the resource stays useful with a key. The address
+    // is the producer's (`original_url`): `url` is often a data.gouv.fr link
+    // that only redirects to it, and a SOAP request POSTed there gets a 405.
     const siri = dataset.resources
-      .filter((r) => siriFormat(r.format) && /^https?:\/\//.test(r.url ?? ''))
+      .map((r) => ({ r, url: siriUrl(r) }))
+      .filter(({ r, url }) => siriFormat(r.format) && url)
       .slice(0, MAX_SIRI_ENDPOINTS)
-      .map((r) => ({
-        url: r.url,
+      .map(({ r, url }) => ({
+        url,
         format: siriFormat(r.format),
         requestorRef: r.requestor_ref || null,
       }));

@@ -26,7 +26,7 @@
 import { createHash } from 'node:crypto';
 import { createLogger } from '@gladysassistant/integration-sdk';
 import { indexRealtime } from './departures.js';
-import { getBuffer, hostOf } from './http.js';
+import { getBuffer, hostOf, isRedirectHost, resolveRedirects } from './http.js';
 import { distanceMeters, normalize } from './search.js';
 import {
   codeKey,
@@ -60,6 +60,7 @@ export const DISCOVERY_MAX_AGE_MS = 24 * 3600 * 1000;
 // A stop the server knows under none of the candidates: tried again this late.
 export const UNKNOWN_RETRY_MS = 6 * 3600 * 1000;
 export const PROXY_MIN_INTERVAL_MS = 30 * 1000;
+export const RESOLVE_RETRY_MS = 30 * 60 * 1000;
 const PROXY_HOST = 'proxy.transport.data.gouv.fr';
 const NEAR_METERS = 100;
 
@@ -378,14 +379,16 @@ export class SiriReader {
   constructor({ info, fetch }) {
     this.info = info;
     this.fetch = fetch;
-    this.endpoints = [];
-    for (const entry of info.siri ?? []) {
+    // The endpoints as the network gives them; a data.gouv.fr link is
+    // resolved to the producer's address before any request (`endpoint`).
+    this.entries = (info.siri ?? []).filter((entry) => {
       try {
-        this.endpoints.push(siriEndpoint(entry));
+        return Boolean(new URL(entry.url));
       } catch {
-        // An invalid URL: nothing to ask.
+        return false;
       }
-    }
+    });
+    this.resolved = new Map(); // index → { endpoint, at } | { error, at }
     this.discovery = new Map(); // endpoint index → { at, points|null, key }
     this.mapping = new Map(); // stop id → { signature, refs: [{ endpoint, point, candidates, index, unknownAt }] }
     this.readings = new Map(); // `${stopId}|${ref}` → { at, visits }
@@ -400,7 +403,37 @@ export class SiriReader {
   }
 
   get active() {
-    return this.endpoints.length > 0;
+    return this.entries.length > 0;
+  }
+
+  /**
+   * The endpoint `index`, at the producer's address. A data.gouv.fr link is
+   * resolved by reading its redirection (never followed with a POST), kept a
+   * day; a failure is tried again 30 minutes later.
+   */
+  async endpoint(index, now) {
+    const entry = this.entries[index];
+    if (!isRedirectHost(entry.url)) {
+      return siriEndpoint(entry);
+    }
+    const known = this.resolved.get(index);
+    if (known?.endpoint && now - known.at < DISCOVERY_MAX_AGE_MS) {
+      return known.endpoint;
+    }
+    if (known?.error && now - known.at < RESOLVE_RETRY_MS) {
+      throw new SiriFailure(known.error, 'other');
+    }
+    try {
+      const url = await resolveRedirects(this.fetch, entry.url);
+      const endpoint = siriEndpoint({ ...entry, url });
+      this.resolved.set(index, { endpoint, at: now });
+      logger.debug(`${this.info.name}: SIRI server at ${hostOf(url)}`);
+      return endpoint;
+    } catch (err) {
+      const error = err.message;
+      this.resolved.set(index, { error, at: now });
+      throw new SiriFailure(error, 'other');
+    }
   }
 
   /** Spends one request on a URL of the realtime proxy, when allowed now. */
@@ -482,7 +515,7 @@ export class SiriReader {
     if (known && now - known.at < DISCOVERY_MAX_AGE_MS && known.key === key) {
       return known.points;
     }
-    const endpoint = this.endpoints[index];
+    const endpoint = await this.endpoint(index, now);
     let points = null;
     if (this.allowed(endpoint.url, now)) {
       try {
@@ -545,7 +578,7 @@ export class SiriReader {
     } else {
       refs = [];
       // Several endpoints (one per operator): the first whose list has the stop.
-      for (let e = 0; e < this.endpoints.length && refs.length === 0; e += 1) {
+      for (let e = 0; e < this.entries.length && refs.length === 0; e += 1) {
         const discovered = await this.discovered(e, { key, now });
         if (!discovered) {
           continue;
@@ -619,7 +652,7 @@ export class SiriReader {
           entry.unknownAt = null;
         }
         const ref = entry.candidates[entry.index];
-        const endpoint = this.endpoints[entry.endpoint];
+        const endpoint = await this.endpoint(entry.endpoint, now);
         if (!this.allowed(endpoint.url, now)) {
           continue;
         }
@@ -665,7 +698,13 @@ export class SiriReader {
     ) {
       return { failures: 0, read: 0 };
     }
-    const endpoint = this.endpoints[0];
+    let endpoint;
+    try {
+      endpoint = await this.endpoint(0, now);
+    } catch (err) {
+      this.error = err.message;
+      return { failures: 1, read: 0 };
+    }
     for (const service of ['generalMessage', 'situationExchange']) {
       const until = this.alerts.unsupported.get(service);
       if (until !== undefined && now < until) {

@@ -19,8 +19,8 @@
 //                  unless --key-env) whether it answers, one second apart.
 // -----------------------------------------------------------------------------
 
-import { CATALOG_URL } from '../src/catalog.js';
-import { getBuffer, getJson, hostOf } from '../src/http.js';
+import { CATALOG_URL, siriUrl } from '../src/catalog.js';
+import { getBuffer, getJson, hostOf, isRedirectHost, resolveRedirects } from '../src/http.js';
 import {
   SIRI,
   SIRI_LITE,
@@ -50,11 +50,15 @@ if (option('--key-env') && !key) {
   process.exit(2);
 }
 
-/** Where a request goes, without its query string (it may hold the key). */
+/**
+ * Where a request goes: host and path, and the names only of the query
+ * parameters (a value may be a key).
+ */
 const shown = (url) => {
   try {
-    const { host, pathname } = new URL(url);
-    return `${host}${pathname}`;
+    const { host, pathname, searchParams } = new URL(url);
+    const names = [...searchParams.keys()].map((name) => `${name}=…`).join('&');
+    return `${host}${pathname}${names ? `?${names}` : ''}`;
   } catch {
     return hostOf(url);
   }
@@ -108,9 +112,20 @@ async function ask(endpoint, service, monitoringRef = null) {
 }
 
 async function probe(entry, { brief = false } = {}) {
-  const endpoint = siriEndpoint(entry);
+  // A data.gouv.fr link only redirects to the server: read where, never POST to it.
+  let url = entry.url;
+  if (isRedirectHost(url)) {
+    try {
+      url = await resolveRedirects(fetch, url);
+      console.log(`\n${shown(entry.url)} → ${shown(url)}`);
+    } catch (err) {
+      console.log(`\n== ${shown(entry.url)}: no server behind the link — ${err.message}`);
+      return {};
+    }
+  }
+  const endpoint = siriEndpoint({ ...entry, url });
   console.log(
-    `\n== ${shown(entry.url)} (${endpoint.format === SIRI ? 'SIRI SOAP' : 'SIRI Lite'})${
+    `\n== ${shown(url)} (${endpoint.format === SIRI ? 'SIRI SOAP' : 'SIRI Lite'})${
       key
         ? ', key given'
         : entry.requestorRef
@@ -192,7 +207,7 @@ if (flag('--catalog')) {
   for (const { dataset, siri, gtfs } of found) {
     for (const resource of siri) {
       console.log(
-        `- ${dataset.title} [${dataset.slug}] — ${resource.format} — ${shown(resource.url)}` +
+        `- ${dataset.title} [${dataset.slug}] — ${resource.format} — ${shown(siriUrl(resource) ?? resource.url)}` +
           `${resource.requestor_ref ? ' — public RequestorRef' : ''}${gtfs ? '' : ' — NO GTFS'}`,
       );
     }
@@ -202,7 +217,7 @@ if (flag('--catalog')) {
       for (const resource of siri) {
         await probe(
           {
-            url: resource.url,
+            url: siriUrl(resource) ?? resource.url,
             format: siriFormat(resource.format),
             requestorRef: resource.requestor_ref,
           },

@@ -8,6 +8,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readAlerts } from '../src/alerts.js';
+import { siriUrl } from '../src/catalog.js';
+import { resolveRedirects } from '../src/http.js';
 import { siriKeyFor } from '../src/config.js';
 import { parseGtfs } from '../src/gtfs.js';
 import {
@@ -404,4 +406,46 @@ test('a server answering a stop point with its whole area: each vehicle counted 
   assert.equal(realtime.visits.get(PADER).length, visits.length);
   assert.equal(realtime.tracked, 3);
   assert.equal(reader.realtime(FIXTURE_TIME + 11 * 60_000), null, 'too old');
+});
+
+test('data.gouv.fr links: the producer address of the catalog, else the redirection', async () => {
+  const link = 'https://www.data.gouv.fr/api/1/datasets/r/408b10c9';
+  assert.equal(
+    siriUrl({ url: link, original_url: 'https://api.ginko.voyage/Siri/Siri.do' }),
+    'https://api.ginko.voyage/Siri/Siri.do',
+  );
+  assert.equal(siriUrl({ url: link, original_url: link }), link);
+  assert.equal(siriUrl({ url: link }), link);
+  assert.equal(siriUrl({ url: 'ftp://x' }), null);
+  const seen = [];
+  const fetch = async (url, init) => {
+    seen.push([url, init.method, init.redirect]);
+    if (url === link) {
+      return new Response(null, { status: 302, headers: { location: '/api/1/next' } });
+    }
+    if (url === 'https://www.data.gouv.fr/api/1/next') {
+      return new Response(null, {
+        status: 301,
+        headers: {
+          location:
+            'https://api.okina.fr/gateway/nam/realtime/anshar/ws/services/?datasetId=CA_DU_NIORTAIS',
+        },
+      });
+    }
+    return new Response('?', { status: 404 });
+  };
+  assert.equal(
+    await resolveRedirects(fetch, link),
+    'https://api.okina.fr/gateway/nam/realtime/anshar/ws/services/?datasetId=CA_DU_NIORTAIS',
+  );
+  assert.deepEqual(
+    seen.map(([, method, redirect]) => `${method} ${redirect}`),
+    ['GET manual', 'GET manual'],
+    'the server itself is never asked',
+  );
+  assert.equal(
+    await resolveRedirects(fetch, 'https://api.ginko.voyage/Siri/Siri.do'),
+    'https://api.ginko.voyage/Siri/Siri.do',
+  );
+  await assert.rejects(resolveRedirects(fetch, 'https://www.data.gouv.fr/gone'), /HTTP 404/);
 });

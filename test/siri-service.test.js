@@ -403,6 +403,7 @@ test('SIRI over SOAP: a refused key is said once, without the key, and the timet
 // --- the catalog -----------------------------------------------------------------------
 
 const GINKO_GTFS = 'https://example.org/ginko-like/gtfs.zip';
+const SOAP_LINK = 'https://www.data.gouv.fr/api/1/datasets/r/0f8b1c2d-test';
 // The shape of a dataset of https://transport.data.gouv.fr/api/datasets that
 // publishes SIRI and no GTFS-RT (fields as the API gives them); its timetable
 // is the Tisséo fixture.
@@ -422,7 +423,8 @@ const SIRI_DATASET = {
       id: 990002,
       format: 'SIRI',
       title: 'API SIRI',
-      url: SOAP,
+      // As the API gives them: a data.gouv.fr link, the producer's address.
+      url: SOAP_LINK,
       original_url: SOAP,
       is_available: true,
       requestor_ref: 'opendata',
@@ -515,4 +517,64 @@ test('a network with GTFS-RT never asks SIRI', async (t) => {
   assert.equal(world.service.feeds.get('tdg990001').usesSiri, false);
   assert.equal(world.network.calls.filter((c) => c.url === SOAP).length, 0);
   assert.equal(FIXTURE_TIME, world.clock.now());
+});
+
+test('a data.gouv.fr link is resolved by its redirection, never POSTed to', async (t) => {
+  const linkOnly = structuredClone(SIRI_DATASET);
+  delete linkOnly.resources[1].original_url;
+  const bodies = [];
+  const toLink = [];
+  const world = await createWorld({
+    networks: [],
+    network: catalogFetch({
+      [CATALOG_URL]: [linkOnly],
+      [SOAP_LINK]: (url, init) => {
+        toLink.push(init.method ?? 'GET');
+        return new Response(null, {
+          status: 302,
+          headers: { location: 'https://www.data.gouv.fr/r2/next' },
+        });
+      },
+      'https://www.data.gouv.fr/r2/next': (url, init) => {
+        toLink.push(`${init.method ?? 'GET'} ${init.redirect}`);
+        return new Response(null, { status: 302, headers: { location: SOAP } });
+      },
+      [SOAP]: soapServer(bodies),
+    }),
+  });
+  t.after(() => world.app.stop());
+  await action(world, 'add_network', { network: 'tdg990001' });
+  await action(world, 'add_stop', { stop: 'Pader' });
+  world.clock.advance(60_000);
+  await world.service.refresh();
+  assert.deepEqual(toLink, ['GET', 'GET manual'], 'read once, kept a day, never followed');
+  assert.ok(bodies.some((body) => body.includes('<sw:GetStopMonitoring')));
+  assert.equal(
+    world.service.watch.networks[0].siri[0].url,
+    SOAP_LINK,
+    'the link is what the catalog gives; resolved in memory',
+  );
+});
+
+test('a data.gouv.fr link without a server behind is said, nothing is POSTed', async (t) => {
+  const linkOnly = structuredClone(SIRI_DATASET);
+  delete linkOnly.resources[1].original_url;
+  const world = await createWorld({
+    networks: [],
+    network: catalogFetch({ [CATALOG_URL]: [linkOnly], [SOAP_LINK]: 404 }),
+  });
+  t.after(() => world.app.stop());
+  await action(world, 'add_network', { network: 'tdg990001' });
+  await action(world, 'add_stop', { stop: 'Pader' });
+  assert.match(
+    fr(await action(world, 'status')),
+    /Dernière erreur : www\.data\.gouv\.fr: HTTP 404, no redirection to the server/,
+  );
+  world.clock.advance(60_000);
+  await world.service.refresh();
+  assert.equal(
+    world.network.calls.filter((c) => c.url === SOAP_LINK).length,
+    1,
+    'tried again 30 minutes later only',
+  );
 });

@@ -44,14 +44,18 @@ export function hostOf(url) {
   }
 }
 
-async function request(fetchImpl, url, { timeoutMs, headers = {}, method = 'GET', body }) {
+async function request(
+  fetchImpl,
+  url,
+  { timeoutMs, headers = {}, method = 'GET', body, redirect = 'follow' },
+) {
   let response;
   try {
     response = await fetchImpl(url, {
       method,
       headers: { 'user-agent': USER_AGENT, ...headers },
       ...(body === undefined ? {} : { body }),
-      redirect: 'follow',
+      redirect,
       signal: AbortSignal.timeout(timeoutMs),
     });
   } catch (err) {
@@ -200,4 +204,33 @@ export async function downloadFile(
     throw new HttpError(`${hostOf(url)}: ${reason}`);
   }
   return size;
+}
+
+/** The data.gouv.fr hosts whose links only redirect to the producer's server. */
+export const isRedirectHost = (url) => /(^|\.)data\.gouv\.fr$/i.test(hostOf(url));
+
+/**
+ * Where a data.gouv.fr link ("www.data.gouv.fr/api/1/datasets/r/<id>")
+ * leads: its redirections read one by one (GET, never followed into the
+ * producer's server), up to the first URL outside data.gouv.fr. A SIRI
+ * request must go there directly: POSTed to the link it gets a 405.
+ */
+export async function resolveRedirects(fetchImpl, url, { timeoutMs = 20000, maxHops = 5 } = {}) {
+  let current = url;
+  for (let hop = 0; hop < maxHops && isRedirectHost(current); hop += 1) {
+    const response = await request(fetchImpl, current, { timeoutMs, redirect: 'manual' });
+    await response.body?.cancel?.().catch(() => {});
+    const location = response.headers?.get?.('location');
+    if (response.status < 300 || response.status >= 400 || !location) {
+      throw new HttpError(
+        `${hostOf(current)}: HTTP ${response.status}, no redirection to the server`,
+        response.status,
+      );
+    }
+    current = new URL(location, current).toString();
+  }
+  if (isRedirectHost(current)) {
+    throw new HttpError(`${hostOf(current)}: too many redirections`);
+  }
+  return current;
 }

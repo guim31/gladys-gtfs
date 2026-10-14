@@ -344,6 +344,15 @@ utile** (`Feed.usesSiri`). Constaté, d'où, et ce qui reste à vérifier :
   `requestor_ref` quand il est public (tag du jeu de données, le même pour toutes ses ressources
   SIRI). `is_available` ne vaut rien pour SIRI : la sonde du catalogue compte 401/405 comme
   disponible. Les ressources SIRI sont gardées sans regarder `is_available`.
+- **Le `url` d'une ressource SIRI est un lien `www.data.gouv.fr/api/1/datasets/r/<id>`** qui
+  répond 302 vers le serveur du producteur : un POST SOAP dessus donne **405**, certains liens
+  donnent 404 (relevé par l'orchestrateur le 14/10 avec la sonde). On prend `original_url` quand
+  elle n'est pas elle-même sur data.gouv.fr (`siriUrl` de `src/catalog.js`), sinon on lit la
+  redirection par un GET `redirect: 'manual'` (`resolveRedirects` de `src/http.js`), gardée un jour
+  en mémoire, nouvel essai 30 min après un échec ; **jamais de POST vers data.gouv.fr**. Serveurs
+  réels relevés derrière les liens : Ginko `api.ginko.voyage/Siri/Siri.do` ; Tanlib et CC Sud
+  Gironde `api.okina.fr/gateway/nam/realtime/anshar/ws/services/?datasetId=…` (Okina/Anshar, un
+  `datasetId` par réseau dans l'URL) ; ARVI `h16.hanoverdisplays.com/cluses/siri/r1/` (Hanover).
 - **SOAP** (« SIRI ») : une URL, un POST par opération, l'enveloppe du requêteur de
   transport.data.gouv.fr (`lib/siri_queries.ex`, AGPL : rien copié, l'enveloppe suit le WSDL) :
   `sw:` = `http://wsdl.siri.org.uk`, `siri:` = `http://www.siri.org.uk/siri`, `ServiceRequestInfo`
