@@ -65,7 +65,8 @@ tells what each one publishes.
   and no longer downloads the realtime feeds.
 
 - **SIRI API keys** (secret, optional): only for a network whose real time
-  is SIRI and needs a key (see "SIRI real time").
+  is SIRI and needs a key (see "SIRI real time"). Simpler: the **SIRI API key**
+  field of "Add a network".
 
 ### Add a network
 
@@ -86,16 +87,25 @@ replaces the name put before the stop names.
 **SIRI or SIRI Lite URL** (optional): the SIRI real time of a network
 outside the catalog, used when it has no GTFS-RT.
 
+**SIRI API key** (optional): the key of the SIRI real time of this network,
+when it needs one (see "SIRI real time").
+
+**Change a network**: add it again and fill in only what changes (name
+shown, GTFS-RT URLs, SIRI URL, SIRI key); its stops stay. "Show what is
+watched" lists the networks and stops already added.
+
 ### Add a stop
 
 1. **Find a stop**: type a name ("hotel dieu" finds "Hôtel Dieu", accents and
    case do not matter), or leave it empty to list the 10 stops closest to
    your home. Each result gives its lines, its distance and its identifier in
    brackets, for example `• Commerce [20] — 1, 2, 3, C2, C3 — 90 m`. With
-   several networks, the **Network** field narrows the search.
+   several networks, the **Network** field narrows the search. With several
+   houses, the **House** field picks the one to search around.
 2. **Add a stop**: its name, or its identifier when several stops share a
-   name. **Lines** is optional: "1, C2" keeps these two lines only; empty,
-   every line. A big station has dozens of lines: pick yours (a device keeps 12 lines and directions at most).
+   name. **Lines** is optional: "1, C2" keeps these two lines only; empty, every line. "3 > Chazal" keeps
+   only the direction of line 3 whose destination contains "Chazal". The
+   answer lists the lines and directions of the stop. A big station has dozens of lines: pick yours (a device keeps 12 lines and directions at most).
 3. Open the **Discover** tab and create the device.
 
 Adding a stop already watched changes its lines: Gladys then offers to
@@ -217,11 +227,11 @@ TCL and IDFM, which publish it too, have their dedicated integrations.
   there is nothing to do.
 - **With a key**: many servers ask for one, free, from the network; the page
   of the dataset on transport.data.gouv.fr tells whom to ask (Ginko: its
-  support, by email; CTS: an account on its developer portal). Type it in
-  **SIRI API keys** in the configuration, as `Ginko = your-key`; one per line
+  support, by email; CTS: an account on its developer portal). Type it in the **SIRI API key** field of "Add a network" (already added:
+  add it again with its key), or in **SIRI API keys** in the configuration, as `Ginko = your-key`; one per line
   (or separated by ";") when several networks need one; alone, a key serves
-  them all. It never shows in the logs, in "Show what is watched" or in
-  `/data`. The integration puts it where the server expects it:
+  them all. It never shows in the logs or in "Show what is watched"; typed in "Add a
+  network", it is kept with the network in the `/data` of the integration. The integration puts it where the server expects it:
   `RequestorRef` for SIRI, HTTP authentication for the CTS, the `AccountKey`
   parameter for Mecatran servers. If your network wants it elsewhere, write
   `name=key` (URL parameter) or `Header-Name: key` (HTTP header).
@@ -269,7 +279,7 @@ TCL and IDFM, which publish it too, have their dedicated integrations.
   or not for these vehicles, or the feed is down (the "Show what is watched"
   action gives the last error). The timetable keeps working.
 - **"Real time (SIRI): access refused by the server"**: the key is missing
-  or wrong (**SIRI API keys** field). A key given in another form (URL
+  or wrong (field **SIRI API key** of "Add a network"). A key given in another form (URL
   parameter, header) is written `name=key` or `Header-Name: key`.
 - **A line reads 1440**: no departure in the next 24 hours (night service, a
   line not running that day, a diversion).

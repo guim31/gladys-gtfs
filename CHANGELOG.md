@@ -10,6 +10,18 @@ the notes of the version's GitHub Release.
 
 ## [Unreleased]
 
+### Added
+
+- "Add a network" has a "SIRI API key" field: the key of a SIRI network is
+  typed with it, no longer in the configuration (which still works).
+- Adding a network already added changes it: name shown, realtime feeds, SIRI
+  URL, SIRI key. Its stops stay.
+- "Find a stop" has a "House" field to search around another house than the
+  first one, and says which other houses there are.
+- One direction of a line: "3 > Chazal" in "Lines" keeps only the direction of
+  line 3 whose destination contains "Chazal".
+- "Add a stop" lists the lines and directions of the stop, to choose them.
+
 ## [1.1.0] - 2026-10-14
 
 ### Added

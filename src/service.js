@@ -23,6 +23,7 @@ import {
   MAX_GROUPS,
   buildBoard,
   compareRoutes,
+  goesTowards,
   lineGroups,
   resolveLines,
   stopGroups,
@@ -32,6 +33,7 @@ import {
   buildStopDevice,
   clip,
   lineLabel,
+  lineLabels,
   stopCode,
   stopPlatformId,
   stopStates,
@@ -85,6 +87,39 @@ export function parseLineList(value) {
         .filter(Boolean),
     ),
   ];
+}
+
+const ARROW = /\s*(?:->|→|>)\s*/;
+
+/**
+ * The "Lines" field: "A, 3 > Chazal" → [{ line: 'A', text: '' }, { line: '3',
+ * text: 'Chazal' }]. Without a comma, a field with an arrow is one entry
+ * ("3 > Hauts du Chazal").
+ */
+export function parseLineField(value) {
+  const text = String(value ?? '').trim();
+  const entries = ARROW.test(text) && !/[,;|]/.test(text) ? [text] : parseLineList(text);
+  return entries
+    .map((entry) => {
+      const [line, ...rest] = entry.split(ARROW);
+      return { line: line.trim(), text: rest.join(' ').trim() };
+    })
+    .filter((entry) => entry.line);
+}
+
+/** "3>Chazal>0,3>Gare>1" (device parameter) → [{ line, text, dirs }]. */
+export function parseTowards(value) {
+  return String(value ?? '')
+    .split(',')
+    .map((entry) => entry.split('>'))
+    .filter(([line, text]) => line?.trim() && text?.trim())
+    .map(([line, text, dirs]) => ({
+      line: line.trim(),
+      text: text.trim(),
+      ...(/^\d+(\/\d+)*$/.test(dirs?.trim() ?? '')
+        ? { dirs: dirs.trim().split('/').map(Number) }
+        : {}),
+    }));
 }
 
 /** "https://a/b.pb, https://c/d.pb" → the http(s) URLs. */
@@ -369,6 +404,10 @@ export class Transit {
         if (refs.length > 0) {
           this.watch.stops.at(-1).siri = refs;
         }
+        const towards = parseTowards(param(device, 'towards'));
+        if (towards.length > 0) {
+          this.watch.stops.at(-1).towards = towards;
+        }
         changed = true;
       }
     }
@@ -420,7 +459,7 @@ export class Transit {
     if (!network?.areas.has(stop.id)) {
       return null;
     }
-    const groups = stopGroups(network, stop.id, resolveLines(network, stop.lines));
+    const groups = stopGroups(network, stop.id, resolveLines(network, stop.lines), stop.towards);
     const device = buildStopDevice(this.gladys, stop, groups, this.config.language, feed.info.name);
     device.params.push(
       { name: 'network_name', value: feed.info.name },
@@ -812,9 +851,14 @@ export class Transit {
 
   async addNetwork(fields = {}) {
     const network = await this.resolveNetwork(fields);
+    // A secret field: never logged, kept in /data with the network.
+    const key = String(fields.siri_key ?? '').trim();
     const existing = this.watch.networks.find((n) => n.id === network.id);
     if (existing) {
-      return render(REPORTS, 'networkKnown', { name: existing.name });
+      return this.updateNetwork(existing, network, fields, key);
+    }
+    if (key) {
+      network.siriKey = key;
     }
     if (this.watch.networks.length >= MAX_NETWORKS) {
       throw reportError('tooManyNetworks', { max: MAX_NETWORKS });
@@ -855,16 +899,64 @@ export class Transit {
     );
   }
 
+  /**
+   * "Add a network" on a network already added: what was typed replaces what
+   * it had (name, realtime feeds, SIRI URL, SIRI key); its stops stay.
+   */
+  async updateNetwork(existing, network, fields, key) {
+    const changes = [];
+    const differs = (a, b) => JSON.stringify(a ?? []) !== JSON.stringify(b ?? []);
+    if (String(fields.name ?? '').trim() && network.name !== existing.name) {
+      existing.name = network.name;
+      changes.push('changeName');
+    }
+    if (parseUrlList(fields.realtime).length > 0 && differs(network.realtime, existing.realtime)) {
+      existing.realtime = network.realtime;
+      changes.push('changeRealtime');
+    }
+    if (parseSiriUrls(fields.siri).length > 0 && differs(network.siri, existing.siri)) {
+      existing.siri = network.siri;
+      changes.push('changeSiri');
+    }
+    if (key && key !== existing.siriKey) {
+      existing.siriKey = key;
+      changes.push('changeKey');
+      // What the server answered with the former key (refused, empty) goes.
+      await this.feeds.get(existing.id)?.resetSiri();
+    }
+    if (changes.length === 0) {
+      return render(REPORTS, 'networkKnown', { name: existing.name });
+    }
+    await this.save();
+    logger.info(`Network updated: ${existing.name} (${existing.id})`);
+    // The feed reads the network it was given: the next refresh uses the change.
+    await this.publishDiscovered();
+    await this.refresh();
+    return Object.fromEntries(
+      Object.keys(REPORTS).map((language) => [
+        language,
+        say(REPORTS, language, 'networkUpdated', {
+          name: existing.name,
+          changes: changes.map((change) => say(REPORTS, language, change)).join(', '),
+        }),
+      ]),
+    );
+  }
+
   siriFormatName(network) {
     return network.siri?.some((e) => e.format === SIRI_LITE) ? 'SIRI Lite' : 'SIRI';
   }
 
   /**
-   * The SIRI key of a network: the one named after it, else the key typed
-   * alone, unless the catalog publishes its RequestorRef (an open server must
-   * not get the key of another network).
+   * The SIRI key of a network: the one typed when adding it, else the one
+   * named after it in the configuration, else the key typed alone there,
+   * unless the catalog publishes its RequestorRef (an open server must not
+   * get the key of another network).
    */
   siriKeyOf(network) {
+    if (network.siriKey) {
+      return network.siriKey;
+    }
     const named = siriKeyFor(this.config.siriKeys, network, this.watch.networks, {
       namedOnly: true,
     });
@@ -886,17 +978,34 @@ export class Transit {
 
   // --- configuration actions: stops ---------------------------------------------------
 
-  async home() {
+  /** The located houses of Gladys: `{ name, lat, lon }[]`. */
+  async houses() {
     try {
       const houses = await this.gladys.getHouses();
-      const house = (houses ?? []).find(
-        (h) => Number.isFinite(h.latitude) && Number.isFinite(h.longitude),
-      );
-      return house ? { name: house.name, lat: house.latitude, lon: house.longitude } : null;
+      return (houses ?? [])
+        .filter((h) => Number.isFinite(h.latitude) && Number.isFinite(h.longitude))
+        .map((h) => ({ name: h.name, lat: h.latitude, lon: h.longitude }));
     } catch (err) {
       logger.warn(`Cannot read the position of the houses: ${err.message}`);
-      return null;
+      return [];
     }
+  }
+
+  /** The house named (or the first located one): `{ name, lat, lon }` or null. */
+  async home(name) {
+    const houses = await this.houses();
+    const wanted = normalize(name);
+    if (!wanted) {
+      return houses[0] ?? null;
+    }
+    const house = houses.find((h) => normalize(h.name) === wanted);
+    if (!house) {
+      throw reportError('unknownHouse', {
+        query: String(name).trim(),
+        houses: houses.map((h) => h.name).join(', ') || '-',
+      });
+    }
+    return house;
   }
 
   routeNames(network, routeIds) {
@@ -957,12 +1066,13 @@ export class Transit {
     return items;
   }
 
-  async searchStops({ query, network } = {}) {
+  async searchStops({ query, network, house } = {}) {
     const feeds = this.feedsFor(network);
     const items = await this.servedAreas(feeds);
-    const home = await this.home();
+    const home = await this.home(house);
     let found;
     let header;
+    let footer = null;
     if (normalize(query)) {
       found = searchByName(items, query, { near: home }).slice(0, SEARCH_RESULTS);
       if (found.length === 0) {
@@ -975,11 +1085,16 @@ export class Transit {
       }
       found = nearest(items, home, SEARCH_RESULTS);
       header = render(REPORTS, 'closestStops', { house: home.name });
+      const others = (await this.houses()).filter((h) => h.name !== home.name);
+      if (others.length > 0) {
+        footer = render(REPORTS, 'otherHouses', { houses: others.map((h) => h.name).join(', ') });
+      }
     }
     const withNetwork = feeds.length > 1;
     return lines(
       header,
       found.map(({ item, distance }) => this.stopLine(item, distance, withNetwork)).join('\n'),
+      footer,
       render(REPORTS, 'addStopHint'),
     );
   }
@@ -1027,9 +1142,10 @@ export class Transit {
     const served = this.routeNames(feed.network, area.routes);
     // "Nantes - Angers" typed without a comma is one line, not three.
     const whole = String(lineField ?? '').trim();
-    const wanted = served.some((short) => short.toUpperCase() === whole.toUpperCase())
-      ? [whole]
-      : parseLineList(lineField);
+    const typed = served.some((short) => short.toUpperCase() === whole.toUpperCase())
+      ? [{ line: whole, text: '' }]
+      : parseLineField(lineField);
+    const wanted = [...new Set(typed.map((entry) => entry.line))];
     const unknown = wanted.filter(
       (line) => !served.some((short) => short.toUpperCase() === line.toUpperCase()),
     );
@@ -1042,6 +1158,14 @@ export class Transit {
     const chosen = served.filter((short) =>
       wanted.some((line) => line.toUpperCase() === short.toUpperCase()),
     );
+    // "3 > Chazal": only the directions of line 3 whose destination says so
+    // (checked once the departures of the stop are read, below).
+    const towards = typed
+      .filter((entry) => entry.text)
+      .map(({ line, text }) => ({
+        line: served.find((name) => name.toUpperCase() === line.toUpperCase()),
+        text,
+      }));
     const existing = this.watch.stops.find(
       (stop) => stop.network === feed.id && stop.id === area.id,
     );
@@ -1050,9 +1174,15 @@ export class Transit {
     }
     // Empty: found automatically (src/siri-feed.js).
     const refs = parseRefList(siriRef);
+    const before = existing ? { ...existing } : null;
     if (existing) {
       existing.lines = chosen;
       existing.name = area.name;
+      if (towards.length > 0) {
+        existing.towards = towards;
+      } else {
+        delete existing.towards;
+      }
       if (refs.length > 0) {
         existing.siri = refs;
       } else {
@@ -1064,20 +1194,77 @@ export class Transit {
         id: area.id,
         name: area.name,
         lines: chosen,
+        ...(towards.length > 0 ? { towards } : {}),
         ...(refs.length > 0 ? { siri: refs } : {}),
       });
     }
     await this.save();
-    logger.info(`Stop ${existing ? 'updated' : 'added'}: ${area.name} (${feed.info.name})`);
     // Its departures are only kept by a new pass over the timetable.
     if (!existing) {
       await feed.ensure({ reparse: true }).catch(() => {});
     }
+    const all = lineGroups(feed.network, area.id);
+    const astray = towards.find(
+      (entry) =>
+        !all.some(
+          (group) =>
+            group.route.short.toUpperCase() === entry.line.toUpperCase() &&
+            goesTowards(group, [entry]),
+        ),
+    );
+    // Kept by direction: the most frequent destination of a direction may
+    // change with the timetable window (week-end, partial services).
+    for (const entry of towards) {
+      entry.dirs = [
+        ...new Set(
+          all
+            .filter(
+              (group) =>
+                group.route.short.toUpperCase() === entry.line.toUpperCase() &&
+                goesTowards(group, [{ line: entry.line, text: entry.text }]),
+            )
+            .map((group) => group.dir),
+        ),
+      ];
+    }
+    if (towards.length > 0 && !astray) {
+      await this.save();
+    }
+    if (astray) {
+      // Back to what it was.
+      if (existing) {
+        for (const field of ['towards', 'siri']) {
+          delete existing[field];
+        }
+        Object.assign(existing, before);
+      } else {
+        this.watch.stops = this.watch.stops.filter(
+          (stop) => !(stop.network === feed.id && stop.id === area.id),
+        );
+      }
+      await this.save();
+      const ofLine = all.filter(
+        (group) => group.route.short.toUpperCase() === astray.line.toUpperCase(),
+      );
+      throw reportError('unknownDirection', {
+        line: astray.line,
+        text: astray.text,
+        available: [...new Set(ofLine.map((group) => group.headsign))].join(', '),
+      });
+    }
+    logger.info(`Stop ${existing ? 'updated' : 'added'}: ${area.name} (${feed.info.name})`);
     await this.publishDiscovered();
     await this.refresh();
-    const groups = lineGroups(feed.network, area.id, resolveLines(feed.network, chosen)).length;
+    const groups = lineGroups(feed.network, area.id, resolveLines(feed.network, chosen)).filter(
+      (group) => goesTowards(group, towards),
+    ).length;
     const label = (language) =>
-      chosen.length > 0 ? chosen.join(', ') : say(REPORTS, language, 'allLines');
+      chosen.length > 0
+        ? lineLabels({ lines: chosen, towards }).join(', ')
+        : say(REPORTS, language, 'allLines');
+    const directions = all.map((group) => `${group.route.short} → ${group.headsign}`);
+    const shownDirections =
+      directions.length > 24 ? `${directions.slice(0, 24).join(', ')}…` : directions.join(', ');
     return Object.fromEntries(
       Object.keys(REPORTS).map((language) => [
         language,
@@ -1088,6 +1275,12 @@ export class Transit {
           }),
           groups > MAX_GROUPS
             ? say(REPORTS, language, 'tooManyLines', { count: groups, max: MAX_GROUPS })
+            : null,
+          all.length > 1
+            ? say(REPORTS, language, 'servedDirections', {
+                list: shownDirections,
+                example: `${all[0].route.short} > ${all[0].headsign}`,
+              })
             : null,
           refs.length > 0
             ? say(REPORTS, language, feed.usesSiri ? 'siriRef' : 'siriRefUnused', {
@@ -1196,7 +1389,7 @@ export class Transit {
         stops
           .map(
             (stop) =>
-              `• ${stop.name} [${stopCode(stop.id)}]${stop.lines.length ? ` (${stop.lines.join(', ')})` : ''}`,
+              `• ${stop.name} [${stopCode(stop.id)}]${stop.lines.length ? ` (${lineLabels(stop).join(', ')})` : ''}`,
           )
           .join('\n') || null,
         [feed?.gtfsError, feed?.realtimeError].some(Boolean)
