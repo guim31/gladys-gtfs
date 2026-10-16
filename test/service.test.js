@@ -9,7 +9,7 @@ import assert from 'node:assert/strict';
 import { readFile, stat, utimes } from 'node:fs/promises';
 import { join } from 'node:path';
 import { CATALOG_URL } from '../src/catalog.js';
-import { MAX_NETWORKS, TRIGGERS } from '../src/service.js';
+import { MAX_NETWORKS, TRIGGERS, parseTowards } from '../src/service.js';
 import { NO_DEPARTURE_MINUTES } from '../src/devices.js';
 import {
   FIXTURE_TIME,
@@ -672,7 +672,7 @@ test('feedback of 16/10: change a network, its SIRI key, the house, one directio
     device.params.find((p) => p.name === 'towards'),
     {
       name: 'towards',
-      value: 'A>balma',
+      value: 'A>balma>0',
     },
   );
   const status = fr(await action(world, 'status', {}));
@@ -681,7 +681,7 @@ test('feedback of 16/10: change a network, its SIRI key, the house, one directio
   const jj = await create(world, 'Jean Jaurès');
   const again = await createWorld({ devices: [jj], networks: [] });
   t.after(() => again.app.stop());
-  assert.deepEqual(again.service.watch.stops[0].towards, [{ line: 'A', text: 'balma' }]);
+  assert.deepEqual(again.service.watch.stops[0].towards, [{ line: 'A', text: 'balma', dirs: [0] }]);
   // Added again without a direction: every direction comes back.
   await action(world, 'add_stop', { stop: 'SA_1707', lines: 'A' });
   assert.equal(world.service.watch.stops[0].towards, undefined);
@@ -691,4 +691,13 @@ test('feedback of 16/10: change a network, its SIRI key, the house, one directio
       .filter((name) => !/suivant/.test(name)),
     ['Métro A → Balma-Gramont', 'Métro A → Basso Cambo', 'Prochains passages', 'Info trafic'],
   );
+});
+
+test('the directions of a device parameter: spaces and dashes in names, directions kept', () => {
+  assert.deepEqual(parseTowards('3>Hauts du Chazal>1,Nantes - Angers>Angers>0/1,B>Gare'), [
+    { line: '3', text: 'Hauts du Chazal', dirs: [1] },
+    { line: 'Nantes - Angers', text: 'Angers', dirs: [0, 1] },
+    { line: 'B', text: 'Gare' },
+  ]);
+  assert.deepEqual(parseTowards(''), []);
 });

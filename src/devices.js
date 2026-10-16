@@ -130,9 +130,13 @@ export function lineLabels(stop) {
   });
 }
 
-/** "3>Chazal,3>Gare": the directions of a stop, as kept in a device parameter. */
+/** "3>Chazal>0,3>Gare>1": the directions of a stop, as kept in a device parameter. */
 export const towardsParam = (stop) =>
-  (stop.towards ?? []).map((entry) => `${entry.line}>${entry.text}`).join(',');
+  (stop.towards ?? [])
+    .map((entry) =>
+      [entry.line, entry.text, ...(entry.dirs?.length ? [entry.dirs.join('/')] : [])].join('>'),
+    )
+    .join(',');
 
 /**
  * The device of a watched stop.

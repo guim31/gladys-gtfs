@@ -118,9 +118,10 @@ export function lineGroups(network, areaId, routeFilter = null) {
 }
 
 /**
- * Whether a line group goes the way asked: `towards` lists `{ line, text }`
- * ("3 > Chazal"); a line without any entry keeps all its directions, a line
- * with some keeps those whose destination contains one of their texts.
+ * Whether a line group goes the way asked: `towards` lists `{ line, text,
+ * dirs? }` ("3 > Chazal"); a line without any entry keeps all its directions,
+ * a line with some keeps the directions found when it was added (`dirs`), or
+ * else those whose destination contains one of their texts.
  */
 export function goesTowards(group, towards) {
   const own = (towards ?? []).filter(
@@ -130,7 +131,9 @@ export function goesTowards(group, towards) {
     return true;
   }
   const headsign = normalize(group.headsign);
-  return own.some((entry) => headsign.includes(normalize(entry.text)));
+  return own.some((entry) =>
+    entry.dirs ? entry.dirs.includes(group.dir) : headsign.includes(normalize(entry.text)),
+  );
 }
 
 /** The groups shown for a stop: the first MAX_GROUPS of lineGroups, in the directions asked. */

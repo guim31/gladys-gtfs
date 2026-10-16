@@ -250,6 +250,12 @@ export class Feed {
     return (this.info.realtime ?? []).length === 0 && (this.info.siri ?? []).length > 0;
   }
 
+  /** Forgets what the SIRI server answered (a new key): stops found again at the next read. */
+  async resetSiri() {
+    await this.reader?.dropCache();
+    this.reader = null;
+  }
+
   /** The SIRI reader, made again when the endpoints changed (catalog read again). */
   siriReader() {
     const signature = JSON.stringify(this.info.siri ?? []);

@@ -107,12 +107,19 @@ export function parseLineField(value) {
     .filter((entry) => entry.line);
 }
 
-/** "3>Chazal,3>Gare" (device parameter) → [{ line, text }]. */
+/** "3>Chazal>0,3>Gare>1" (device parameter) → [{ line, text, dirs }]. */
 export function parseTowards(value) {
-  return parseLineList(value)
+  return String(value ?? '')
+    .split(',')
     .map((entry) => entry.split('>'))
     .filter(([line, text]) => line?.trim() && text?.trim())
-    .map(([line, text]) => ({ line: line.trim(), text: text.trim() }));
+    .map(([line, text, dirs]) => ({
+      line: line.trim(),
+      text: text.trim(),
+      ...(/^\d+(\/\d+)*$/.test(dirs?.trim() ?? '')
+        ? { dirs: dirs.trim().split('/').map(Number) }
+        : {}),
+    }));
 }
 
 /** "https://a/b.pb, https://c/d.pb" → the http(s) URLs. */
@@ -914,6 +921,8 @@ export class Transit {
     if (key && key !== existing.siriKey) {
       existing.siriKey = key;
       changes.push('changeKey');
+      // What the server answered with the former key (refused, empty) goes.
+      await this.feeds.get(existing.id)?.resetSiri();
     }
     if (changes.length === 0) {
       return render(REPORTS, 'networkKnown', { name: existing.name });
@@ -1203,6 +1212,24 @@ export class Transit {
             goesTowards(group, [entry]),
         ),
     );
+    // Kept by direction: the most frequent destination of a direction may
+    // change with the timetable window (week-end, partial services).
+    for (const entry of towards) {
+      entry.dirs = [
+        ...new Set(
+          all
+            .filter(
+              (group) =>
+                group.route.short.toUpperCase() === entry.line.toUpperCase() &&
+                goesTowards(group, [{ line: entry.line, text: entry.text }]),
+            )
+            .map((group) => group.dir),
+        ),
+      ];
+    }
+    if (towards.length > 0 && !astray) {
+      await this.save();
+    }
     if (astray) {
       // Back to what it was.
       if (existing) {
