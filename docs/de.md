@@ -71,6 +71,7 @@ Fahrplan“. Die Netzsuche zeigt, was jedes Netz veröffentlicht.
 
 - **SIRI-API-Schlüssel** (geheim, optional): nur für ein Netz, dessen
   Echtzeit SIRI ist und einen Schlüssel verlangt (siehe „SIRI-Echtzeit“).
+  Einfacher: das Feld **SIRI-API-Schlüssel** von „Netz hinzufügen“.
 
 ### Netz hinzufügen
 
@@ -92,6 +93,14 @@ Name** ersetzt den Namen vor den Haltestellennamen.
 **SIRI- oder SIRI-Lite-URL** (optional): die SIRI-Echtzeit eines Netzes
 außerhalb des Katalogs, genutzt, wenn es kein GTFS-RT hat.
 
+**SIRI-API-Schlüssel** (optional): der Schlüssel der SIRI-Echtzeit dieses
+Netzes, wenn es einen verlangt (siehe „SIRI-Echtzeit“).
+
+**Ein Netz ändern**: Füge es erneut hinzu und fülle nur aus, was sich ändert
+(angezeigter Name, GTFS-RT-URLs, SIRI-URL, SIRI-Schlüssel); seine
+Haltestellen bleiben. „Überwachung anzeigen“ listet die bereits
+hinzugefügten Netze und Haltestellen.
+
 ### Haltestelle hinzufügen
 
 1. **Haltestelle suchen**: Gib einen Namen ein („hotel dieu“ findet „Hôtel
@@ -99,10 +108,13 @@ außerhalb des Katalogs, genutzt, wenn es kein GTFS-RT hat.
    Feld leer, um die 10 Haltestellen nahe deinem Zuhause aufzulisten. Jedes
    Ergebnis zeigt Linien, Entfernung und Kennung in Klammern, zum Beispiel
    `• Commerce [20] — 1, 2, 3, C2, C3 — 90 m`. Bei mehreren Netzen schränkt
-   das Feld **Netz** die Suche ein.
+   das Feld **Netz** die Suche ein. Bei mehreren Zuhause wählt das Feld
+   **Zuhause**, um welches herum gesucht wird.
 2. **Haltestelle hinzufügen**: ihren Namen oder ihre Kennung, wenn mehrere
    Haltestellen gleich heißen. **Linien** ist optional: „1, C2“ behält nur
-   diese beiden Linien; leer alle Linien. Ein großer Bahnhof hat Dutzende Linien: Wähle deine aus (ein Gerät behält höchstens 12 Linien und Richtungen).
+   diese beiden Linien; leer alle Linien. „3 > Chazal“ behält nur die
+   Richtung der Linie 3, deren Ziel „Chazal“ enthält. Die Antwort listet die
+   Linien und Richtungen der Haltestelle. Ein großer Bahnhof hat Dutzende Linien: Wähle deine aus (ein Gerät behält höchstens 12 Linien und Richtungen).
 3. Öffne den Tab **Entdecken** und lege das Gerät an.
 
 Eine bereits überwachte Haltestelle erneut hinzuzufügen ändert ihre Linien:
@@ -232,11 +244,13 @@ eigene Integrationen.
 - **Mit Schlüssel**: Viele Server verlangen einen, kostenlos beim Netz zu
   bekommen; die Seite des Datensatzes auf transport.data.gouv.fr sagt, bei
   wem (Ginko: sein Support per E-Mail; CTS: ein Konto auf seinem
-  Entwicklerportal). Gib ihn in der Konfiguration unter
-  **SIRI-API-Schlüssel** ein, als `Ginko = dein-Schlüssel`; einer pro Zeile
+  Entwicklerportal). Gib ihn im Feld **SIRI-API-Schlüssel** von „Netz hinzufügen“ ein (schon
+  hinzugefügt: füge es erneut mit seinem Schlüssel hinzu) oder in der
+  Konfiguration unter **SIRI-API-Schlüssel**, als `Ginko = dein-Schlüssel`; einer pro Zeile
   (oder durch „;“ getrennt), wenn mehrere Netze einen verlangen; ein
-  einzelner Schlüssel gilt für alle. Er erscheint nie in den Protokollen, in
-  „Überwachung anzeigen“ oder in `/data`. Die Integration setzt ihn dort ein,
+  einzelner Schlüssel gilt für alle. Er erscheint nie in den Protokollen oder in „Überwachung anzeigen“; in
+  „Netz hinzufügen“ eingegeben, wird er mit dem Netz im `/data` der
+  Integration gespeichert. Die Integration setzt ihn dort ein,
   wo der Server ihn erwartet: `RequestorRef` bei SIRI, HTTP-Authentifizierung
   bei der CTS, Parameter `AccountKey` bei Mecatran-Servern. Will dein Netz
   ihn woanders, schreib `name=Schlüssel` (URL-Parameter) oder
@@ -289,7 +303,7 @@ eigene Integrationen.
   ist ausgefallen (die Aktion „Überwachung anzeigen“ zeigt den letzten Fehler). Der
   Fahrplan funktioniert weiter.
 - **„Echtzeit (SIRI): Zugriff vom Server verweigert“**: Der Schlüssel
-  fehlt oder ist falsch (Feld **SIRI-API-Schlüssel**). Ein Schlüssel in
+  fehlt oder ist falsch (Feld **SIRI-API-Schlüssel** von „Netz hinzufügen“). Ein Schlüssel in
   anderer Form (URL-Parameter, Header) wird als `name=Schlüssel` oder
   `Header-Name: Schlüssel` geschrieben.
 - **Eine Linie zeigt 1440**: keine Abfahrt in den nächsten 24 Stunden

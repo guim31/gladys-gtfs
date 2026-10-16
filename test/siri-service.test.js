@@ -388,7 +388,7 @@ test('SIRI over SOAP: a refused key is said once, without the key, and the timet
   );
   assert.ok(logs.every((l) => !l.text.includes('ABCD-1234')));
   const status = fr(await action(world, 'status'));
-  assert.match(status, /Temps réel \(SIRI\) : accès refusé par le serveur\. Vérifiez la clé d'API/);
+  assert.match(status, /Temps réel \(SIRI\) : accès refusé par le serveur\. Vérifiez sa clé d'API/);
   assert.ok(!status.includes('ABCD-1234'));
   // Ten minutes later the visits are too old: the timetable, marked so.
   world.clock.advance(10 * 60_000);
@@ -475,7 +475,7 @@ test('catalog: a SIRI Lite network without public key says where the key goes', 
   const added = await action(world, 'add_network', { network: 'tdg990001' });
   assert.match(
     fr(added),
-    /Temps réel : SIRI Lite, interrogé arrêt par arrêt\.\nSi le réseau demande une clé d'API, saisissez-la dans la configuration de l'intégration \(« Clés d'API SIRI »\)\./,
+    /Temps réel : SIRI Lite, interrogé arrêt par arrêt\.\nSi le réseau demande une clé d'API, ajoutez à nouveau le réseau avec sa clé \(champ « Clé d'API SIRI »\)\./,
   );
 });
 
@@ -593,7 +593,7 @@ test('answers without any stop nor departure (Ginko without a key): said, with t
     status,
     /Temps réel \(SIRI\) : le serveur répond, mais sans aucun arrêt ni passage\. Il demande très probablement une clé d'API/,
   );
-  assert.match(status, /saisissez-la dans la configuration de l'intégration/);
+  assert.match(status, /ajoutez à nouveau le réseau avec sa clé/);
   assert.match(
     status,
     /Dernière erreur : soap\.example\.org: answers without any stop nor departure/,

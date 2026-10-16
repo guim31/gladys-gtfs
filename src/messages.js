@@ -168,7 +168,20 @@ export const REPORTS = {
     networkRealtime: ({ count }) => `Real time: ${count} feed(s).`,
     networkNoRealtime: 'Real time: none published, timetable only.',
     licence: ({ licence }) => `Data licence: ${licence}.`,
-    networkKnown: ({ name }) => `${name} is already added.`,
+    networkKnown: ({ name }) =>
+      `${name} is already added. To change it, add it again and fill in what changes (name, realtime feeds, SIRI key).`,
+    networkUpdated: ({ name, changes }) => `${name} updated: ${changes}.`,
+    changeName: 'name',
+    changeRealtime: 'realtime feeds',
+    changeSiri: 'SIRI URL',
+    changeKey: 'SIRI key',
+    unknownHouse: ({ query, houses }) =>
+      `No located house named "${query}". Houses with a position: ${houses}.`,
+    otherHouses: ({ houses }) => `Other houses: ${houses} (field "House").`,
+    unknownDirection: ({ line, text, available }) =>
+      `Line ${line} does not go towards "${text}" from this stop. Its directions: ${available}.`,
+    servedDirections: ({ list, example }) =>
+      `Lines and directions at this stop: ${list}. To keep only one, type for example "${example}" in "Lines".`,
     tooManyNetworks: ({ max }) => `${max} networks at most: remove one first.`,
     searchStopHint: 'Now find your stops with "Find a stop".',
     noQuery:
@@ -202,12 +215,12 @@ export const REPORTS = {
     siriShort: 'departures stop by stop (SIRI)',
     networkSiri: ({ format }) => `Real time: ${format}, asked stop by stop.`,
     siriKeyHint:
-      'If the network asks for an API key, type it in the integration configuration ("SIRI API keys").',
+      'If the network asks for an API key, add the network again with its key (field "SIRI API key").',
     siriRealtime: ({ format, age, tracked, requests }) =>
       `Real time (${format}): updated ${age} s ago, ${tracked} departure(s) tracked, ${requests} request(s) per refresh while departures are scheduled.`,
     siriWaiting: ({ format }) => `Real time (${format}): not read yet.`,
     siriKeyRefused:
-      'Real time (SIRI): access refused by the server. Check the API key in the configuration ("SIRI API keys").',
+      'Real time (SIRI): access refused by the server. Check its API key: add the network again with the right one (field "SIRI API key").',
     siriUnknownStops: ({ stops }) =>
       `Stops unknown to the SIRI server: ${stops}. Give their SIRI identifier with "Add a stop".`,
     siriRef: ({ refs }) => `SIRI identifier: ${refs}.`,
@@ -243,7 +256,20 @@ export const REPORTS = {
     networkRealtime: ({ count }) => `Temps réel : ${count} flux.`,
     networkNoRealtime: 'Temps réel : aucun publié, horaires théoriques seuls.',
     licence: ({ licence }) => `Licence des données : ${licence}.`,
-    networkKnown: ({ name }) => `${name} est déjà ajouté.`,
+    networkKnown: ({ name }) =>
+      `${name} est déjà ajouté. Pour le modifier, ajoutez-le à nouveau en remplissant ce qui change (nom, flux temps réel, clé SIRI).`,
+    networkUpdated: ({ name, changes }) => `${name} mis à jour : ${changes}.`,
+    changeName: 'nom',
+    changeRealtime: 'flux temps réel',
+    changeSiri: 'URL SIRI',
+    changeKey: 'clé SIRI',
+    unknownHouse: ({ query, houses }) =>
+      `Aucune maison « ${query} » avec une position. Maisons avec une position : ${houses}.`,
+    otherHouses: ({ houses }) => `Autres maisons : ${houses} (champ « Maison »).`,
+    unknownDirection: ({ line, text, available }) =>
+      `La ligne ${line} ne va pas vers « ${text} » depuis cet arrêt. Ses directions : ${available}.`,
+    servedDirections: ({ list, example }) =>
+      `Lignes et directions de cet arrêt : ${list}. Pour n'en garder qu'une, saisissez par exemple « ${example} » dans « Lignes ».`,
     tooManyNetworks: ({ max }) => `${max} réseaux au plus : retirez-en un d'abord.`,
     searchStopHint: 'Cherchez maintenant vos arrêts avec « Chercher un arrêt ».',
     noQuery:
@@ -282,12 +308,12 @@ export const REPORTS = {
     siriShort: 'passages arrêt par arrêt (SIRI)',
     networkSiri: ({ format }) => `Temps réel : ${format}, interrogé arrêt par arrêt.`,
     siriKeyHint:
-      "Si le réseau demande une clé d'API, saisissez-la dans la configuration de l'intégration (« Clés d'API SIRI »).",
+      "Si le réseau demande une clé d'API, ajoutez à nouveau le réseau avec sa clé (champ « Clé d'API SIRI »).",
     siriRealtime: ({ format, age, tracked, requests }) =>
       `Temps réel (${format}) : mis à jour il y a ${age} s, ${tracked} passage(s) suivi(s), ${requests} requête(s) par rafraîchissement quand des passages sont prévus.`,
     siriWaiting: ({ format }) => `Temps réel (${format}) : pas encore lu.`,
     siriKeyRefused:
-      "Temps réel (SIRI) : accès refusé par le serveur. Vérifiez la clé d'API dans la configuration (« Clés d'API SIRI »).",
+      "Temps réel (SIRI) : accès refusé par le serveur. Vérifiez sa clé d'API : ajoutez à nouveau le réseau avec la bonne (champ « Clé d'API SIRI »).",
     siriUnknownStops: ({ stops }) =>
       `Arrêts inconnus du serveur SIRI : ${stops}. Donnez leur identifiant SIRI avec « Ajouter un arrêt ».`,
     siriRef: ({ refs }) => `Identifiant SIRI : ${refs}.`,
@@ -323,7 +349,20 @@ export const REPORTS = {
     networkRealtime: ({ count }) => `Echtzeit: ${count} Feed(s).`,
     networkNoRealtime: 'Echtzeit: keine veröffentlicht, nur Fahrplan.',
     licence: ({ licence }) => `Datenlizenz: ${licence}.`,
-    networkKnown: ({ name }) => `${name} ist bereits hinzugefügt.`,
+    networkKnown: ({ name }) =>
+      `${name} ist bereits hinzugefügt. Um es zu ändern, füge es erneut hinzu und fülle aus, was sich ändert (Name, Echtzeit-Feeds, SIRI-Schlüssel).`,
+    networkUpdated: ({ name, changes }) => `${name} aktualisiert: ${changes}.`,
+    changeName: 'Name',
+    changeRealtime: 'Echtzeit-Feeds',
+    changeSiri: 'SIRI-URL',
+    changeKey: 'SIRI-Schlüssel',
+    unknownHouse: ({ query, houses }) =>
+      `Kein Zuhause „${query}“ mit Position. Zuhause mit Position: ${houses}.`,
+    otherHouses: ({ houses }) => `Weitere Zuhause: ${houses} (Feld „Zuhause“).`,
+    unknownDirection: ({ line, text, available }) =>
+      `Linie ${line} fährt von dieser Haltestelle nicht Richtung „${text}“. Richtungen der Linie: ${available}.`,
+    servedDirections: ({ list, example }) =>
+      `Linien und Richtungen an dieser Haltestelle: ${list}. Um nur eine zu behalten, gib zum Beispiel „${example}“ unter „Linien“ ein.`,
     tooManyNetworks: ({ max }) => `Höchstens ${max} Netze: Entferne zuerst eines.`,
     searchStopHint: 'Suche jetzt deine Haltestellen mit „Haltestelle suchen“.',
     noQuery:
@@ -360,12 +399,12 @@ export const REPORTS = {
     siriShort: 'Abfahrten je Haltestelle (SIRI)',
     networkSiri: ({ format }) => `Echtzeit: ${format}, je Haltestelle abgefragt.`,
     siriKeyHint:
-      'Wenn das Netz einen API-Schlüssel verlangt, gib ihn in der Konfiguration der Integration ein („SIRI-API-Schlüssel“).',
+      'Wenn das Netz einen API-Schlüssel verlangt, füge das Netz erneut mit seinem Schlüssel hinzu (Feld „SIRI-API-Schlüssel“).',
     siriRealtime: ({ format, age, tracked, requests }) =>
       `Echtzeit (${format}): vor ${age} s aktualisiert, ${tracked} Abfahrt(en) verfolgt, ${requests} Anfrage(n) pro Aktualisierung, solange Abfahrten anstehen.`,
     siriWaiting: ({ format }) => `Echtzeit (${format}): noch nicht gelesen.`,
     siriKeyRefused:
-      'Echtzeit (SIRI): Zugriff vom Server verweigert. Prüfe den API-Schlüssel in der Konfiguration („SIRI-API-Schlüssel“).',
+      'Echtzeit (SIRI): Zugriff vom Server verweigert. Prüfe den API-Schlüssel des Netzes: füge es erneut mit dem richtigen hinzu (Feld „SIRI-API-Schlüssel“).',
     siriUnknownStops: ({ stops }) =>
       `Dem SIRI-Server unbekannte Haltestellen: ${stops}. Gib ihre SIRI-Kennung mit „Haltestelle hinzufügen“ an.`,
     siriRef: ({ refs }) => `SIRI-Kennung: ${refs}.`,
@@ -402,7 +441,20 @@ export const REPORTS = {
     networkRealtime: ({ count }) => `Tiempo real: ${count} flujo(s).`,
     networkNoRealtime: 'Tiempo real: no se publica ninguno, solo horarios teóricos.',
     licence: ({ licence }) => `Licencia de los datos: ${licence}.`,
-    networkKnown: ({ name }) => `${name} ya está añadida.`,
+    networkKnown: ({ name }) =>
+      `${name} ya está añadida. Para cambiarla, añádala de nuevo rellenando lo que cambia (nombre, flujos en tiempo real, clave SIRI).`,
+    networkUpdated: ({ name, changes }) => `${name} actualizada: ${changes}.`,
+    changeName: 'nombre',
+    changeRealtime: 'flujos en tiempo real',
+    changeSiri: 'URL SIRI',
+    changeKey: 'clave SIRI',
+    unknownHouse: ({ query, houses }) =>
+      `Ninguna casa «${query}» con posición. Casas con posición: ${houses}.`,
+    otherHouses: ({ houses }) => `Otras casas: ${houses} (campo «Casa»).`,
+    unknownDirection: ({ line, text, available }) =>
+      `La línea ${line} no va hacia «${text}» desde esta parada. Sus direcciones: ${available}.`,
+    servedDirections: ({ list, example }) =>
+      `Líneas y direcciones de esta parada: ${list}. Para conservar solo una, escriba por ejemplo «${example}» en «Líneas».`,
     tooManyNetworks: ({ max }) => `${max} redes como máximo: elimine una primero.`,
     searchStopHint: 'Busque ahora sus paradas con «Buscar una parada».',
     noQuery:
@@ -440,12 +492,12 @@ export const REPORTS = {
     siriShort: 'salidas parada por parada (SIRI)',
     networkSiri: ({ format }) => `Tiempo real: ${format}, consultado parada por parada.`,
     siriKeyHint:
-      'Si la red pide una clave de API, escríbala en la configuración de la integración («Claves de API SIRI»).',
+      'Si la red pide una clave de API, añada de nuevo la red con su clave (campo «Clave de API SIRI»).',
     siriRealtime: ({ format, age, tracked, requests }) =>
       `Tiempo real (${format}): actualizado hace ${age} s, ${tracked} salida(s) seguida(s), ${requests} petición(es) por actualización mientras haya salidas previstas.`,
     siriWaiting: ({ format }) => `Tiempo real (${format}): aún sin leer.`,
     siriKeyRefused:
-      'Tiempo real (SIRI): el servidor ha rechazado el acceso. Compruebe la clave de API en la configuración («Claves de API SIRI»).',
+      'Tiempo real (SIRI): el servidor ha rechazado el acceso. Compruebe su clave de API: añada de nuevo la red con la correcta (campo «Clave de API SIRI»).',
     siriUnknownStops: ({ stops }) =>
       `Paradas desconocidas para el servidor SIRI: ${stops}. Indique su identificador SIRI con «Añadir una parada».`,
     siriRef: ({ refs }) => `Identificador SIRI: ${refs}.`,

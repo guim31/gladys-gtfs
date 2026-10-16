@@ -15,6 +15,7 @@ import {
   FIXTURE_TIME,
   GTFS_RT_URL,
   GTFS_URL,
+  HOUSE,
   JEAN_JAURES,
   NANTES,
   PADER,
@@ -200,10 +201,8 @@ test('add a stop: homonyms by identifier, line filter checked, then its device',
     /Ligne\(s\) absente\(s\) de cet arrêt : T1\. Lignes desservies : A, B, 15, 23, AERO, CIMTR, L1, L9, L14, VILLE\./,
   );
   const added = await action(world, 'add_stop', { stop: 'sa_1707', lines: 'a l1' });
-  assert.equal(
-    fr(added),
-    "Jean Jaurès ajouté (A, L1).\nOuvrez l'onglet Découverte pour créer son appareil.",
-  );
+  assert.match(fr(added), /^Jean Jaurès ajouté \(A, L1\)\.\nLignes et directions de cet arrêt : /);
+  assert.match(fr(added), /\nOuvrez l'onglet Découverte pour créer son appareil\.$/);
   const device = discovered(world, 'Jean Jaurès');
   assert.equal(device.name, 'Tisséo · Jean Jaurès (A, L1)');
   assert.deepEqual(device.params.slice(0, 3), [
@@ -595,4 +594,101 @@ test('an alerts feed down for hours does not announce its old alerts again', asy
   world.clock.advance(60_000);
   await world.service.refresh();
   assert.deepEqual(world.fake.sceneEvents, []);
+});
+
+test('feedback of 16/10: change a network, its SIRI key, the house, one direction of a line', async (t) => {
+  const logs = captureLogs(t);
+  const world = await createWorld({
+    houses: [
+      HOUSE,
+      { id: 'b', name: 'Bureau', selector: 'b', latitude: 43.5615, longitude: 1.3925 },
+    ],
+  });
+  t.after(() => world.app.stop());
+  const network = world.service.watch.networks[0];
+
+  // Adding a network again changes what is typed, and only that.
+  assert.match(
+    fr(await action(world, 'add_network', { network: TISSEO })),
+    /déjà ajouté\. Pour le modifier/,
+  );
+  const updated = await action(world, 'add_network', {
+    network: TISSEO,
+    name: 'Tisséo Toulouse',
+    siri_key: 'MY-SECRET-KEY',
+  });
+  assert.equal(fr(updated), 'Tisséo Toulouse mis à jour : nom, clé SIRI.');
+  assert.equal(world.service.siriKeyOf(network), 'MY-SECRET-KEY');
+  const saved = JSON.parse(await readFile(join(world.dataDir, 'watch.json'), 'utf8'));
+  assert.equal(saved.networks[0].siriKey, 'MY-SECRET-KEY');
+  assert.equal(saved.networks[0].name, 'Tisséo Toulouse');
+  assert.match(
+    fr(await action(world, 'add_network', { network: TISSEO, siri_key: 'MY-SECRET-KEY' })),
+    /déjà ajouté/,
+  );
+  assert.ok(
+    logs.every((line) => !line.text.includes('MY-SECRET-KEY')),
+    'the key is never logged',
+  );
+
+  // The house to search around.
+  const near = await action(world, 'search_stops', {});
+  assert.match(fr(near), /^Arrêts les plus proches de Maison/);
+  assert.match(fr(near), /\nAutres maisons : Bureau \(champ « Maison »\)\./);
+  const office = await action(world, 'search_stops', { house: 'bureau' });
+  assert.match(fr(office), /^Arrêts les plus proches de Bureau/);
+  assert.match(fr(office), /Autres maisons : Maison/);
+  assert.equal(
+    fr(await action(world, 'search_stops', { house: 'Chalet' })),
+    'Aucune maison « Chalet » avec une position. Maisons avec une position : Maison, Bureau.',
+  );
+
+  // One direction of a line; the answer lists the lines and directions of the stop.
+  const wrong = await action(world, 'add_stop', { stop: 'SA_1707', lines: 'A > Nowhere' });
+  assert.equal(
+    fr(wrong),
+    'La ligne A ne va pas vers « Nowhere » depuis cet arrêt. Ses directions : Balma-Gramont, Basso Cambo.',
+  );
+  assert.deepEqual(world.service.watch.stops, [], 'a wrong direction adds nothing');
+  const added = await action(world, 'add_stop', { stop: 'SA_1707', lines: 'A > balma, L1' });
+  assert.match(fr(added), /^Jean Jaurès ajouté \(A → balma, L1\)\./);
+  assert.match(
+    fr(added),
+    /\nLignes et directions de cet arrêt : A → Balma-Gramont, A → Basso Cambo, B → Borderouge, .*, VILLE → St Cyprien - République\. Pour n'en garder qu'une, saisissez par exemple « A > Balma-Gramont » dans « Lignes »\.\n/,
+  );
+  const device = discovered(world, 'Jean Jaurès');
+  assert.equal(device.name, 'Tisséo Toulouse · Jean Jaurès (A → balma, L1)');
+  assert.deepEqual(
+    device.features.map((f) => f.name).filter((name) => !/suivant/.test(name)),
+    [
+      'Métro A → Balma-Gramont',
+      'Bus L1 → Fonsegrives Entiore',
+      'Bus L1 → Sept Deniers - Salvador Dali',
+      'Prochains passages',
+      'Info trafic',
+    ],
+  );
+  assert.deepEqual(
+    device.params.find((p) => p.name === 'towards'),
+    {
+      name: 'towards',
+      value: 'A>balma',
+    },
+  );
+  const status = fr(await action(world, 'status', {}));
+  assert.match(status, /• Jean Jaurès \[SA_1707\] \(A → balma, L1\)/);
+  // Its direction comes back from the device after a /data loss.
+  const jj = await create(world, 'Jean Jaurès');
+  const again = await createWorld({ devices: [jj], networks: [] });
+  t.after(() => again.app.stop());
+  assert.deepEqual(again.service.watch.stops[0].towards, [{ line: 'A', text: 'balma' }]);
+  // Added again without a direction: every direction comes back.
+  await action(world, 'add_stop', { stop: 'SA_1707', lines: 'A' });
+  assert.equal(world.service.watch.stops[0].towards, undefined);
+  assert.deepEqual(
+    discovered(world, 'Jean Jaurès')
+      .features.map((f) => f.name)
+      .filter((name) => !/suivant/.test(name)),
+    ['Métro A → Balma-Gramont', 'Métro A → Basso Cambo', 'Prochains passages', 'Info trafic'],
+  );
 });

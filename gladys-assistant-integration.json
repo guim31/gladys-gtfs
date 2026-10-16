@@ -192,10 +192,10 @@
         "es": "Claves de API SIRI"
       },
       "description": {
-        "en": "Only for a network whose realtime is SIRI and needs a key (e.g. Ginko, CTS): one per line or separated by \";\", as network = key (name or identifier). A single key alone serves every SIRI network. Never shown in the logs.",
-        "fr": "Seulement pour un réseau dont le temps réel est en SIRI avec clé (ex. Ginko, CTS) : une par ligne ou séparées par « ; », sous la forme réseau = clé (nom ou identifiant). Une clé seule vaut pour tous. Jamais dans les journaux.",
-        "de": "Nur für ein Netz, dessen Echtzeit SIRI mit Schlüssel ist (z. B. Ginko, CTS): einer pro Zeile oder durch „;“ getrennt, als Netz = Schlüssel (Name oder Kennung). Ein einzelner Schlüssel gilt für alle. Nie in den Protokollen.",
-        "es": "Solo para una red cuyo tiempo real es SIRI con clave (p. ej. Ginko, CTS): una por línea o separadas por «;», como red = clave (nombre o identificador). Una clave sola vale para todas. Nunca en los registros."
+        "en": "Simpler: the \"SIRI API key\" field of \"Add a network\". Here, as network = key (name or identifier), one per line or separated by \";\"; a single key alone serves every SIRI network. Never shown in the logs.",
+        "fr": "Plus simple : le champ « Clé d'API SIRI » de « Ajouter un réseau ». Ici, sous la forme réseau = clé (nom ou identifiant), une par ligne ou séparées par « ; » ; une clé seule vaut pour tous. Jamais dans les journaux.",
+        "de": "Einfacher: das Feld „SIRI-API-Schlüssel“ von „Netz hinzufügen“. Hier als Netz = Schlüssel (Name oder Kennung), einer pro Zeile oder durch „;“ getrennt; ein einzelner Schlüssel gilt für alle. Nie in den Protokollen.",
+        "es": "Más sencillo: el campo «Clave de API SIRI» de «Añadir una red». Aquí, como red = clave (nombre o identificador), una por línea o separadas por «;»; una clave sola vale para todas. Nunca en los registros."
       },
       "required": false,
       "placeholder": {
@@ -315,16 +315,33 @@
             "es": "URL SIRI o SIRI Lite (opcional)"
           },
           "description": {
-            "en": "Realtime asked stop by stop, used when the network has no GTFS-RT. Catalog networks already get theirs. Its key goes in the configuration, not here.",
-            "fr": "Temps réel interrogé arrêt par arrêt, utilisé si le réseau n'a pas de GTFS-RT. Les réseaux du catalogue ont déjà le leur. Sa clé va dans la configuration, pas ici.",
-            "de": "Echtzeit je Haltestelle, genutzt, wenn das Netz kein GTFS-RT hat. Netze aus dem Katalog haben ihre schon. Der Schlüssel gehört in die Konfiguration, nicht hierher.",
-            "es": "Tiempo real consultado parada por parada, usado si la red no tiene GTFS-RT. Las redes del catálogo ya tienen el suyo. Su clave va en la configuración, no aquí."
+            "en": "Realtime asked stop by stop, used when the network has no GTFS-RT. Catalog networks already get theirs.",
+            "fr": "Temps réel interrogé arrêt par arrêt, utilisé si le réseau n'a pas de GTFS-RT. Les réseaux du catalogue ont déjà le leur.",
+            "de": "Echtzeit je Haltestelle, genutzt, wenn das Netz kein GTFS-RT hat. Netze aus dem Katalog haben ihre schon.",
+            "es": "Tiempo real consultado parada por parada, usado si la red no tiene GTFS-RT. Las redes del catálogo ya tienen el suyo."
           },
           "placeholder": {
             "en": "e.g. https://example.org/siri/2.0/",
             "fr": "ex. https://example.org/siri/2.0/",
             "de": "z. B. https://example.org/siri/2.0/",
             "es": "p. ej. https://example.org/siri/2.0/"
+          }
+        },
+        {
+          "key": "siri_key",
+          "type": "string",
+          "required": false,
+          "label": {
+            "en": "SIRI API key (optional)",
+            "fr": "Clé d'API SIRI (facultatif)",
+            "de": "SIRI-API-Schlüssel (optional)",
+            "es": "Clave de API SIRI (opcional)"
+          },
+          "description": {
+            "en": "Only if the realtime of this network is SIRI and needs a key (e.g. Ginko, CTS). To change it, add the network again with the new key. Never shown in the logs.",
+            "fr": "Seulement si le temps réel de ce réseau est en SIRI avec clé (ex. Ginko, CTS). Pour la changer, ajoutez à nouveau le réseau avec la nouvelle. Jamais dans les journaux.",
+            "de": "Nur wenn die Echtzeit dieses Netzes SIRI mit Schlüssel ist (z. B. Ginko, CTS). Zum Ändern füge das Netz erneut mit dem neuen hinzu. Nie in den Protokollen.",
+            "es": "Solo si el tiempo real de esta red es SIRI con clave (p. ej. Ginko, CTS). Para cambiarla, añada de nuevo la red con la nueva. Nunca en los registros."
           }
         },
         {
@@ -413,6 +430,29 @@
             "de": "z. B. Naolib",
             "es": "p. ej. Naolib"
           }
+        },
+        {
+          "key": "house",
+          "type": "string",
+          "required": false,
+          "label": {
+            "en": "House (optional)",
+            "fr": "Maison (facultatif)",
+            "de": "Zuhause (optional)",
+            "es": "Casa (opcional)"
+          },
+          "description": {
+            "en": "Only with several houses: the one to search around, by its name in Gladys.",
+            "fr": "Seulement avec plusieurs maisons : celle autour de laquelle chercher, par son nom dans Gladys.",
+            "de": "Nur bei mehreren Zuhause: das, um das gesucht wird, mit seinem Namen in Gladys.",
+            "es": "Solo con varias casas: aquella alrededor de la cual buscar, por su nombre en Gladys."
+          },
+          "placeholder": {
+            "en": "e.g. Home",
+            "fr": "ex. Maison",
+            "de": "z. B. Zuhause",
+            "es": "p. ej. Casa"
+          }
         }
       ]
     },
@@ -466,16 +506,16 @@
             "es": "Líneas (vacío: todas)"
           },
           "description": {
-            "en": "Only these lines, separated by commas. Each line and direction becomes two features of the device.",
-            "fr": "Seulement ces lignes, séparées par des virgules. Chaque ligne et direction devient deux fonctionnalités de l'appareil.",
-            "de": "Nur diese Linien, durch Kommas getrennt. Jede Linie und Richtung wird zu zwei Funktionen des Geräts.",
-            "es": "Solo estas líneas, separadas por comas. Cada línea y dirección se convierte en dos funciones del dispositivo."
+            "en": "Only these lines, separated by commas; \"3 > Chazal\" keeps one direction. Each line and direction becomes two features of the device.",
+            "fr": "Seulement ces lignes, séparées par des virgules ; « 3 > Chazal » garde une direction. Chaque ligne et direction devient deux fonctionnalités.",
+            "de": "Nur diese Linien, durch Kommas getrennt; „3 > Chazal“ behält eine Richtung. Jede Linie und Richtung wird zu zwei Funktionen.",
+            "es": "Solo estas líneas, separadas por comas; «3 > Chazal» conserva una dirección. Cada línea y dirección se convierte en dos funciones."
           },
           "placeholder": {
-            "en": "e.g. 1, C1",
-            "fr": "ex. 1, C1",
-            "de": "z. B. 1, C1",
-            "es": "p. ej. 1, C1"
+            "en": "e.g. 1, C1 > Airport",
+            "fr": "ex. 1, C1 > Gare",
+            "de": "z. B. 1, C1 > Bahnhof",
+            "es": "p. ej. 1, C1 > Estación"
           }
         },
         {

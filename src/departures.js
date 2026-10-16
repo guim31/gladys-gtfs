@@ -15,6 +15,7 @@
 
 import { STOP_RELATIONSHIP, TRIP_RELATIONSHIP } from './gtfsrt.js';
 import { localDate, serviceDayStart } from './time.js';
+import { normalize } from './search.js';
 
 // A trip id runs at most once a day: its realtime update applies to the
 // occurrence close to now only.
@@ -116,9 +117,27 @@ export function lineGroups(network, areaId, routeFilter = null) {
     .sort((a, b) => compareRoutes(a.route, b.route) || a.dir - b.dir);
 }
 
-/** The groups shown for a stop: the first MAX_GROUPS of lineGroups. */
-export const stopGroups = (network, areaId, routeFilter = null) =>
-  lineGroups(network, areaId, routeFilter).slice(0, MAX_GROUPS);
+/**
+ * Whether a line group goes the way asked: `towards` lists `{ line, text }`
+ * ("3 > Chazal"); a line without any entry keeps all its directions, a line
+ * with some keeps those whose destination contains one of their texts.
+ */
+export function goesTowards(group, towards) {
+  const own = (towards ?? []).filter(
+    (entry) => entry.line.toUpperCase() === group.route.short.toUpperCase(),
+  );
+  if (own.length === 0) {
+    return true;
+  }
+  const headsign = normalize(group.headsign);
+  return own.some((entry) => headsign.includes(normalize(entry.text)));
+}
+
+/** The groups shown for a stop: the first MAX_GROUPS of lineGroups, in the directions asked. */
+export const stopGroups = (network, areaId, routeFilter = null, towards = null) =>
+  lineGroups(network, areaId, routeFilter)
+    .filter((group) => goesTowards(group, towards))
+    .slice(0, MAX_GROUPS);
 
 function eventTime(update) {
   return update.departure ?? update.arrival;
@@ -335,12 +354,12 @@ export function mergeVisits(scheduled, visits, now) {
  * departures.
  * @param {object} network
  * @param {object|null} realtime
- * @param {{ id: string, lines: string[] }} stop
+ * @param {{ id: string, lines: string[], towards?: { line: string, text: string }[] }} stop
  * @param {number} now
  */
 export function buildBoard(network, realtime, stop, now) {
   const routes = resolveLines(network, stop.lines);
-  const groups = stopGroups(network, stop.id, routes);
+  const groups = stopGroups(network, stop.id, routes, stop.towards);
   const departures = upcomingDepartures(network, realtime, stop.id, { now, routes });
   // SIRI visits of the stop (the timetable's key of their line group), read
   // less than 10 minutes ago.

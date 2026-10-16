@@ -120,6 +120,20 @@ const text = (name, externalId) => ({
   keep_history: false,
 });
 
+/** "A, 3 → Chazal": the lines of a stop, with the directions kept when some are. */
+export function lineLabels(stop) {
+  return stop.lines.map((line) => {
+    const texts = (stop.towards ?? [])
+      .filter((entry) => entry.line.toUpperCase() === line.toUpperCase())
+      .map((entry) => entry.text);
+    return texts.length > 0 ? `${line} → ${texts.join(' / ')}` : line;
+  });
+}
+
+/** "3>Chazal,3>Gare": the directions of a stop, as kept in a device parameter. */
+export const towardsParam = (stop) =>
+  (stop.towards ?? []).map((entry) => `${entry.line}>${entry.text}`).join(',');
+
 /**
  * The device of a watched stop.
  * @param {object} gladys
@@ -152,7 +166,7 @@ export function buildStopDevice(gladys, stop, groups, language, networkName) {
   }
   features.push(text(unique(names.board), ids.feature(BOARD_KEY)));
   features.push(text(unique(names.traffic), ids.feature(TRAFFIC_KEY)));
-  const filter = stop.lines.length > 0 ? ` (${stop.lines.join(', ')})` : '';
+  const filter = stop.lines.length > 0 ? ` (${lineLabels(stop).join(', ')})` : '';
   return {
     name: clip(`${networkName} · ${stop.name}${filter}`, 80),
     external_id: ids.device,
@@ -162,6 +176,8 @@ export function buildStopDevice(gladys, stop, groups, language, networkName) {
       { name: 'network', value: stop.network },
       { name: 'stop_id', value: stop.id },
       { name: 'lines', value: stop.lines.join(',') },
+      // Only when set: the devices without a direction stay as they were.
+      ...(stop.towards?.length ? [{ name: 'towards', value: towardsParam(stop) }] : []),
     ],
     features,
   };

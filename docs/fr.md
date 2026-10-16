@@ -71,6 +71,7 @@ recherche de réseau indique ce que chacun publie.
 
 - **Clés d'API SIRI** (secret, facultatif) : seulement pour un réseau dont
   le temps réel est en SIRI et demande une clé (voir « Temps réel SIRI »).
+  Plus simple : le champ **Clé d'API SIRI** de « Ajouter un réseau ».
 
 ### Ajouter un réseau
 
@@ -92,6 +93,13 @@ nom placé devant celui des arrêts.
 **URL SIRI ou SIRI Lite** (facultatif) : le temps réel SIRI d'un réseau
 hors catalogue, utilisé s'il n'a pas de GTFS-RT.
 
+**Clé d'API SIRI** (facultatif) : la clé du temps réel SIRI de ce réseau,
+s'il en demande une (voir « Temps réel SIRI »).
+
+**Modifier un réseau** : ajoutez-le à nouveau en ne remplissant que ce qui
+change (nom affiché, URL GTFS-RT, URL SIRI, clé SIRI) ; ses arrêts restent.
+« Afficher la surveillance » liste les réseaux et arrêts déjà ajoutés.
+
 ### Ajouter un arrêt
 
 1. **Chercher un arrêt** : saisissez un nom (« hotel dieu » trouve « Hôtel
@@ -99,10 +107,13 @@ hors catalogue, utilisé s'il n'a pas de GTFS-RT.
    les 10 arrêts les plus proches de votre maison. Chaque résultat donne ses
    lignes, sa distance et son identifiant entre crochets, par exemple
    `• Commerce [20] — 1, 2, 3, C2, C3 — 90 m`. Avec plusieurs réseaux, le
-   champ **Réseau** restreint la recherche.
+   champ **Réseau** restreint la recherche. Avec plusieurs maisons, le champ
+   **Maison** choisit celle autour de laquelle chercher.
 2. **Ajouter un arrêt** : son nom, ou son identifiant si plusieurs arrêts
    portent le même nom. **Lignes** est facultatif : « 1, C2 » ne garde que ces
-   deux lignes ; vide, toutes les lignes. Une grande gare a des dizaines de lignes : choisissez les vôtres (un appareil garde au plus 12 lignes et directions).
+   deux lignes ; vide, toutes les lignes. « 3 > Chazal » ne garde que la
+   direction de la ligne 3 dont le terminus contient « Chazal ». La réponse
+   liste les lignes et directions de l'arrêt. Une grande gare a des dizaines de lignes : choisissez les vôtres (un appareil garde au plus 12 lignes et directions).
 3. Ouvrez l'onglet **Découverte** et créez l'appareil.
 
 Ajouter un arrêt déjà surveillé change ses lignes : Gladys propose alors de
@@ -230,11 +241,13 @@ publient aussi, ont leurs intégrations dédiées.
 - **Avec clé** : beaucoup de serveurs en demandent une, gratuite, à obtenir
   auprès du réseau ; la page du jeu de données sur transport.data.gouv.fr
   dit à qui la demander (Ginko : son support, par courriel ; CTS : un compte
-  sur son portail développeur). Saisissez-la dans **Clés d'API SIRI** de la
+  sur son portail développeur). Saisissez-la dans le champ **Clé d'API SIRI** de « Ajouter un réseau » (déjà
+  ajouté : ajoutez-le à nouveau avec sa clé), ou dans **Clés d'API SIRI** de la
   configuration, sous la forme `Ginko = votre-clé` ; une par ligne (ou
   séparées par « ; ») si plusieurs réseaux en demandent ; seule, une clé vaut
-  pour tous. Elle n'apparaît ni dans les journaux, ni dans « Afficher la
-  surveillance », ni dans `/data`. L'intégration la place là où le serveur
+  pour tous. Elle n'apparaît ni dans les journaux, ni dans « Afficher la surveillance » ;
+  saisie dans « Ajouter un réseau », elle est gardée avec le réseau dans le
+  `/data` de l'intégration. L'intégration la place là où le serveur
   l'attend : `RequestorRef` en SIRI, authentification HTTP pour la CTS,
   paramètre `AccountKey` pour les serveurs Mecatran. Si votre réseau la
   veut ailleurs, écrivez `nom=clé` (paramètre d'URL) ou `En-Tête: clé`
@@ -289,7 +302,7 @@ publient aussi, ont leurs intégrations dédiées.
   « Afficher la surveillance » donne la dernière erreur). Les horaires théoriques continuent de
   fonctionner.
 - **« Temps réel (SIRI) : accès refusé par le serveur »** : la clé manque
-  ou n'est pas la bonne (champ **Clés d'API SIRI**). Une clé fournie sous
+  ou n'est pas la bonne (champ **Clé d'API SIRI** de « Ajouter un réseau »). Une clé fournie sous
   une autre forme (paramètre d'URL, en-tête) s'écrit `nom=clé` ou
   `En-Tête: clé`.
 - **Une ligne affiche 1440** : aucun passage dans les 24 heures (service de
