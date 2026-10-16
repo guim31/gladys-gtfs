@@ -10,6 +10,8 @@ the notes of the version's GitHub Release.
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-10-16
+
 ### Added
 
 - "Add a network" has a "SIRI API key" field: the key of a SIRI network is
@@ -59,6 +61,7 @@ the notes of the version's GitHub Release.
 - Scene action "Read the next departures", with a sentence ready to send.
 - Texts in English, French, German and Spanish.
 
-[Unreleased]: https://github.com/guim31/gladys-gtfs/compare/v1.1.0...HEAD
+[Unreleased]: https://github.com/guim31/gladys-gtfs/compare/v1.2.0...HEAD
+[1.2.0]: https://github.com/guim31/gladys-gtfs/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/guim31/gladys-gtfs/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/guim31/gladys-gtfs/releases/tag/v1.0.0
