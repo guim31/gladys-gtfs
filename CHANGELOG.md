@@ -10,6 +10,8 @@ the notes of the version's GitHub Release.
 
 ## [Unreleased]
 
+## [1.3.1] - 2026-10-17
+
 ### Fixed
 
 - Ginko (Besançon): real time stayed empty even with a valid key. Its SIRI
@@ -79,7 +81,8 @@ the notes of the version's GitHub Release.
 - Scene action "Read the next departures", with a sentence ready to send.
 - Texts in English, French, German and Spanish.
 
-[Unreleased]: https://github.com/guim31/gladys-gtfs/compare/v1.3.0...HEAD
+[Unreleased]: https://github.com/guim31/gladys-gtfs/compare/v1.3.1...HEAD
+[1.3.1]: https://github.com/guim31/gladys-gtfs/compare/v1.3.0...v1.3.1
 [1.3.0]: https://github.com/guim31/gladys-gtfs/compare/v1.2.0...v1.3.0
 [1.2.0]: https://github.com/guim31/gladys-gtfs/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/guim31/gladys-gtfs/compare/v1.0.0...v1.1.0
