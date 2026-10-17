@@ -50,6 +50,9 @@ const KNOWN_HOSTS = [
   { host: /(^|\.)cts-strasbourg\.eu$/i, place: { type: 'basic' } },
   { host: /(^|\.)mecatran\.com$/i, place: { type: 'query', name: 'AccountKey' } },
   { host: /(^|\.)iledefrance-mobilites\.fr$/i, place: { type: 'header', name: 'apikey' } },
+  // Ginko (Besançon), SOAP: the key is the apiKey parameter of the URL, as
+  // for its own API; a key in RequestorRef reads as no key at all (17/10).
+  { host: /(^|\.)ginko\.voyage$/i, place: { type: 'query', name: 'apiKey' } },
 ];
 const KEY_PARAM = /^(api_?key|account_?key|key|token|access_?token|requestor_?ref|cle)$/i;
 
@@ -122,16 +125,16 @@ export function keyPlacement(endpoint, key) {
   if (param) {
     return { type: 'query', name: param[1], value: param[2] };
   }
+  const known = KNOWN_HOSTS.find((entry) => entry.host.test(hostOf(endpoint.url)));
+  if (known) {
+    return { ...known.place, value: raw };
+  }
   if (endpoint.format === SIRI) {
     return { type: 'requestor', value: raw };
   }
   const existing = [...(endpoint.query?.keys() ?? [])].find((name) => KEY_PARAM.test(name));
   if (existing) {
     return { type: 'query', name: existing, value: raw };
-  }
-  const known = KNOWN_HOSTS.find((entry) => entry.host.test(hostOf(endpoint.url)));
-  if (known) {
-    return { ...known.place, value: raw };
   }
   return { type: 'basic+header', value: raw };
 }
@@ -336,6 +339,14 @@ const falsy = (value) => /^(false|0|no)$/i.test(textOf(value));
  * of the SIRI error, "AccessNotAllowedError"…), null when none.
  */
 export function siriError(tree) {
+  // Ginko answers its key errors in JSON, under an HTTP 200:
+  // { "ok": false, "msg": "La clé donnée en paramètre est invalide" }.
+  if (tree && typeof tree === 'object' && tree.ok === false && typeof tree.msg === 'string') {
+    return {
+      code: /cl[ée]|key/i.test(tree.msg) ? 'AccessNotAllowedError' : 'Error',
+      text: tree.msg,
+    };
+  }
   const conditions = findAll(tree, 'ErrorCondition');
   for (const condition of conditions) {
     if (!condition || typeof condition !== 'object') {

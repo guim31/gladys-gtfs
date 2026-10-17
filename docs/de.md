@@ -245,7 +245,7 @@ eigene Integrationen.
   „Netz hinzufügen“ eingegeben, wird er mit dem Netz im `/data` der
   Integration gespeichert. Die Integration setzt ihn dort ein,
   wo der Server ihn erwartet: `RequestorRef` bei SIRI, HTTP-Authentifizierung
-  bei der CTS, Parameter `AccountKey` bei Mecatran-Servern. Will dein Netz
+  bei der CTS, Parameter `AccountKey` bei Mecatran-Servern, Parameter `apiKey` bei Ginko. Will dein Netz
   ihn woanders, schreib `name=Schlüssel` (URL-Parameter) oder
   `Header-Name: Schlüssel` (HTTP-Header).
 - **Haltestellen**: SIRI benennt die Haltestellen mit eigenen Kennungen. Die

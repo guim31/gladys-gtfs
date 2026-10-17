@@ -10,6 +10,13 @@ the notes of the version's GitHub Release.
 
 ## [Unreleased]
 
+### Fixed
+
+- Ginko (Besançon): real time stayed empty even with a valid key. Its SIRI
+  server wants the key as the `apiKey` parameter of the URL, and answers its
+  key errors in JSON: the key now goes there, and a refused key is said as
+  such.
+
 ## [1.3.0] - 2026-10-17
 
 ### Changed
