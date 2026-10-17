@@ -367,11 +367,12 @@ utile** (`Feed.usesSiri`). Constaté, d'où, et ce qui reste à vérifier :
   (en-tête recommandé par le profil), ou le paramètre de l'URL du catalogue qui ressemble à une
   clé. L'utilisateur peut forcer `nom=clé` (paramètre) ou `En-Tête: clé`.
 - **Clé** : depuis la 1.2.0 (retour de StephaneB, 16/10), champ `siri_key` de « Ajouter un
-  réseau », de type `string` (un `secret` d'action n'est saisissable qu'à partir du cœur 5.2.0,
-  #3154/#3163, et le manifeste accepte 5.1) ; gardée avec le réseau dans `/data/watch.json`
-  (`siriKey`), prioritaire sur le champ de config `siri_keys` (**secret**, `réseau = clé` par ligne
-  ou « ; », une clé seule vaut pour tous), conservé. Ajouter à nouveau un réseau déjà ajouté
-  remplace ce qui est saisi (nom, flux, URL SIRI, clé). Jamais dans les paramètres d'appareil ni
+  réseau », de type `string` (choisi quand le manifeste acceptait encore 5.1 ; un `secret` d'action n'est saisissable
+  qu'à partir du cœur 5.2.0, #3154/#3163) ; gardée avec le réseau dans `/data/watch.json`
+  (`siriKey`), prioritaire sur l'ancien champ de config `siri_keys`, retiré du formulaire en 1.3.0
+  (retour de StephaneB, t/11150/11 : deux endroits prêtaient à confusion) ; une valeur encore
+  rendue par le cœur passe sur son réseau au démarrage (`adoptConfigKeys`). Ajouter à nouveau un
+  réseau déjà ajouté remplace ce qui est saisi (nom, flux, URL SIRI, clé). Jamais dans les paramètres d'appareil ni
   les journaux ; `redact()` retire la clé des `ErrorText`
   qui la recopient. Une URL Lite porte parfois la clé : ne journaliser que `hostOf`.
 - **Formats de réponse** : enveloppe SOAP ou `<Siri>` nu, préfixes variables, `{ "value": … }`

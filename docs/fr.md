@@ -69,10 +69,6 @@ recherche de réseau indique ce que chacun publie.
 - **Temps réel** : activé par défaut. Désactivé, l'intégration n'utilise que
   les horaires théoriques et ne télécharge plus les flux temps réel.
 
-- **Clés d'API SIRI** (secret, facultatif) : seulement pour un réseau dont
-  le temps réel est en SIRI et demande une clé (voir « Temps réel SIRI »).
-  Plus simple : le champ **Clé d'API SIRI** de « Ajouter un réseau ».
-
 ### Ajouter un réseau
 
 1. **Chercher un réseau** : un nom de réseau, une ville ou une région
@@ -108,7 +104,7 @@ change (nom affiché, URL GTFS-RT, URL SIRI, clé SIRI) ; ses arrêts restent.
    lignes, sa distance et son identifiant entre crochets, par exemple
    `• Commerce [20] — 1, 2, 3, C2, C3 — 90 m`. Avec plusieurs réseaux, le
    champ **Réseau** restreint la recherche. Avec plusieurs maisons, le champ
-   **Maison** choisit celle autour de laquelle chercher.
+   **Maison** (une liste) choisit celle autour de laquelle chercher.
 2. **Ajouter un arrêt** : son nom, ou son identifiant si plusieurs arrêts
    portent le même nom. **Lignes** est facultatif : « 1, C2 » ne garde que ces
    deux lignes ; vide, toutes les lignes. « 3 > Chazal » ne garde que la
@@ -242,10 +238,7 @@ publient aussi, ont leurs intégrations dédiées.
   auprès du réseau ; la page du jeu de données sur transport.data.gouv.fr
   dit à qui la demander (Ginko : son support, par courriel ; CTS : un compte
   sur son portail développeur). Saisissez-la dans le champ **Clé d'API SIRI** de « Ajouter un réseau » (déjà
-  ajouté : ajoutez-le à nouveau avec sa clé), ou dans **Clés d'API SIRI** de la
-  configuration, sous la forme `Ginko = votre-clé` ; une par ligne (ou
-  séparées par « ; ») si plusieurs réseaux en demandent ; seule, une clé vaut
-  pour tous. Elle n'apparaît ni dans les journaux, ni dans « Afficher la surveillance » ;
+  ajouté : ajoutez-le à nouveau avec sa clé). Une clé saisie dans la configuration avant la version 1.3.0 passe d'elle-même sur son réseau. Elle n'apparaît ni dans les journaux, ni dans « Afficher la surveillance » ;
   saisie dans « Ajouter un réseau », elle est gardée avec le réseau dans le
   `/data` de l'intégration. L'intégration la place là où le serveur
   l'attend : `RequestorRef` en SIRI, authentification HTTP pour la CTS,

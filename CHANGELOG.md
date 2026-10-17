@@ -10,6 +10,15 @@ the notes of the version's GitHub Release.
 
 ## [Unreleased]
 
+### Changed
+
+- The SIRI keys left the configuration: each one goes with its network ("Add a
+  network", field "SIRI API key"). A key typed there before moves to its
+  network by itself.
+- "Find a stop": the house is picked from a list. Requires Gladys 5.2.0.
+- The lines and directions listed by "Add a stop" are written as "Lines"
+  expects them ("3 > Chazal"), ready to copy.
+
 ## [1.2.0] - 2026-10-16
 
 ### Added

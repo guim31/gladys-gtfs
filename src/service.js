@@ -224,11 +224,34 @@ export class Transit {
     for (const network of this.watch.networks) {
       this.addFeed(network);
     }
+    await this.adoptConfigKeys();
     await this.publishDiscovered();
     this.schedule();
     // Data loads in the background (a big timetable takes a minute): actions
     // wait for it, widgets and scene actions say so.
     this.loading = this.loadData().catch((err) => logger.error('Data load failed', err));
+  }
+
+  /**
+   * The SIRI keys of the configuration (before 1.3.0, its field is gone)
+   * move to their network, where "Add a network" puts them now.
+   */
+  async adoptConfigKeys() {
+    let moved = false;
+    for (const network of this.watch.networks) {
+      if (network.siriKey || !(network.siri?.length > 0)) {
+        continue;
+      }
+      const key = this.siriKeyOf(network);
+      if (key) {
+        network.siriKey = key;
+        moved = true;
+      }
+    }
+    if (moved) {
+      logger.info('SIRI keys of the configuration moved to their network');
+      await this.save();
+    }
   }
 
   /** Gladys restarted: everything again, the states included. */
@@ -984,21 +1007,23 @@ export class Transit {
       const houses = await this.gladys.getHouses();
       return (houses ?? [])
         .filter((h) => Number.isFinite(h.latitude) && Number.isFinite(h.longitude))
-        .map((h) => ({ name: h.name, lat: h.latitude, lon: h.longitude }));
+        .map((h) => ({ name: h.name, selector: h.selector, lat: h.latitude, lon: h.longitude }));
     } catch (err) {
       logger.warn(`Cannot read the position of the houses: ${err.message}`);
       return [];
     }
   }
 
-  /** The house named (or the first located one): `{ name, lat, lon }` or null. */
+  /** The house picked (selector) or named, else the first located one: `{ name, lat, lon }` or null. */
   async home(name) {
     const houses = await this.houses();
     const wanted = normalize(name);
     if (!wanted) {
       return houses[0] ?? null;
     }
-    const house = houses.find((h) => normalize(h.name) === wanted);
+    const house = houses.find(
+      (h) => normalize(h.selector) === wanted || normalize(h.name) === wanted,
+    );
     if (!house) {
       throw reportError('unknownHouse', {
         query: String(name).trim(),
@@ -1262,7 +1287,8 @@ export class Transit {
       chosen.length > 0
         ? lineLabels({ lines: chosen, towards }).join(', ')
         : say(REPORTS, language, 'allLines');
-    const directions = all.map((group) => `${group.route.short} → ${group.headsign}`);
+    // Written as "Lines" expects them: copied as they are.
+    const directions = all.map((group) => `${group.route.short} > ${group.headsign}`);
     const shownDirections =
       directions.length > 24 ? `${directions.slice(0, 24).join(', ')}…` : directions.join(', ');
     return Object.fromEntries(

@@ -635,6 +635,11 @@ test('feedback of 16/10: change a network, its SIRI key, the house, one directio
   const near = await action(world, 'search_stops', {});
   assert.match(fr(near), /^Arrêts les plus proches de Maison/);
   assert.match(fr(near), /\nAutres maisons : Bureau \(champ « Maison »\)\./);
+  // The selector of the house, as the select of the form sends it, or its name.
+  assert.match(
+    fr(await action(world, 'search_stops', { house: 'b' })),
+    /^Arrêts les plus proches de Bureau/,
+  );
   const office = await action(world, 'search_stops', { house: 'bureau' });
   assert.match(fr(office), /^Arrêts les plus proches de Bureau/);
   assert.match(fr(office), /Autres maisons : Maison/);
@@ -654,7 +659,7 @@ test('feedback of 16/10: change a network, its SIRI key, the house, one directio
   assert.match(fr(added), /^Jean Jaurès ajouté \(A → balma, L1\)\./);
   assert.match(
     fr(added),
-    /\nLignes et directions de cet arrêt : A → Balma-Gramont, A → Basso Cambo, B → Borderouge, .*, VILLE → St Cyprien - République\. Pour n'en garder qu'une, saisissez par exemple « A > Balma-Gramont » dans « Lignes »\.\n/,
+    /\nLignes et directions de cet arrêt : A > Balma-Gramont, A > Basso Cambo, B > Borderouge, .*, VILLE > St Cyprien - République\. Pour n'en garder qu'une, saisissez par exemple « A > Balma-Gramont » dans « Lignes »\.\n/,
   );
   const device = discovered(world, 'Jean Jaurès');
   assert.equal(device.name, 'Tisséo Toulouse · Jean Jaurès (A → balma, L1)');

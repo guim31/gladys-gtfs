@@ -69,10 +69,6 @@ Fahrplan“. Die Netzsuche zeigt, was jedes Netz veröffentlicht.
 - **Echtzeit**: standardmäßig an. Aus nutzt die Integration nur den Fahrplan
   und lädt keine Echtzeit-Feeds mehr herunter.
 
-- **SIRI-API-Schlüssel** (geheim, optional): nur für ein Netz, dessen
-  Echtzeit SIRI ist und einen Schlüssel verlangt (siehe „SIRI-Echtzeit“).
-  Einfacher: das Feld **SIRI-API-Schlüssel** von „Netz hinzufügen“.
-
 ### Netz hinzufügen
 
 1. **Netz suchen**: ein Netzname, eine Stadt oder eine Region („Naolib“,
@@ -109,7 +105,7 @@ hinzugefügten Netze und Haltestellen.
    Ergebnis zeigt Linien, Entfernung und Kennung in Klammern, zum Beispiel
    `• Commerce [20] — 1, 2, 3, C2, C3 — 90 m`. Bei mehreren Netzen schränkt
    das Feld **Netz** die Suche ein. Bei mehreren Zuhause wählt das Feld
-   **Zuhause**, um welches herum gesucht wird.
+   **Zuhause** (eine Liste), um welches herum gesucht wird.
 2. **Haltestelle hinzufügen**: ihren Namen oder ihre Kennung, wenn mehrere
    Haltestellen gleich heißen. **Linien** ist optional: „1, C2“ behält nur
    diese beiden Linien; leer alle Linien. „3 > Chazal“ behält nur die
@@ -245,10 +241,7 @@ eigene Integrationen.
   bekommen; die Seite des Datensatzes auf transport.data.gouv.fr sagt, bei
   wem (Ginko: sein Support per E-Mail; CTS: ein Konto auf seinem
   Entwicklerportal). Gib ihn im Feld **SIRI-API-Schlüssel** von „Netz hinzufügen“ ein (schon
-  hinzugefügt: füge es erneut mit seinem Schlüssel hinzu) oder in der
-  Konfiguration unter **SIRI-API-Schlüssel**, als `Ginko = dein-Schlüssel`; einer pro Zeile
-  (oder durch „;“ getrennt), wenn mehrere Netze einen verlangen; ein
-  einzelner Schlüssel gilt für alle. Er erscheint nie in den Protokollen oder in „Überwachung anzeigen“; in
+  hinzugefügt: füge es erneut mit seinem Schlüssel hinzu). Ein vor Version 1.3.0 in der Konfiguration eingegebener Schlüssel wandert von selbst zu seinem Netz. Er erscheint nie in den Protokollen oder in „Überwachung anzeigen“; in
   „Netz hinzufügen“ eingegeben, wird er mit dem Netz im `/data` der
   Integration gespeichert. Die Integration setzt ihn dort ein,
   wo der Server ihn erwartet: `RequestorRef` bei SIRI, HTTP-Authentifizierung

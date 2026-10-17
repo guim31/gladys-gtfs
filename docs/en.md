@@ -64,10 +64,6 @@ tells what each one publishes.
 - **Real time**: on by default. Off, the integration only uses the timetable
   and no longer downloads the realtime feeds.
 
-- **SIRI API keys** (secret, optional): only for a network whose real time
-  is SIRI and needs a key (see "SIRI real time"). Simpler: the **SIRI API key**
-  field of "Add a network".
-
 ### Add a network
 
 1. **Find a network**: a network name, a city or a region ("Naolib",
@@ -101,7 +97,7 @@ watched" lists the networks and stops already added.
    your home. Each result gives its lines, its distance and its identifier in
    brackets, for example `• Commerce [20] — 1, 2, 3, C2, C3 — 90 m`. With
    several networks, the **Network** field narrows the search. With several
-   houses, the **House** field picks the one to search around.
+   houses, the **House** list picks the one to search around.
 2. **Add a stop**: its name, or its identifier when several stops share a
    name. **Lines** is optional: "1, C2" keeps these two lines only; empty, every line. "3 > Chazal" keeps
    only the direction of line 3 whose destination contains "Chazal". The
@@ -227,10 +223,7 @@ TCL and IDFM, which publish it too, have their dedicated integrations.
   there is nothing to do.
 - **With a key**: many servers ask for one, free, from the network; the page
   of the dataset on transport.data.gouv.fr tells whom to ask (Ginko: its
-  support, by email; CTS: an account on its developer portal). Type it in the **SIRI API key** field of "Add a network" (already added:
-  add it again with its key), or in **SIRI API keys** in the configuration, as `Ginko = your-key`; one per line
-  (or separated by ";") when several networks need one; alone, a key serves
-  them all. It never shows in the logs or in "Show what is watched"; typed in "Add a
+  support, by email; CTS: an account on its developer portal). Type it in the **SIRI API key** field of "Add a network" (already added: add it again with its key). A key typed in the configuration before version 1.3.0 moves to its network by itself. It never shows in the logs or in "Show what is watched"; typed in "Add a
   network", it is kept with the network in the `/data` of the integration. The integration puts it where the server expects it:
   `RequestorRef` for SIRI, HTTP authentication for the CTS, the `AccountKey`
   parameter for Mecatran servers. If your network wants it elsewhere, write
