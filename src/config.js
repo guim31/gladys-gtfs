@@ -19,7 +19,6 @@ export const DEFAULT_CONFIG = {
   language: 'fr',
   refresh_interval: '60',
   realtime: true,
-  siri_keys: '',
 };
 
 /**
@@ -80,6 +79,7 @@ export function normalizeConfig(raw = {}) {
     language: LANGUAGES.includes(source.language) ? source.language : DEFAULT_CONFIG.language,
     refreshSeconds: Number(interval),
     realtime: !isFalse(source.realtime),
+    // The field left the form in 1.3.0: a value still stored moves to its network.
     siriKeys: typeof source.siri_keys === 'string' ? source.siri_keys : '',
   };
 }

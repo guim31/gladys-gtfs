@@ -155,11 +155,11 @@ test('section fields are purely presentational, with https links', () => {
   }
 });
 
-test('dynamic selects declare the devices source and no static options', () => {
+test('dynamic selects declare the devices or houses source and no static options', () => {
   const dynamic = allFields.filter((entry) => entry.source !== undefined);
-  assert.ok(dynamic.length >= 2);
+  assert.ok(dynamic.length >= 3);
   for (const entry of dynamic) {
-    assert.equal(entry.source, 'devices');
+    assert.ok(['devices', 'houses'].includes(entry.source), entry.key);
     assert.equal(entry.options, undefined, entry.key);
   }
 });

@@ -705,3 +705,24 @@ test('the stop list of the server is kept in /data: not asked again after a rest
   await action(second, 'remove', { name: 'Tisséo' });
   await assert.rejects(readFile(kept, 'utf8'), /ENOENT/);
 });
+
+test('1.3.0: a SIRI key of the configuration moves to its network at the next start', async (t) => {
+  const { world } = await liteWorld(t);
+  assert.equal(world.service.watch.networks[0].siriKey, undefined);
+  const again = await createWorld({
+    networks: [],
+    network: createFetch(liteRoutes()),
+    config: { siri_keys: `Tisséo = ${KEY}` },
+    dataDir: world.dataDir,
+  });
+  t.after(() => again.app.stop());
+  assert.equal(again.service.watch.networks[0].siriKey, KEY);
+  // The field left the form: without it, the network keeps its key.
+  const later = await createWorld({
+    networks: [],
+    network: createFetch(liteRoutes()),
+    dataDir: world.dataDir,
+  });
+  t.after(() => later.app.stop());
+  assert.equal(later.service.siriKeyOf(later.service.watch.networks[0]), KEY);
+});

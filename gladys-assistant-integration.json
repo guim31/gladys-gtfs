@@ -10,7 +10,7 @@
   },
   "version": "1.2.0",
   "docker_image": "ghcr.io/guim31/gladys-gtfs:1.2.0",
-  "gladys_version": ">=5.1.0",
+  "gladys_version": ">=5.2.0",
   "cover_image": "https://raw.githubusercontent.com/guim31/gladys-gtfs/main/cover.png",
   "categories": ["services"],
   "transports": ["cloud"],
@@ -181,29 +181,6 @@
       },
       "required": false,
       "default": true
-    },
-    {
-      "key": "siri_keys",
-      "type": "secret",
-      "label": {
-        "en": "SIRI API keys",
-        "fr": "Clés d'API SIRI",
-        "de": "SIRI-API-Schlüssel",
-        "es": "Claves de API SIRI"
-      },
-      "description": {
-        "en": "Simpler: the \"SIRI API key\" field of \"Add a network\". Here, as network = key (name or identifier), one per line or separated by \";\"; a single key alone serves every SIRI network. Never shown in the logs.",
-        "fr": "Plus simple : le champ « Clé d'API SIRI » de « Ajouter un réseau ». Ici, sous la forme réseau = clé (nom ou identifiant), une par ligne ou séparées par « ; » ; une clé seule vaut pour tous. Jamais dans les journaux.",
-        "de": "Einfacher: das Feld „SIRI-API-Schlüssel“ von „Netz hinzufügen“. Hier als Netz = Schlüssel (Name oder Kennung), einer pro Zeile oder durch „;“ getrennt; ein einzelner Schlüssel gilt für alle. Nie in den Protokollen.",
-        "es": "Más sencillo: el campo «Clave de API SIRI» de «Añadir una red». Aquí, como red = clave (nombre o identificador), una por línea o separadas por «;»; una clave sola vale para todas. Nunca en los registros."
-      },
-      "required": false,
-      "placeholder": {
-        "en": "e.g. Ginko = your-key",
-        "fr": "ex. Ginko = votre-clé",
-        "de": "z. B. Ginko = dein-Schlüssel",
-        "es": "p. ej. Ginko = su-clave"
-      }
     }
   ],
   "actions": [
@@ -433,7 +410,7 @@
         },
         {
           "key": "house",
-          "type": "string",
+          "type": "select",
           "required": false,
           "label": {
             "en": "House (optional)",
@@ -442,17 +419,12 @@
             "es": "Casa (opcional)"
           },
           "description": {
-            "en": "Only with several houses: the one to search around, by its name in Gladys.",
-            "fr": "Seulement avec plusieurs maisons : celle autour de laquelle chercher, par son nom dans Gladys.",
-            "de": "Nur bei mehreren Zuhause: das, um das gesucht wird, mit seinem Namen in Gladys.",
-            "es": "Solo con varias casas: aquella alrededor de la cual buscar, por su nombre en Gladys."
+            "en": "Only with several houses: the one to search around (empty: the first one with a position).",
+            "fr": "Seulement avec plusieurs maisons : celle autour de laquelle chercher (vide : la première qui a une position).",
+            "de": "Nur bei mehreren Zuhause: das, um das gesucht wird (leer: das erste mit Position).",
+            "es": "Solo con varias casas: aquella alrededor de la cual buscar (vacío: la primera con posición)."
           },
-          "placeholder": {
-            "en": "e.g. Home",
-            "fr": "ex. Maison",
-            "de": "z. B. Zuhause",
-            "es": "p. ej. Casa"
-          }
+          "source": "houses"
         }
       ]
     },

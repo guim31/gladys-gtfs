@@ -67,10 +67,6 @@ red indica lo que publica cada una.
 - **Tiempo real**: activado por defecto. Desactivado, la integración solo usa
   los horarios teóricos y deja de descargar los flujos en tiempo real.
 
-- **Claves de API SIRI** (secreto, opcional): solo para una red cuyo
-  tiempo real es SIRI y pide una clave (vea «Tiempo real SIRI»). Más
-  sencillo: el campo **Clave de API SIRI** de «Añadir una red».
-
 ### Añadir una red
 
 1. **Buscar una red**: un nombre de red, una ciudad o una región («Naolib»,
@@ -104,7 +100,7 @@ mostrado, URL GTFS-RT, URL SIRI, clave SIRI); sus paradas se quedan.
    listar las 10 paradas más cercanas a su casa. Cada resultado da sus líneas,
    su distancia y su identificador entre corchetes, por ejemplo
    `• Commerce [20] — 1, 2, 3, C2, C3 — 90 m`. Con varias redes, el campo
-   **Red** restringe la búsqueda. Con varias casas, el campo **Casa** elige
+   **Red** restringe la búsqueda. Con varias casas, la lista **Casa** elige
    aquella alrededor de la cual buscar.
 2. **Añadir una parada**: su nombre, o su identificador si varias paradas
    tienen el mismo nombre. **Líneas** es opcional: «1, C2» conserva solo esas
@@ -235,9 +231,7 @@ dedicadas.
   red; la página del conjunto de datos en transport.data.gouv.fr indica a
   quién pedirla (Ginko: su soporte, por correo; CTS: una cuenta en su portal
   para desarrolladores). Escríbala en el campo **Clave de API SIRI** de «Añadir una red» (ya
-  añadida: añádala de nuevo con su clave), o en **Claves de API SIRI** de la
-  configuración, como `Ginko = su-clave`; una por línea (o separadas por
-  «;») si varias redes la piden; sola, una clave vale para todas. Nunca aparece en los registros ni en «Mostrar lo vigilado»; escrita en
+  añadida: añádala de nuevo con su clave). Una clave escrita en la configuración antes de la versión 1.3.0 pasa sola a su red. Nunca aparece en los registros ni en «Mostrar lo vigilado»; escrita en
   «Añadir una red», se guarda con la red en el `/data` de la integración. La
   integración la pone donde el servidor la espera: `RequestorRef` en SIRI,
   autenticación HTTP para la CTS, parámetro `AccountKey` para los servidores
