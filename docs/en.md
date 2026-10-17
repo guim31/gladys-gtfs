@@ -226,7 +226,7 @@ TCL and IDFM, which publish it too, have their dedicated integrations.
   support, by email; CTS: an account on its developer portal). Type it in the **SIRI API key** field of "Add a network" (already added: add it again with its key). A key typed in the configuration before version 1.3.0 moves to its network by itself. It never shows in the logs or in "Show what is watched"; typed in "Add a
   network", it is kept with the network in the `/data` of the integration. The integration puts it where the server expects it:
   `RequestorRef` for SIRI, HTTP authentication for the CTS, the `AccountKey`
-  parameter for Mecatran servers. If your network wants it elsewhere, write
+  parameter for Mecatran servers, the `apiKey` parameter for Ginko. If your network wants it elsewhere, write
   `name=key` (URL parameter) or `Header-Name: key` (HTTP header).
 - **Stops**: SIRI names the stops with its own identifiers. The integration
   asks the server for its list of stops (once a day) and links them to those

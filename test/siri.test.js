@@ -11,7 +11,7 @@ import { readAlerts } from '../src/alerts.js';
 import { siriUrl } from '../src/catalog.js';
 import { resolveRedirects } from '../src/http.js';
 import { HostGates, SiriReader } from '../src/siri-feed.js';
-import { NotSiriError, scanStopPoints, soapEnvelope } from '../src/siri.js';
+import { NotSiriError, isAccessError, scanStopPoints, soapEnvelope } from '../src/siri.js';
 import { siriKeyFor } from '../src/config.js';
 import { parseGtfs } from '../src/gtfs.js';
 import {
@@ -111,6 +111,9 @@ test('the key goes where each platform wants it, or where the user says', () => 
   assert.deepEqual(keyPlacement(templated, 'k1'), { type: 'query', name: 'apiKey', value: 'k1' });
   assert.deepEqual(keyPlacement(unknown, 'k1'), { type: 'basic+header', value: 'k1' });
   assert.deepEqual(keyPlacement(soap, 'k1'), { type: 'requestor', value: 'k1' });
+  // Ginko, SOAP: the key goes in the URL (checked against its server, 17/10).
+  const ginko = siriEndpoint({ url: 'https://api.ginko.voyage/Siri/Siri.do', format: SIRI });
+  assert.deepEqual(keyPlacement(ginko, 'k1'), { type: 'query', name: 'apiKey', value: 'k1' });
   assert.deepEqual(keyPlacement(unknown, 'token=k1'), {
     type: 'query',
     name: 'token',
@@ -580,4 +583,15 @@ test('a big stop list (IRYS: 16,560 points, 5.6 MB) read block by block, like th
   );
   assert.equal(scanStopPoints('{"Siri":{}}'), null, 'JSON: read whole');
   assert.deepEqual(scanStopPoints(fixture('siri/soap-empty-answers.xml')), []);
+});
+
+test('Ginko: its JSON key errors under HTTP 200 are access errors, not an empty answer', () => {
+  for (const msg of [
+    "Une clé API est nécessaire pour utiliser l'API, plus d'information sur api.ginko.voyage",
+    'La clé donnée en paramètre est invalide',
+  ]) {
+    const error = siriError(parseSiri(JSON.stringify({ ok: false, msg })));
+    assert.deepEqual(error, { code: 'AccessNotAllowedError', text: msg });
+    assert.ok(isAccessError(error));
+  }
 });

@@ -234,8 +234,8 @@ dedicadas.
   añadida: añádala de nuevo con su clave). Una clave escrita en la configuración antes de la versión 1.3.0 pasa sola a su red. Nunca aparece en los registros ni en «Mostrar lo vigilado»; escrita en
   «Añadir una red», se guarda con la red en el `/data` de la integración. La
   integración la pone donde el servidor la espera: `RequestorRef` en SIRI,
-  autenticación HTTP para la CTS, parámetro `AccountKey` para los servidores
-  Mecatran. Si su red la quiere en otro sitio, escriba `nombre=clave`
+  autenticación HTTP para la CTS, parámetro `AccountKey` para los servidores Mecatran, parámetro `apiKey` para
+  Ginko. Si su red la quiere en otro sitio, escriba `nombre=clave`
   (parámetro de URL) o `Nombre-Cabecera: clave` (cabecera HTTP).
 - **Paradas**: SIRI designa las paradas con sus propios identificadores. La
   integración pide al servidor su lista de paradas (una vez al día) y las

@@ -413,7 +413,9 @@ utile** (`Feed.usesSiri`). Constaté, d'où, et ce qui reste à vérifier :
   `changesMap` par requestorId) : en SX on cumule par `SituationNumber`, on retire les closes et
   les terminées (`currentSituations`). Avec le RequestorRef public partagé `opendata`, d'autres
   clients consomment ces changements : à vérifier par deux lectures SX successives. Ginko
-  (`api.ginko.voyage/Siri/Siri.do`) sans clé : discovery 116 octets **vide**, GM vide → état
+  (`api.ginko.voyage/Siri/Siri.do`) : **clé en paramètre d'URL `apiKey`** (vérifié le 17/10 : sans
+  clé, JSON `{ "ok": false, "msg": "Une clé API est nécessaire…" }` en HTTP 200 ; mauvaise clé,
+  « La clé donnée en paramètre est invalide » ; dans `RequestorRef`, lue comme absente). Sans clé : discovery 116 octets **vide**, GM vide → état
   « répond sans aucun arrêt ni passage : clé requise ? » (`noData`). Idelis
   (`api.idelis.fr/siri.svc`), ARVI (Hanover, RequestorRef `open-data`) : 403 ; CTS : 401 sans clé
   (404 sur situation-exchange). TUB (IRYS, `…:8080/irys_server`) : `OtherError: [BAD_REQUEST] :

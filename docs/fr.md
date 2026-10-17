@@ -242,7 +242,8 @@ publient aussi, ont leurs intégrations dédiées.
   saisie dans « Ajouter un réseau », elle est gardée avec le réseau dans le
   `/data` de l'intégration. L'intégration la place là où le serveur
   l'attend : `RequestorRef` en SIRI, authentification HTTP pour la CTS,
-  paramètre `AccountKey` pour les serveurs Mecatran. Si votre réseau la
+  paramètre `AccountKey` pour les serveurs Mecatran, paramètre `apiKey`
+  pour Ginko. Si votre réseau la
   veut ailleurs, écrivez `nom=clé` (paramètre d'URL) ou `En-Tête: clé`
   (en-tête HTTP).
 - **Arrêts** : SIRI désigne les arrêts par ses propres identifiants.
