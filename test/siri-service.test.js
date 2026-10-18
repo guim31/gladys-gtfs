@@ -475,7 +475,7 @@ test('catalog: a SIRI Lite network without public key says where the key goes', 
   const added = await action(world, 'add_network', { network: 'tdg990001' });
   assert.match(
     fr(added),
-    /Temps réel : SIRI Lite, interrogé arrêt par arrêt\.\nSi le réseau demande une clé d'API, ajoutez à nouveau le réseau avec sa clé \(champ « Clé d'API SIRI »\)\./,
+    /Temps réel : SIRI Lite, interrogé arrêt par arrêt\.\nSi le réseau demande une clé d'API, ajoutez à nouveau le réseau avec sa clé \(champ « Clé d'API du réseau »\)\./,
   );
 });
 

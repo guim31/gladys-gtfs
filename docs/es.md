@@ -86,7 +86,7 @@ sustituye el nombre que se pone delante del de las paradas.
 **URL SIRI o SIRI Lite** (opcional): el tiempo real SIRI de una red
 fuera del catálogo, usado si no tiene GTFS-RT.
 
-**Clave de API SIRI** (opcional): la clave del tiempo real SIRI de esta red,
+**Clave de API de la red** (opcional): la clave del tiempo real SIRI de esta red,
 si pide una (vea «Tiempo real SIRI»).
 
 **Cambiar una red**: añádala de nuevo rellenando solo lo que cambia (nombre
@@ -230,12 +230,11 @@ dedicadas.
 - **Con clave**: muchos servidores piden una, gratuita, que se obtiene de la
   red; la página del conjunto de datos en transport.data.gouv.fr indica a
   quién pedirla (Ginko: su soporte, por correo; CTS: una cuenta en su portal
-  para desarrolladores). Escríbala en el campo **Clave de API SIRI** de «Añadir una red» (ya
+  para desarrolladores). Escríbala en el campo **Clave de API de la red** de «Añadir una red» (ya
   añadida: añádala de nuevo con su clave). Una clave escrita en la configuración antes de la versión 1.3.0 pasa sola a su red. Nunca aparece en los registros ni en «Mostrar lo vigilado»; escrita en
   «Añadir una red», se guarda con la red en el `/data` de la integración. La
   integración la pone donde el servidor la espera: `RequestorRef` en SIRI,
-  autenticación HTTP para la CTS, parámetro `AccountKey` para los servidores Mecatran, parámetro `apiKey` para
-  Ginko. Si su red la quiere en otro sitio, escriba `nombre=clave`
+  autenticación HTTP para la CTS, parámetro `AccountKey` para los servidores Mecatran, parámetro `apiKey` para Ginko. La misma clave sirve también para los flujos GTFS-RT de esas plataformas: Ginko publica uno fuera del catálogo, añada `https://api.ginko.voyage/GTFSRT/tripUpdates.do` en **URL GTFS-RT** de «Añadir una red». Si su red la quiere en otro sitio, escriba `nombre=clave`
   (parámetro de URL) o `Nombre-Cabecera: clave` (cabecera HTTP).
 - **Paradas**: SIRI designa las paradas con sus propios identificadores. La
   integración pide al servidor su lista de paradas (una vez al día) y las
@@ -284,7 +283,7 @@ dedicadas.
   tiempo real, o no para esos vehículos, o el flujo está caído (la acción
   «Mostrar lo vigilado» da el último error). Los horarios teóricos siguen funcionando.
 - **«Tiempo real (SIRI): el servidor ha rechazado el acceso»**: falta la
-  clave o no es la correcta (campo **Clave de API SIRI** de «Añadir una red»). Una clave dada de
+  clave o no es la correcta (campo **Clave de API de la red** de «Añadir una red»). Una clave dada de
   otra forma (parámetro de URL, cabecera) se escribe `nombre=clave` o
   `Nombre-Cabecera: clave`.
 - **Una línea muestra 1440**: ninguna salida en las próximas 24 horas

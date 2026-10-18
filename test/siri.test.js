@@ -11,7 +11,13 @@ import { readAlerts } from '../src/alerts.js';
 import { siriUrl } from '../src/catalog.js';
 import { resolveRedirects } from '../src/http.js';
 import { HostGates, SiriReader } from '../src/siri-feed.js';
-import { NotSiriError, isAccessError, scanStopPoints, soapEnvelope } from '../src/siri.js';
+import {
+  NotSiriError,
+  isAccessError,
+  realtimeRequest,
+  scanStopPoints,
+  soapEnvelope,
+} from '../src/siri.js';
 import { siriKeyFor } from '../src/config.js';
 import { parseGtfs } from '../src/gtfs.js';
 import {
@@ -594,4 +600,23 @@ test('Ginko: its JSON key errors under HTTP 200 are access errors, not an empty 
     assert.deepEqual(error, { code: 'AccessNotAllowedError', text: msg });
     assert.ok(isAccessError(error));
   }
+});
+
+test('GTFS-RT: the key of the network goes to known hosts only (Ginko, forum t/11150/18)', () => {
+  const ginko = 'https://api.ginko.voyage/GTFSRT/tripUpdates.do';
+  assert.deepEqual(realtimeRequest(ginko, 'K-123'), {
+    url: `${ginko}?apiKey=K-123`,
+    headers: {},
+  });
+  // An unknown host never gets the key as a guess…
+  const open = 'https://proxy.transport.data.gouv.fr/resource/x-gtfs-rt-trip-update';
+  assert.deepEqual(realtimeRequest(open, 'K-123'), { url: open, headers: {} });
+  // …unless the URL asks for it, or the user says where it goes.
+  assert.equal(
+    realtimeRequest('https://rt.example.org/tu.pb?token=YOUR_KEY', 'K-123').url,
+    'https://rt.example.org/tu.pb?token=K-123',
+  );
+  assert.deepEqual(realtimeRequest(open, 'X-Api-Key: K-123').headers, { 'X-Api-Key': 'K-123' });
+  assert.equal(realtimeRequest(open, 'apikey=K-123').url, `${open}?apikey=K-123`);
+  assert.deepEqual(realtimeRequest(ginko, ''), { url: ginko, headers: {} });
 });

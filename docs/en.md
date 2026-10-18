@@ -83,7 +83,7 @@ replaces the name put before the stop names.
 **SIRI or SIRI Lite URL** (optional): the SIRI real time of a network
 outside the catalog, used when it has no GTFS-RT.
 
-**SIRI API key** (optional): the key of the SIRI real time of this network,
+**Network API key** (optional): the key of the SIRI real time of this network,
 when it needs one (see "SIRI real time").
 
 **Change a network**: add it again and fill in only what changes (name
@@ -223,10 +223,10 @@ TCL and IDFM, which publish it too, have their dedicated integrations.
   there is nothing to do.
 - **With a key**: many servers ask for one, free, from the network; the page
   of the dataset on transport.data.gouv.fr tells whom to ask (Ginko: its
-  support, by email; CTS: an account on its developer portal). Type it in the **SIRI API key** field of "Add a network" (already added: add it again with its key). A key typed in the configuration before version 1.3.0 moves to its network by itself. It never shows in the logs or in "Show what is watched"; typed in "Add a
+  support, by email; CTS: an account on its developer portal). Type it in the **Network API key** field of "Add a network" (already added: add it again with its key). A key typed in the configuration before version 1.3.0 moves to its network by itself. It never shows in the logs or in "Show what is watched"; typed in "Add a
   network", it is kept with the network in the `/data` of the integration. The integration puts it where the server expects it:
   `RequestorRef` for SIRI, HTTP authentication for the CTS, the `AccountKey`
-  parameter for Mecatran servers, the `apiKey` parameter for Ginko. If your network wants it elsewhere, write
+  parameter for Mecatran servers, the `apiKey` parameter for Ginko. The same key also goes to the GTFS-RT feeds of these platforms: Ginko publishes one outside the catalog, add `https://api.ginko.voyage/GTFSRT/tripUpdates.do` in **GTFS-RT URLs** of "Add a network". If your network wants it elsewhere, write
   `name=key` (URL parameter) or `Header-Name: key` (HTTP header).
 - **Stops**: SIRI names the stops with its own identifiers. The integration
   asks the server for its list of stops (once a day) and links them to those
@@ -272,7 +272,7 @@ TCL and IDFM, which publish it too, have their dedicated integrations.
   or not for these vehicles, or the feed is down (the "Show what is watched"
   action gives the last error). The timetable keeps working.
 - **"Real time (SIRI): access refused by the server"**: the key is missing
-  or wrong (field **SIRI API key** of "Add a network"). A key given in another form (URL
+  or wrong (field **Network API key** of "Add a network"). A key given in another form (URL
   parameter, header) is written `name=key` or `Header-Name: key`.
 - **A line reads 1440**: no departure in the next 24 hours (night service, a
   line not running that day, a diversion).

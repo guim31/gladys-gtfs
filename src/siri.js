@@ -106,6 +106,43 @@ export function siriEndpoint({ url, format, requestorRef = null }) {
 }
 
 /**
+ * The key of a GTFS-RT feed of the network (Ginko publishes one beside its
+ * SIRI, behind the same apiKey, forum t/11150/18): sent only where it is
+ * known to go — a host of KNOWN_HOSTS, a key parameter already in the URL,
+ * or the form the user wrote ("name=value", "Name: value"). Never to an
+ * unknown host as a guess: the feeds of the catalog are often public.
+ * @returns {{ url: string, headers: object }}
+ */
+export function realtimeRequest(url, key) {
+  const plain = { url, headers: {} };
+  const raw = String(key ?? '').trim();
+  if (!raw) {
+    return plain;
+  }
+  let target;
+  try {
+    target = new URL(url);
+  } catch {
+    return plain;
+  }
+  const place = keyPlacement({ url, format: SIRI_LITE, query: target.searchParams }, raw);
+  const forced = /^[A-Za-z][\w-]*\s*:\s*\S|^[A-Za-z][\w.-]*=./.test(raw);
+  const known = KNOWN_HOSTS.some((entry) => entry.host.test(hostOf(url)));
+  const inUrl = [...target.searchParams.keys()].some((name) => KEY_PARAM.test(name));
+  if (!forced && !known && !inUrl) {
+    return plain;
+  }
+  if (place.type === 'query') {
+    target.searchParams.set(place.name, place.value);
+    return { url: target.toString(), headers: {} };
+  }
+  if (place.type === 'header') {
+    return { url, headers: { [place.name]: place.value } };
+  }
+  return plain;
+}
+
+/**
  * Where the key goes. The user may say it: "name=value" is a query parameter,
  * "Name: value" a header. A bare key goes to the RequestorRef of a SOAP
  * request; for a Lite server, to the parameter of the catalog URL that holds

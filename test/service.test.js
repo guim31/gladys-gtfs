@@ -706,3 +706,27 @@ test('the directions of a device parameter: spaces and dashes in names, directio
   ]);
   assert.deepEqual(parseTowards(''), []);
 });
+
+test('a GTFS-RT feed of Ginko gets the key of its network, never shown', async (t) => {
+  const GINKO_RT = 'https://api.ginko.voyage/GTFSRT/tripUpdates.do';
+  const network = createFetch({
+    [`${GINKO_RT}?apiKey=GINKO-KEY-1`]: fixture('gtfs/tisseo-gtfsrt-sample.pb'),
+  });
+  const world = await createWorld({ networks: [], network });
+  t.after(() => world.app.stop());
+  await action(world, 'add_network', {
+    network: GTFS_URL,
+    name: 'Ginko',
+    realtime: GINKO_RT,
+    siri_key: 'GINKO-KEY-1',
+  });
+  await action(world, 'add_stop', { stop: 'SA_1707' });
+  await world.service.refreshAll();
+  assert.ok(network.calls.some((c) => c.url === `${GINKO_RT}?apiKey=GINKO-KEY-1`));
+  assert.match(fr(await action(world, 'status', {})), /Temps réel : mis à jour/);
+  // A refused key: the status says the error, not the key.
+  network.routes[`${GINKO_RT}?apiKey=GINKO-KEY-1`] = 403;
+  world.clock.advance(5 * 60_000);
+  await world.service.refreshAll();
+  assert.doesNotMatch(fr(await action(world, 'status', {})), /GINKO-KEY-1/);
+});

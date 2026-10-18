@@ -10,6 +10,12 @@ the notes of the version's GitHub Release.
 
 ## [Unreleased]
 
+### Fixed
+
+- The key of a network was only used for its SIRI real time: it now also goes
+  to the GTFS-RT feeds of the platforms that need it (Ginko, whose GTFS-RT
+  feed is outside the catalog), and the field is named "Network API key".
+
 ## [1.3.1] - 2026-10-17
 
 ### Fixed
