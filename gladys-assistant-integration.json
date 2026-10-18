@@ -309,16 +309,16 @@
           "type": "string",
           "required": false,
           "label": {
-            "en": "SIRI API key (optional)",
-            "fr": "Clé d'API SIRI (facultatif)",
-            "de": "SIRI-API-Schlüssel (optional)",
-            "es": "Clave de API SIRI (opcional)"
+            "en": "Network API key (optional)",
+            "fr": "Clé d'API du réseau (facultatif)",
+            "de": "API-Schlüssel des Netzes (optional)",
+            "es": "Clave de API de la red (opcional)"
           },
           "description": {
-            "en": "Only if the realtime of this network is SIRI and needs a key (e.g. Ginko, CTS). To change it, add the network again with the new key. Never shown in the logs.",
-            "fr": "Seulement si le temps réel de ce réseau est en SIRI avec clé (ex. Ginko, CTS). Pour la changer, ajoutez à nouveau le réseau avec la nouvelle. Jamais dans les journaux.",
-            "de": "Nur wenn die Echtzeit dieses Netzes SIRI mit Schlüssel ist (z. B. Ginko, CTS). Zum Ändern füge das Netz erneut mit dem neuen hinzu. Nie in den Protokollen.",
-            "es": "Solo si el tiempo real de esta red es SIRI con clave (p. ej. Ginko, CTS). Para cambiarla, añada de nuevo la red con la nueva. Nunca en los registros."
+            "en": "Only if the realtime of this network (SIRI, or a GTFS-RT feed of a known platform such as Ginko) needs a key. To change it, add the network again with the new key. Never shown in the logs.",
+            "fr": "Seulement si le temps réel de ce réseau (SIRI, ou un flux GTFS-RT d'une plateforme connue comme Ginko) demande une clé. Pour la changer, ajoutez à nouveau le réseau. Jamais dans les journaux.",
+            "de": "Nur wenn die Echtzeit dieses Netzes (SIRI oder ein GTFS-RT-Feed einer bekannten Plattform wie Ginko) einen Schlüssel verlangt. Zum Ändern füge das Netz erneut hinzu. Nie in den Protokollen.",
+            "es": "Solo si el tiempo real de esta red (SIRI, o un flujo GTFS-RT de una plataforma conocida como Ginko) pide una clave. Para cambiarla, añada de nuevo la red. Nunca en los registros."
           }
         },
         {

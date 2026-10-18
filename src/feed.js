@@ -21,6 +21,7 @@ import { decodeFeed } from './gtfsrt.js';
 import { parseGtfs } from './gtfs.js';
 import { downloadFile, getBuffer, hostOf } from './http.js';
 import { SiriReader } from './siri-feed.js';
+import { realtimeRequest, redact } from './siri.js';
 import { localDate } from './time.js';
 
 const logger = createLogger({ name: 'gtfs-feed' });
@@ -297,10 +298,13 @@ export class Feed {
         continue;
       }
       this.tried.set(url, now);
+      const key = this.key();
+      const request = realtimeRequest(url, key);
       try {
-        const { body, etag, notModified } = await getBuffer(this.fetch, url, {
+        const { body, etag, notModified } = await getBuffer(this.fetch, request.url, {
           etag: part?.feed ? part.etag : null,
           maxBytes: REALTIME_MAX_BYTES,
+          headers: request.headers,
         });
         if (!notModified) {
           bytes += body.length;
@@ -309,7 +313,8 @@ export class Feed {
           part.at = now;
         }
       } catch (err) {
-        errors.push(err.message);
+        // The URL may carry the key: never in the logs nor the status.
+        errors.push(redact(err.message, key));
       }
     }
     if (bytes > 0) {

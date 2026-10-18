@@ -215,12 +215,12 @@ export const REPORTS = {
     siriShort: 'departures stop by stop (SIRI)',
     networkSiri: ({ format }) => `Real time: ${format}, asked stop by stop.`,
     siriKeyHint:
-      'If the network asks for an API key, add the network again with its key (field "SIRI API key").',
+      'If the network asks for an API key, add the network again with its key (field "Network API key").',
     siriRealtime: ({ format, age, tracked, requests }) =>
       `Real time (${format}): updated ${age} s ago, ${tracked} departure(s) tracked, ${requests} request(s) per refresh while departures are scheduled.`,
     siriWaiting: ({ format }) => `Real time (${format}): not read yet.`,
     siriKeyRefused:
-      'Real time (SIRI): access refused by the server. Check its API key: add the network again with the right one (field "SIRI API key").',
+      'Real time (SIRI): access refused by the server. Check its API key: add the network again with the right one (field "Network API key").',
     siriUnknownStops: ({ stops }) =>
       `Stops unknown to the SIRI server: ${stops}. Give their SIRI identifier with "Add a stop".`,
     siriRef: ({ refs }) => `SIRI identifier: ${refs}.`,
@@ -308,12 +308,12 @@ export const REPORTS = {
     siriShort: 'passages arrêt par arrêt (SIRI)',
     networkSiri: ({ format }) => `Temps réel : ${format}, interrogé arrêt par arrêt.`,
     siriKeyHint:
-      "Si le réseau demande une clé d'API, ajoutez à nouveau le réseau avec sa clé (champ « Clé d'API SIRI »).",
+      "Si le réseau demande une clé d'API, ajoutez à nouveau le réseau avec sa clé (champ « Clé d'API du réseau »).",
     siriRealtime: ({ format, age, tracked, requests }) =>
       `Temps réel (${format}) : mis à jour il y a ${age} s, ${tracked} passage(s) suivi(s), ${requests} requête(s) par rafraîchissement quand des passages sont prévus.`,
     siriWaiting: ({ format }) => `Temps réel (${format}) : pas encore lu.`,
     siriKeyRefused:
-      "Temps réel (SIRI) : accès refusé par le serveur. Vérifiez sa clé d'API : ajoutez à nouveau le réseau avec la bonne (champ « Clé d'API SIRI »).",
+      "Temps réel (SIRI) : accès refusé par le serveur. Vérifiez sa clé d'API : ajoutez à nouveau le réseau avec la bonne (champ « Clé d'API du réseau »).",
     siriUnknownStops: ({ stops }) =>
       `Arrêts inconnus du serveur SIRI : ${stops}. Donnez leur identifiant SIRI avec « Ajouter un arrêt ».`,
     siriRef: ({ refs }) => `Identifiant SIRI : ${refs}.`,
@@ -399,12 +399,12 @@ export const REPORTS = {
     siriShort: 'Abfahrten je Haltestelle (SIRI)',
     networkSiri: ({ format }) => `Echtzeit: ${format}, je Haltestelle abgefragt.`,
     siriKeyHint:
-      'Wenn das Netz einen API-Schlüssel verlangt, füge das Netz erneut mit seinem Schlüssel hinzu (Feld „SIRI-API-Schlüssel“).',
+      'Wenn das Netz einen API-Schlüssel verlangt, füge das Netz erneut mit seinem Schlüssel hinzu (Feld „API-Schlüssel des Netzes“).',
     siriRealtime: ({ format, age, tracked, requests }) =>
       `Echtzeit (${format}): vor ${age} s aktualisiert, ${tracked} Abfahrt(en) verfolgt, ${requests} Anfrage(n) pro Aktualisierung, solange Abfahrten anstehen.`,
     siriWaiting: ({ format }) => `Echtzeit (${format}): noch nicht gelesen.`,
     siriKeyRefused:
-      'Echtzeit (SIRI): Zugriff vom Server verweigert. Prüfe den API-Schlüssel des Netzes: füge es erneut mit dem richtigen hinzu (Feld „SIRI-API-Schlüssel“).',
+      'Echtzeit (SIRI): Zugriff vom Server verweigert. Prüfe den API-Schlüssel des Netzes: füge es erneut mit dem richtigen hinzu (Feld „API-Schlüssel des Netzes“).',
     siriUnknownStops: ({ stops }) =>
       `Dem SIRI-Server unbekannte Haltestellen: ${stops}. Gib ihre SIRI-Kennung mit „Haltestelle hinzufügen“ an.`,
     siriRef: ({ refs }) => `SIRI-Kennung: ${refs}.`,
@@ -492,12 +492,12 @@ export const REPORTS = {
     siriShort: 'salidas parada por parada (SIRI)',
     networkSiri: ({ format }) => `Tiempo real: ${format}, consultado parada por parada.`,
     siriKeyHint:
-      'Si la red pide una clave de API, añada de nuevo la red con su clave (campo «Clave de API SIRI»).',
+      'Si la red pide una clave de API, añada de nuevo la red con su clave (campo «Clave de API de la red»).',
     siriRealtime: ({ format, age, tracked, requests }) =>
       `Tiempo real (${format}): actualizado hace ${age} s, ${tracked} salida(s) seguida(s), ${requests} petición(es) por actualización mientras haya salidas previstas.`,
     siriWaiting: ({ format }) => `Tiempo real (${format}): aún sin leer.`,
     siriKeyRefused:
-      'Tiempo real (SIRI): el servidor ha rechazado el acceso. Compruebe su clave de API: añada de nuevo la red con la correcta (campo «Clave de API SIRI»).',
+      'Tiempo real (SIRI): el servidor ha rechazado el acceso. Compruebe su clave de API: añada de nuevo la red con la correcta (campo «Clave de API de la red»).',
     siriUnknownStops: ({ stops }) =>
       `Paradas desconocidas para el servidor SIRI: ${stops}. Indique su identificador SIRI con «Añadir una parada».`,
     siriRef: ({ refs }) => `Identificador SIRI: ${refs}.`,

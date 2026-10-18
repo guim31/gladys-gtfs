@@ -89,7 +89,7 @@ Name** ersetzt den Namen vor den Haltestellennamen.
 **SIRI- oder SIRI-Lite-URL** (optional): die SIRI-Echtzeit eines Netzes
 außerhalb des Katalogs, genutzt, wenn es kein GTFS-RT hat.
 
-**SIRI-API-Schlüssel** (optional): der Schlüssel der SIRI-Echtzeit dieses
+**API-Schlüssel des Netzes** (optional): der Schlüssel der SIRI-Echtzeit dieses
 Netzes, wenn es einen verlangt (siehe „SIRI-Echtzeit“).
 
 **Ein Netz ändern**: Füge es erneut hinzu und fülle nur aus, was sich ändert
@@ -240,12 +240,12 @@ eigene Integrationen.
 - **Mit Schlüssel**: Viele Server verlangen einen, kostenlos beim Netz zu
   bekommen; die Seite des Datensatzes auf transport.data.gouv.fr sagt, bei
   wem (Ginko: sein Support per E-Mail; CTS: ein Konto auf seinem
-  Entwicklerportal). Gib ihn im Feld **SIRI-API-Schlüssel** von „Netz hinzufügen“ ein (schon
+  Entwicklerportal). Gib ihn im Feld **API-Schlüssel des Netzes** von „Netz hinzufügen“ ein (schon
   hinzugefügt: füge es erneut mit seinem Schlüssel hinzu). Ein vor Version 1.3.0 in der Konfiguration eingegebener Schlüssel wandert von selbst zu seinem Netz. Er erscheint nie in den Protokollen oder in „Überwachung anzeigen“; in
   „Netz hinzufügen“ eingegeben, wird er mit dem Netz im `/data` der
   Integration gespeichert. Die Integration setzt ihn dort ein,
   wo der Server ihn erwartet: `RequestorRef` bei SIRI, HTTP-Authentifizierung
-  bei der CTS, Parameter `AccountKey` bei Mecatran-Servern, Parameter `apiKey` bei Ginko. Will dein Netz
+  bei der CTS, Parameter `AccountKey` bei Mecatran-Servern, Parameter `apiKey` bei Ginko. Derselbe Schlüssel gilt auch für die GTFS-RT-Feeds dieser Plattformen: Ginko veröffentlicht einen außerhalb des Katalogs, füge `https://api.ginko.voyage/GTFSRT/tripUpdates.do` unter **GTFS-RT-URLs** von „Netz hinzufügen“ hinzu. Will dein Netz
   ihn woanders, schreib `name=Schlüssel` (URL-Parameter) oder
   `Header-Name: Schlüssel` (HTTP-Header).
 - **Haltestellen**: SIRI benennt die Haltestellen mit eigenen Kennungen. Die
@@ -296,7 +296,7 @@ eigene Integrationen.
   ist ausgefallen (die Aktion „Überwachung anzeigen“ zeigt den letzten Fehler). Der
   Fahrplan funktioniert weiter.
 - **„Echtzeit (SIRI): Zugriff vom Server verweigert“**: Der Schlüssel
-  fehlt oder ist falsch (Feld **SIRI-API-Schlüssel** von „Netz hinzufügen“). Ein Schlüssel in
+  fehlt oder ist falsch (Feld **API-Schlüssel des Netzes** von „Netz hinzufügen“). Ein Schlüssel in
   anderer Form (URL-Parameter, Header) wird als `name=Schlüssel` oder
   `Header-Name: Schlüssel` geschrieben.
 - **Eine Linie zeigt 1440**: keine Abfahrt in den nächsten 24 Stunden

@@ -89,7 +89,7 @@ nom placé devant celui des arrêts.
 **URL SIRI ou SIRI Lite** (facultatif) : le temps réel SIRI d'un réseau
 hors catalogue, utilisé s'il n'a pas de GTFS-RT.
 
-**Clé d'API SIRI** (facultatif) : la clé du temps réel SIRI de ce réseau,
+**Clé d'API du réseau** (facultatif) : la clé du temps réel SIRI de ce réseau,
 s'il en demande une (voir « Temps réel SIRI »).
 
 **Modifier un réseau** : ajoutez-le à nouveau en ne remplissant que ce qui
@@ -237,13 +237,12 @@ publient aussi, ont leurs intégrations dédiées.
 - **Avec clé** : beaucoup de serveurs en demandent une, gratuite, à obtenir
   auprès du réseau ; la page du jeu de données sur transport.data.gouv.fr
   dit à qui la demander (Ginko : son support, par courriel ; CTS : un compte
-  sur son portail développeur). Saisissez-la dans le champ **Clé d'API SIRI** de « Ajouter un réseau » (déjà
+  sur son portail développeur). Saisissez-la dans le champ **Clé d'API du réseau** de « Ajouter un réseau » (déjà
   ajouté : ajoutez-le à nouveau avec sa clé). Une clé saisie dans la configuration avant la version 1.3.0 passe d'elle-même sur son réseau. Elle n'apparaît ni dans les journaux, ni dans « Afficher la surveillance » ;
   saisie dans « Ajouter un réseau », elle est gardée avec le réseau dans le
   `/data` de l'intégration. L'intégration la place là où le serveur
   l'attend : `RequestorRef` en SIRI, authentification HTTP pour la CTS,
-  paramètre `AccountKey` pour les serveurs Mecatran, paramètre `apiKey`
-  pour Ginko. Si votre réseau la
+  paramètre `AccountKey` pour les serveurs Mecatran, paramètre `apiKey` pour Ginko. La même clé sert aussi aux flux GTFS-RT de ces plateformes : Ginko en publie un hors catalogue, ajoutez `https://api.ginko.voyage/GTFSRT/tripUpdates.do` dans **URL GTFS-RT** de « Ajouter un réseau ». Si votre réseau la
   veut ailleurs, écrivez `nom=clé` (paramètre d'URL) ou `En-Tête: clé`
   (en-tête HTTP).
 - **Arrêts** : SIRI désigne les arrêts par ses propres identifiants.
@@ -296,7 +295,7 @@ publient aussi, ont leurs intégrations dédiées.
   « Afficher la surveillance » donne la dernière erreur). Les horaires théoriques continuent de
   fonctionner.
 - **« Temps réel (SIRI) : accès refusé par le serveur »** : la clé manque
-  ou n'est pas la bonne (champ **Clé d'API SIRI** de « Ajouter un réseau »). Une clé fournie sous
+  ou n'est pas la bonne (champ **Clé d'API du réseau** de « Ajouter un réseau »). Une clé fournie sous
   une autre forme (paramètre d'URL, en-tête) s'écrit `nom=clé` ou
   `En-Tête: clé`.
 - **Une ligne affiche 1440** : aucun passage dans les 24 heures (service de
