@@ -1,6 +1,6 @@
 {
   "name": "gladys-gtfs",
-  "version": "1.3.2",
+  "version": "1.3.3",
   "private": true,
   "description": "Gladys Assistant integration: next departures and traffic alerts for any French public transport network (GTFS, GTFS-RT, transport.data.gouv.fr).",
   "type": "module",
