@@ -10,6 +10,14 @@ the notes of the version's GitHub Release.
 
 ## [Unreleased]
 
+## [1.3.3] - 2026-10-22
+
+### Security
+
+- Rebuilt on Node.js 24.22.1, the October 2026 security release (remote code
+  execution in the Brotli decoder, CVE-2026-111497; TLS hostname and DNS
+  fixes).
+
 ## [1.3.2] - 2026-10-18
 
 ### Fixed
@@ -89,7 +97,8 @@ the notes of the version's GitHub Release.
 - Scene action "Read the next departures", with a sentence ready to send.
 - Texts in English, French, German and Spanish.
 
-[Unreleased]: https://github.com/guim31/gladys-gtfs/compare/v1.3.2...HEAD
+[Unreleased]: https://github.com/guim31/gladys-gtfs/compare/v1.3.3...HEAD
+[1.3.3]: https://github.com/guim31/gladys-gtfs/compare/v1.3.2...v1.3.3
 [1.3.2]: https://github.com/guim31/gladys-gtfs/compare/v1.3.1...v1.3.2
 [1.3.1]: https://github.com/guim31/gladys-gtfs/compare/v1.3.0...v1.3.1
 [1.3.0]: https://github.com/guim31/gladys-gtfs/compare/v1.2.0...v1.3.0
