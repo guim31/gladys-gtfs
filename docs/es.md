@@ -38,7 +38,7 @@ red indica lo que publica cada una.
 
 ## Requisitos
 
-- Gladys 5.1 o posterior, con acceso a Internet.
+- Gladys 5.3 o posterior, con acceso a Internet.
 - Para listar las paradas **alrededor de su casa**: la posición de su casa en
   Gladys (**Configuración → Viviendas**). La integración la solicita al
   instalarse (`location`): lee las coordenadas de sus viviendas, nada más, y
