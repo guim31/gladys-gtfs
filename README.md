@@ -31,7 +31,7 @@ go further; Île-de-France is too big for this one.
 
 ## Requirements
 
-- Gladys Assistant 5.1.0 or later, with Internet access.
+- Gladys Assistant 5.3.0 or later, with Internet access.
 - Optional: the position of your house in Gladys, to list the stops around it.
 
 ## Installation

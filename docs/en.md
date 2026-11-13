@@ -36,7 +36,7 @@ tells what each one publishes.
 
 ## Requirements
 
-- Gladys 5.1 or later, with Internet access.
+- Gladys 5.3 or later, with Internet access.
 - To list the stops **around your home**: the position of your house in
   Gladys (**Settings → Houses**). The integration asks for it at installation
   (`location`): it reads the coordinates of your houses, nothing else, and

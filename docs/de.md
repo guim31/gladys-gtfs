@@ -38,7 +38,7 @@ Fahrplan“. Die Netzsuche zeigt, was jedes Netz veröffentlicht.
 
 ## Voraussetzungen
 
-- Gladys 5.1 oder neuer, mit Internetzugang.
+- Gladys 5.3 oder neuer, mit Internetzugang.
 - Um die Haltestellen **rund um dein Zuhause** aufzulisten: die Position
   deines Zuhauses in Gladys (**Einstellungen → Zuhause**). Die Integration
   fragt bei der Installation danach (`location`) und liest dabei die Koordinaten

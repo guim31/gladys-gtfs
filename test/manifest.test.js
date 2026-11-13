@@ -184,3 +184,8 @@ test('the catalog description holds 10 to 100 characters per language', () => {
     assert.ok(text.length >= 10 && text.length <= 100, `description.${lang}: ${text.length}`);
   }
 });
+
+test('the catalog countries: France, which needs Gladys >= 5.3.0', () => {
+  assert.deepEqual(manifest.countries, ['FR']);
+  assert.match(manifest.gladys_version, /^>=\s*5\.3\.0$/, 'countries needs Gladys 5.3.0');
+});
