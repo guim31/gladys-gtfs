@@ -10,6 +10,8 @@ the notes of the version's GitHub Release.
 
 ## [Unreleased]
 
+## [1.3.4] - 2026-11-13
+
 ### Changed
 
 - Declared for France only (`countries: ["FR"]`): the Gladys catalog of an
@@ -103,7 +105,8 @@ the notes of the version's GitHub Release.
 - Scene action "Read the next departures", with a sentence ready to send.
 - Texts in English, French, German and Spanish.
 
-[Unreleased]: https://github.com/guim31/gladys-gtfs/compare/v1.3.3...HEAD
+[Unreleased]: https://github.com/guim31/gladys-gtfs/compare/v1.3.4...HEAD
+[1.3.4]: https://github.com/guim31/gladys-gtfs/compare/v1.3.3...v1.3.4
 [1.3.3]: https://github.com/guim31/gladys-gtfs/compare/v1.3.2...v1.3.3
 [1.3.2]: https://github.com/guim31/gladys-gtfs/compare/v1.3.1...v1.3.2
 [1.3.1]: https://github.com/guim31/gladys-gtfs/compare/v1.3.0...v1.3.1
